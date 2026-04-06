@@ -106,6 +106,26 @@ docker-compose up -d     # Start in background
 
 ## Development Workflow (for Codex)
 
+### How Tasks Are Structured
+
+Tasks are decomposed using **domain-first, full-stack vertical slicing**:
+
+- Each task represents one complete feature domain (e.g., "photo management"), NOT a horizontal layer (e.g., "all models")
+- Each task includes: backend models + API routes + service logic + frontend UI + tests
+- Tasks are ordered by data model hierarchy: infrastructure → core entities → derived features → deployment
+- Tasks declare explicit dependencies; a task can only start after ALL its dependencies are merged
+- Each task has its own detail file in `docs/tasks/` that is self-contained — you can implement the task by reading only the detail file + this conventions file
+
+**Task detail file structure:**
+- **Scope**: what this task implements (1-2 sentences)
+- **Dependencies**: which tasks must be merged first
+- **Files**: exact files to create/modify, with (create) or (modify) annotation
+- **API Contracts**: request/response schemas for each endpoint
+- **Acceptance Criteria**: checklist of verifiable conditions
+- **Tests**: what to test in backend and frontend
+
+**Important**: Do not modify files outside of your task's listed scope unless absolutely necessary. Each task is designed to minimize file overlap with other tasks.
+
 ### How to Pick Up a Task
 
 1. Read the task planning document in `docs/tasks/` to find your assigned sub-task

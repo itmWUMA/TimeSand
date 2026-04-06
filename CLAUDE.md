@@ -156,6 +156,50 @@ Requirement Alignment → Task Planning → Parallel Development → Integration
   - Branch name: `feat/<task-slug>`
 - Task document format: see `docs/tasks/README.md`
 
+#### Task Decomposition Methodology
+
+**Splitting axis: domain-first, full-stack vertical slice**
+
+Each task represents one complete feature domain, NOT a horizontal layer. A task includes backend models + API routes + service logic + frontend UI + tests for that domain. This ensures each task is independently buildable and testable.
+
+Bad split (horizontal): "Task A: all SQLModel models", "Task B: all API routes"
+Good split (vertical): "Task A: photo management (model + API + service + UI + tests)"
+
+**Splitting logic (ordered by priority):**
+
+1. **Data model hierarchy** — start from foundational models, work outward:
+   - Phase 1: Infrastructure/scaffolding (project setup, DB config, shared utilities)
+   - Phase 2: Core entities (primary data models that other features depend on)
+   - Phase 3: Derived features (features that consume core entities, maximally parallel)
+   - Phase 4: Cross-cutting concerns (deployment, integration, settings)
+
+2. **Minimize file overlap** — no two tasks should create/modify the same file if possible:
+   - If overlap is unavoidable, the earlier task creates the file, later tasks modify it
+   - Shared code (e.g., `main.py` router registration) should be owned by the task that creates the base, with later tasks making minimal additions
+
+3. **Explicit dependency graph** — every task declares upstream dependencies:
+   - Dependencies determine execution phases (tasks with same deps → parallel)
+   - Draw the graph in the overview file to visualize parallelism opportunities
+   - A task can only start after ALL its dependencies are merged to `main`
+
+4. **Maximize parallelism** — group independent tasks into execution phases:
+   - Sequential phases for tasks with dependency chains
+   - Within each phase, all tasks can run concurrently
+   - Identify the critical path and minimize its length
+
+**Granularity guidelines:**
+
+- One task = one feature a developer can complete in a focused session
+- Too large: "implement the entire backend" → split by domain
+- Too small: "create the Photo model file" → merge with related API/UI work
+- Sweet spot: "photo management" = model + API + service + UI + tests for photos
+
+**Output structure:**
+
+- One overview file: `docs/tasks/<plan-name>.md` — dependency graph, sub-task index table, execution phases, shared conventions
+- One detail file per sub-task: `docs/tasks/<plan-name>-NN-<task-slug>.md` — scope, files list (with create/modify), API contracts, acceptance criteria, tests
+- Detail files are self-contained: an agent can implement the task by reading only the detail file + project conventions
+
 ### 3. Parallel Development (Codex)
 
 - Each sub-task is developed on its own `feat/<task-slug>` branch
