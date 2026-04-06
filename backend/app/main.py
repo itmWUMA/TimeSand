@@ -32,7 +32,7 @@ def resolve_frontend_dist() -> Path | None:
     )
 
     for candidate in candidates:
-        if candidate.exists():
+        if candidate.is_dir() and (candidate / "index.html").is_file():
             return candidate
 
     return None
@@ -53,13 +53,20 @@ def configure_spa_routes(app: FastAPI, frontend_dist: Path | None) -> None:
     frontend_dist = frontend_dist.resolve()
     index_file = frontend_dist / "index.html"
 
+    reserved_paths: set[str] = {"api"}
+    for route_path in (app.docs_url, app.redoc_url, app.openapi_url):
+        if route_path:
+            reserved_paths.add(route_path.lstrip("/"))
+
     assets_dir = frontend_dist / "assets"
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_spa(full_path: str):
-        if full_path == "api" or full_path.startswith("api/"):
+        if full_path in reserved_paths or any(
+            full_path.startswith(f"{p}/") for p in reserved_paths
+        ):
             raise HTTPException(status_code=404)
 
         if full_path:
