@@ -5,11 +5,7 @@ from collections.abc import Generator
 from sqlalchemy import text
 from sqlmodel import Session, SQLModel, create_engine
 
-from app import models  # noqa: F401
-
 from .config import settings
-
-settings.data_dir.mkdir(parents=True, exist_ok=True)
 
 engine = create_engine(
     settings.database_url,
@@ -18,6 +14,9 @@ engine = create_engine(
 
 
 def create_db_and_tables() -> None:
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    from app import models  # noqa: F401
+
     with engine.begin() as connection:
         connection.execute(text("SELECT 1"))
     SQLModel.metadata.create_all(engine)

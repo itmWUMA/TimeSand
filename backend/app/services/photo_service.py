@@ -77,8 +77,13 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
             original_path = get_original_path(original_name)
             thumbnail_path = get_thumbnail_path(thumbnail_name)
 
-            original_path.write_bytes(data)
-            save_thumbnail(image, thumbnail_path, suffix)
+            try:
+                original_path.write_bytes(data)
+                save_thumbnail(image, thumbnail_path, suffix)
+            except OSError:
+                original_path.unlink(missing_ok=True)
+                thumbnail_path.unlink(missing_ok=True)
+                raise
 
     except UnidentifiedImageError as exc:
         raise InvalidPhotoUploadError("Invalid image file") from exc

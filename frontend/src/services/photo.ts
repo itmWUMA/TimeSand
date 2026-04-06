@@ -21,9 +21,6 @@ export const uploadPhotos = async (
   });
 
   const response = await api.post<{ photos: Photo[] }>("/photos/upload", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    },
     onUploadProgress: (event: AxiosProgressEvent) => {
       if (!onProgress || !event.total) {
         return;

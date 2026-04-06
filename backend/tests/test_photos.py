@@ -4,11 +4,16 @@ import uuid
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from PIL import Image
 from PIL.TiffImagePlugin import IFDRational
 from fastapi.testclient import TestClient
+from sqlmodel import create_engine
 
+from app.api import photos as photos_api
+from app.core import database
 from app.core.config import settings
+from app.services import photo_service
 
 
 def build_jpeg_bytes(width: int = 1200, height: int = 800, with_exif: bool = True) -> bytes:
@@ -88,6 +93,61 @@ def test_upload_rejects_non_image(client: TestClient) -> None:
 
     assert response.status_code == 400
     assert response.json() == {"detail": "No valid image files provided"}
+
+
+def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(photos_api, "MAX_UPLOAD_BYTES", 1024)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("too-large.jpg", build_jpeg_bytes(), "image/jpeg"))]
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "File too large"}
+
+
+def test_create_photo_rolls_back_file_on_thumbnail_failure(
+    test_data_dir: Path,
+    monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail_thumbnail(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(photo_service, "save_thumbnail", fail_thumbnail)
+
+    with pytest.raises(OSError):
+        photo_service.create_photo_from_upload(
+            filename="photo.jpg",
+            mime_type="image/jpeg",
+            data=build_jpeg_bytes(with_exif=False)
+        )
+
+    originals_dir = test_data_dir / "photos" / "originals"
+    thumbnails_dir = test_data_dir / "photos" / "thumbnails"
+    assert list(originals_dir.glob("*")) == []
+    assert list(thumbnails_dir.glob("*")) == []
+
+
+def test_create_db_and_tables_creates_data_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data_dir = tmp_path / "missing-parent" / "data"
+    test_engine = create_engine(
+        f"sqlite:///{(data_dir / 'timesand.db').as_posix()}",
+        connect_args={"check_same_thread": False}
+    )
+
+    monkeypatch.setattr(settings, "data_dir", data_dir)
+    monkeypatch.setattr(database, "engine", test_engine)
+
+    database.create_db_and_tables()
+
+    assert data_dir.exists()
+    assert (data_dir / "timesand.db").exists()
+
+    test_engine.dispose()
 
 
 def test_get_photos_returns_paginated_response(client: TestClient) -> None:

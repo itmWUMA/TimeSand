@@ -14,6 +14,8 @@ from app.services import photo_service
 from app.services.photo_service import InvalidPhotoUploadError
 
 router = APIRouter(prefix="/api/photos", tags=["photos"])
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 
 class UploadPhotosResponse(BaseModel):
@@ -39,6 +41,22 @@ def get_photo_or_404(photo_id: int, session: Session) -> Photo:
     return photo
 
 
+async def read_upload_file_with_limit(upload_file: UploadFile, max_bytes: int | None = None) -> bytes:
+    size_limit = max_bytes if max_bytes is not None else MAX_UPLOAD_BYTES
+    buffer = bytearray()
+
+    while True:
+        chunk = await upload_file.read(UPLOAD_CHUNK_SIZE)
+        if not chunk:
+            break
+
+        buffer.extend(chunk)
+        if len(buffer) > size_limit:
+            raise HTTPException(status_code=413, detail="File too large")
+
+    return bytes(buffer)
+
+
 @router.post("/upload", response_model=UploadPhotosResponse, status_code=201)
 async def upload_photos(
     files: list[UploadFile] | None = File(default=None),
@@ -46,24 +64,33 @@ async def upload_photos(
 ) -> UploadPhotosResponse:
     uploaded: list[Photo] = []
 
-    for upload_file in files or []:
-        file_bytes = await upload_file.read()
-        try:
-            photo = photo_service.create_photo_from_upload(
-                filename=upload_file.filename,
-                mime_type=upload_file.content_type,
-                data=file_bytes
-            )
-        except InvalidPhotoUploadError:
-            continue
+    try:
+        for upload_file in files or []:
+            try:
+                file_bytes = await read_upload_file_with_limit(upload_file)
+                photo = photo_service.create_photo_from_upload(
+                    filename=upload_file.filename,
+                    mime_type=upload_file.content_type,
+                    data=file_bytes
+                )
+            except InvalidPhotoUploadError:
+                continue
+            finally:
+                await upload_file.close()
 
-        session.add(photo)
-        uploaded.append(photo)
+            session.add(photo)
+            uploaded.append(photo)
 
-    if not uploaded:
-        raise HTTPException(status_code=400, detail="No valid image files provided")
+        if not uploaded:
+            raise HTTPException(status_code=400, detail="No valid image files provided")
 
-    session.commit()
+        session.commit()
+    except Exception:
+        session.rollback()
+        for photo in uploaded:
+            photo_service.delete_photo_files(photo)
+        raise
+
     for photo in uploaded:
         session.refresh(photo)
 
@@ -74,13 +101,8 @@ async def upload_photos(
 def list_photos(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    album_id: int | None = None,
-    tag_id: int | None = None,
     session: Session = Depends(get_session)
 ) -> ListPhotosResponse:
-    del album_id
-    del tag_id
-
     total = session.exec(select(func.count()).select_from(Photo)).one()
     items = session.exec(
         select(Photo)
