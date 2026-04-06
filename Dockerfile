@@ -3,8 +3,9 @@
 FROM oven/bun:1 AS frontend-builder
 WORKDIR /frontend
 COPY frontend/package.json ./package.json
+COPY frontend/bun.lock ./bun.lock
 COPY frontend/.npmrc ./.npmrc
-RUN bun install
+RUN bun install --frozen-lockfile
 COPY frontend .
 RUN bun run build
 
