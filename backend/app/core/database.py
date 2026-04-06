@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections.abc import Generator
 
@@ -7,8 +7,6 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
-settings.data_dir.mkdir(parents=True, exist_ok=True)
-
 engine = create_engine(
     settings.database_url,
     connect_args={"check_same_thread": False}
@@ -16,6 +14,9 @@ engine = create_engine(
 
 
 def create_db_and_tables() -> None:
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    from app import models  # noqa: F401
+
     with engine.begin() as connection:
         connection.execute(text("SELECT 1"))
     SQLModel.metadata.create_all(engine)
