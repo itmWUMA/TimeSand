@@ -8,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.photos import router as photos_router
 from app.core.config import settings
 from app.core.database import create_db_and_tables
+from app.services.photo_service import ensure_storage_directories
 
 
 def ensure_data_directories() -> None:
@@ -40,6 +42,7 @@ def resolve_frontend_dist() -> Path | None:
 async def lifespan(_: FastAPI):
     ensure_data_directories()
     create_db_and_tables()
+    ensure_storage_directories()
     yield
 
 
@@ -83,6 +86,8 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     @app.get("/api/health")
     def health_check() -> dict[str, str]:
         return {"status": "ok"}
+
+    app.include_router(photos_router)
 
     resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
     configure_spa_routes(app, resolved_frontend_dist)
