@@ -1,27 +1,32 @@
-﻿# syntax=docker/dockerfile:1
+FROM docker.m.daocloud.io/oven/bun:1 AS frontend-build
+WORKDIR /app/frontend
 
-FROM oven/bun:1 AS frontend-builder
-WORKDIR /frontend
-COPY frontend/package.json ./package.json
-COPY frontend/bun.lock ./bun.lock
-COPY frontend/.npmrc ./.npmrc
+COPY frontend/package.json frontend/bun.lock frontend/.npmrc ./
 RUN bun install --frozen-lockfile
-COPY frontend .
+
+COPY frontend/ ./
 RUN bun run build
 
-FROM python:3.12-slim
-WORKDIR /app
+FROM docker.m.daocloud.io/library/python:3.12-slim AS production
+WORKDIR /app/backend
 
-COPY backend/pyproject.toml ./backend/pyproject.toml
-COPY backend/uv.toml ./backend/uv.toml
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DATA_DIR=/data
+
 RUN pip install --no-cache-dir -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple uv
-RUN cd backend && uv sync --no-dev
 
-COPY backend ./backend
-COPY --from=frontend-builder /frontend/dist ./frontend_dist
+COPY backend/pyproject.toml backend/uv.lock backend/uv.toml ./
+RUN uv sync --no-dev --frozen
 
-ENV PYTHONPATH=/app/backend
-ENV DATA_DIR=/data
+COPY backend/ ./
+COPY --from=frontend-build /app/frontend/dist /app/static
+
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+    && mkdir -p /data/photos/originals /data/photos/thumbnails /data/music/files \
+    && chown -R appuser:appuser /app /data
+
+USER appuser
 
 EXPOSE 8080
-CMD ["uv", "run", "--directory", "backend", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
