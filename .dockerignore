@@ -11,5 +11,6 @@
 .env
 data/
 docs/
+frontend/dist/
 *.md
 !README.md

@@ -1,4 +1,6 @@
-FROM docker.m.daocloud.io/oven/bun:1 AS frontend-build
+ARG IMAGE_REGISTRY=docker.m.daocloud.io/
+
+FROM ${IMAGE_REGISTRY}oven/bun:1 AS frontend-build
 WORKDIR /app/frontend
 
 COPY frontend/package.json frontend/bun.lock frontend/.npmrc ./
@@ -7,7 +9,7 @@ RUN bun install --frozen-lockfile
 COPY frontend/ ./
 RUN bun run build
 
-FROM docker.m.daocloud.io/library/python:3.12-slim AS production
+FROM ${IMAGE_REGISTRY}library/python:3.12-slim AS production
 WORKDIR /app/backend
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -16,8 +18,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN pip install --no-cache-dir -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple uv
 
-COPY backend/pyproject.toml backend/uv.lock backend/uv.toml ./
-RUN uv sync --no-dev --frozen
+COPY backend/pyproject.toml backend/uv.toml ./
+RUN uv sync --no-dev
 
 COPY backend/ ./
 COPY --from=frontend-build /app/frontend/dist /app/static

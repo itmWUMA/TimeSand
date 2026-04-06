@@ -43,24 +43,10 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="TimeSand API", lifespan=lifespan)
+def configure_spa_routes(app: FastAPI, frontend_dist: Path | None) -> None:
+    if not frontend_dist:
+        return
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/api/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
-
-
-frontend_dist = resolve_frontend_dist()
-if frontend_dist:
     frontend_dist = frontend_dist.resolve()
     index_file = frontend_dist / "index.html"
 
@@ -70,7 +56,7 @@ if frontend_dist:
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def serve_spa(full_path: str):
-        if full_path.startswith("api/"):
+        if full_path == "api" or full_path.startswith("api/"):
             raise HTTPException(status_code=404)
 
         if full_path:
@@ -82,3 +68,25 @@ if frontend_dist:
             return FileResponse(index_file)
 
         raise HTTPException(status_code=404)
+
+
+def create_app(frontend_dist: Path | None = None) -> FastAPI:
+    app = FastAPI(title="TimeSand API", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/api/health")
+    def health_check() -> dict[str, str]:
+        return {"status": "ok"}
+
+    resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
+    configure_spa_routes(app, resolved_frontend_dist)
+    return app
+
+
+app = create_app()
