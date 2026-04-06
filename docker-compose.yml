@@ -6,10 +6,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - timesand_data:/data
+      - ./data:/data
     restart: unless-stopped
     environment:
       - DATA_DIR=/data
-
-volumes:
-  timesand_data:
