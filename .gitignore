@@ -1,2 +1,6 @@
 # idea docs
 docs/idea/*
+docs/draft/*
+
+# claude code
+.claude/*
