@@ -1,9 +1,11 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections.abc import Generator
 
 from sqlalchemy import text
 from sqlmodel import Session, SQLModel, create_engine
+
+from app import models  # noqa: F401
 
 from .config import settings
 
