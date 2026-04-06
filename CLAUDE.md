@@ -7,6 +7,7 @@ Self-hosted smart photo wall & music box. Helps users rediscover photos through 
 - **Frontend**: Vue 3 + GSAP + Radix Vue + TailwindCSS
 - **Build**: Vite + Bun
 - **Backend**: FastAPI (Python)
+- **Python**: 3.12 + venv
 - **Python Toolchain**: uv
 - **ORM**: SQLModel
 - **Database**: SQLite
@@ -69,10 +70,13 @@ bun run type-check       # TypeScript check
 
 ```bash
 cd backend
-uv sync                  # Install dependencies
-uv run fastapi dev       # Dev server with hot reload
-uv run pytest            # Run tests
-uv run ruff check .      # Lint
+uv venv -p 3.12          # Create venv with Python 3.12
+source .venv/bin/activate # Activate venv (Linux/Mac)
+# .venv\Scripts\activate  # Activate venv (Windows)
+uv sync                   # Install dependencies
+uv run fastapi dev        # Dev server with hot reload
+uv run pytest             # Run tests
+uv run ruff check .       # Lint
 ```
 
 ### Docker
@@ -81,6 +85,14 @@ uv run ruff check .      # Lint
 docker-compose up        # Start application
 docker-compose up -d     # Start in background
 ```
+
+## Mirrors (China)
+
+All environments should use domestic mirrors for faster downloads:
+
+- **PyPI**: `https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple` (configure in `pyproject.toml` or `uv.toml`)
+- **Docker**: Use mirror registries in `Dockerfile` base images and `daemon.json` if needed
+- **npm/bun**: `https://registry.npmmirror.com` (configure in `.npmrc`)
 
 ## Design Decisions
 
@@ -205,7 +217,8 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 - Each sub-task is developed on its own `feat/<task-slug>` branch
 - Codex reads the task planning document and implements independently
 - Each branch should be buildable and testable in isolation
-- Commit messages reference the task name
+- **Codex completes implementation by staging changes (`git add`) only — do NOT commit**
+- After review, Claude Code or the user will commit and create the PR
 
 ### 4. Integration
 

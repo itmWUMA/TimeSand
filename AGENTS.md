@@ -7,6 +7,7 @@ Self-hosted smart photo wall & music box. Helps users rediscover photos through 
 - **Frontend**: Vue 3 + GSAP + Radix Vue + TailwindCSS
 - **Build**: Vite + Bun
 - **Backend**: FastAPI (Python)
+- **Python**: 3.12 + venv
 - **Python Toolchain**: uv
 - **ORM**: SQLModel
 - **Database**: SQLite
@@ -69,10 +70,12 @@ bun run test             # Run unit tests (Vitest)
 
 ```bash
 cd backend
-uv sync                  # Install dependencies
-uv run fastapi dev       # Dev server with hot reload
-uv run pytest            # Run tests
-uv run ruff check .      # Lint
+uv venv -p 3.12          # Create venv with Python 3.12
+source .venv/bin/activate # Activate venv (Linux/Mac)
+uv sync                   # Install dependencies
+uv run fastapi dev        # Dev server with hot reload
+uv run pytest             # Run tests
+uv run ruff check .       # Lint
 ```
 
 ### Docker
@@ -131,11 +134,10 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 1. Read the task planning document in `docs/tasks/` to find your assigned sub-task
 2. Create a feature branch from `main`: `git checkout -b feat/<task-slug> main`
 3. Implement according to the scope, files, and acceptance criteria listed in the task document
-4. Run tests and linting before committing:
+4. Run tests and linting:
    - Frontend: `cd frontend && bun run lint && bun run type-check && bun run test`
    - Backend: `cd backend && uv run ruff check . && uv run pytest`
-5. Commit with a descriptive message referencing the task: `feat(<task-slug>): <description>`
-6. Push and create a PR to `main`: `gh pr create --base main`
+5. **Stage all changes (`git add`) but do NOT commit** — the reviewer (Claude Code or user) will commit and create the PR
 
 ### Branch Naming
 
@@ -157,6 +159,14 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 - If your task has dependencies on another task, ensure that task's branch is merged first (or coordinate)
 - Always base your branch on latest `main`
 - All code and comments in English
+
+## Mirrors (China)
+
+All environments should use domestic mirrors for faster downloads:
+
+- **PyPI**: `https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple` (configure in `pyproject.toml` or `uv.toml`)
+- **Docker**: Use mirror registries in `Dockerfile` base images and `daemon.json` if needed
+- **npm/bun**: `https://registry.npmmirror.com` (configure in `.npmrc`)
 
 ## Design Decisions
 

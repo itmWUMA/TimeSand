@@ -4,3 +4,54 @@ docs/draft/*
 
 # claude code
 .claude/*
+
+# Node / Bun
+node_modules/
+dist/
+*.local
+
+# Vite
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.python-version
+
+# uv
+uv.lock
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime data
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
