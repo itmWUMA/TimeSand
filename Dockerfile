@@ -3,6 +3,7 @@
 FROM oven/bun:1 AS frontend-builder
 WORKDIR /frontend
 COPY frontend/package.json ./package.json
+COPY frontend/.npmrc ./.npmrc
 RUN bun install
 COPY frontend .
 RUN bun run build
@@ -11,7 +12,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY backend/pyproject.toml ./backend/pyproject.toml
-RUN pip install --no-cache-dir uv
+COPY backend/uv.toml ./backend/uv.toml
+RUN pip install --no-cache-dir -i https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple uv
 RUN cd backend && uv sync --no-dev
 
 COPY backend ./backend
