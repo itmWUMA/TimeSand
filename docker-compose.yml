@@ -1,4 +1,4 @@
-﻿services:
+services:
   timesand:
     build:
       context: .
@@ -7,5 +7,6 @@
       - "8080:8080"
     volumes:
       - ./data:/data
+    restart: unless-stopped
     environment:
       - DATA_DIR=/data
