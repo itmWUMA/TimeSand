@@ -10,6 +10,11 @@ export type ListPhotosResponse = {
   page_size: number;
 };
 
+type ListPhotosFilters = {
+  albumId?: number;
+  tagId?: number;
+};
+
 export const uploadPhotos = async (
   files: File[],
   onProgress?: (progress: number) => void
@@ -34,11 +39,17 @@ export const uploadPhotos = async (
   return response.data.photos;
 };
 
-export const listPhotos = async (page = 1, pageSize = 20): Promise<ListPhotosResponse> => {
+export const listPhotos = async (
+  page = 1,
+  pageSize = 20,
+  filters: ListPhotosFilters = {}
+): Promise<ListPhotosResponse> => {
   const response = await api.get<ListPhotosResponse>("/photos", {
     params: {
       page,
-      page_size: pageSize
+      page_size: pageSize,
+      album_id: filters.albumId,
+      tag_id: filters.tagId
     }
   });
 
