@@ -225,6 +225,16 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 - Each feat branch creates a PR to `main` via `gh pr create`
 - Review and merge sequentially, resolving conflicts as needed
 
+### 5. Progress Tracking
+
+- Task progress is tracked in `docs/tasks/mvp-progress.md`
+- **After each task is confirmed complete** (PR merged or work verified), update `mvp-progress.md`:
+  - Set the task's Status to `Done`
+  - Fill in the PR link and Completed Date
+  - Update the Overall Progress count and Current Phase
+  - Add any relevant notes
+- This file is the source of truth for current development status
+
 ### Task Planning Document Format
 
 Task documents live in `docs/tasks/` and follow this structure:
