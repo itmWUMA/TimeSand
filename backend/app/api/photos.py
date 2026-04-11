@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import Select, func
 from sqlmodel import Session, select
 
 from app.core.database import get_session
@@ -34,7 +34,7 @@ class DeletePhotoResponse(BaseModel):
     ok: bool
 
 
-def build_filtered_photos_query(album_id: int | None, tag_id: int | None):
+def build_filtered_photos_query(album_id: int | None, tag_id: int | None) -> Select[tuple[Photo]]:
     query = select(Photo)
 
     if album_id is not None:
@@ -126,7 +126,13 @@ def list_photos(
     session: Session = Depends(get_session)
 ) -> ListPhotosResponse:
     base_query = build_filtered_photos_query(album_id=album_id, tag_id=tag_id)
-    total = session.exec(select(func.count()).select_from(base_query.order_by(None).subquery())).one()
+
+    if album_id is None and tag_id is None:
+        total = session.exec(select(func.count()).select_from(Photo)).one()
+    else:
+        total = session.exec(
+            select(func.count()).select_from(base_query.order_by(None).subquery())
+        ).one()
     items = session.exec(
         base_query
         .order_by(Photo.id.desc())

@@ -106,7 +106,7 @@ def serialize_album(session: Session, album: Album) -> AlbumResponse:
         id=album.id or 0,
         name=album.name,
         description=album.description,
-        cover_photo_id=album.cover_photo_id,
+        cover_photo_id=resolved_cover_photo_id,
         cover_photo=cover_photo,
         photo_count=photo_count,
         created_at=album.created_at,

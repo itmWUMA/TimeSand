@@ -9,6 +9,8 @@
         {{ tag.name }}
         <button
           :data-testid="`remove-tag-${tag.id}`"
+          :aria-label="`Remove tag ${tag.name}`"
+          :title="`Remove tag ${tag.name}`"
           type="button"
           class="rounded px-1 text-[10px] text-ts-accent hover:bg-ts-accent/20"
           @click="$emit('remove-tag', tag.id)"
