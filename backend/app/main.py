@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.albums import router as albums_router
 from app.api.photos import router as photos_router
+from app.api.tags import router as tags_router
 from app.core.config import settings
 from app.core.database import create_db_and_tables
 from app.services.photo_service import ensure_storage_directories
@@ -95,6 +97,8 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(photos_router)
+    app.include_router(albums_router)
+    app.include_router(tags_router)
 
     resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
     configure_spa_routes(app, resolved_frontend_dist)

@@ -9,6 +9,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.core.database import get_session
+from app.models.album import PhotoAlbum, PhotoTag
 from app.models.photo import Photo
 from app.services import photo_service
 from app.services.photo_service import InvalidPhotoUploadError
@@ -31,6 +32,25 @@ class ListPhotosResponse(BaseModel):
 
 class DeletePhotoResponse(BaseModel):
     ok: bool
+
+
+def build_filtered_photos_query(album_id: int | None, tag_id: int | None):
+    query = select(Photo)
+
+    if album_id is not None:
+        query = query.join(PhotoAlbum, PhotoAlbum.photo_id == Photo.id).where(
+            PhotoAlbum.album_id == album_id
+        )
+
+    if tag_id is not None:
+        query = query.join(PhotoTag, PhotoTag.photo_id == Photo.id).where(
+            PhotoTag.tag_id == tag_id
+        )
+
+    if album_id is not None or tag_id is not None:
+        query = query.distinct()
+
+    return query
 
 
 def get_photo_or_404(photo_id: int, session: Session) -> Photo:
@@ -101,11 +121,14 @@ async def upload_photos(
 def list_photos(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    album_id: int | None = Query(default=None, ge=1),
+    tag_id: int | None = Query(default=None, ge=1),
     session: Session = Depends(get_session)
 ) -> ListPhotosResponse:
-    total = session.exec(select(func.count()).select_from(Photo)).one()
+    base_query = build_filtered_photos_query(album_id=album_id, tag_id=tag_id)
+    total = session.exec(select(func.count()).select_from(base_query.order_by(None).subquery())).one()
     items = session.exec(
-        select(Photo)
+        base_query
         .order_by(Photo.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
