@@ -88,6 +88,9 @@ async function handleTrackEnded(): Promise<void> {
   }
 
   if (boundStore.repeatMode === 'one') {
+    const audio = getAudio()
+    audio.currentTime = 0
+    boundStore.setCurrentTime(0)
     await syncCurrentTrack(true)
     return
   }
@@ -158,13 +161,18 @@ async function loadPlaylistById(playlistId: number): Promise<void> {
   }
 
   const shouldResume = boundStore.isPlaying
-  const playlist = await getPlaylist(playlistId)
-  boundStore.loadPlaylist({
-    playlistId: playlist.id,
-    playlistName: playlist.name,
-    tracks: playlist.tracks,
-  })
-  await syncCurrentTrack(shouldResume)
+  try {
+    const playlist = await getPlaylist(playlistId)
+    boundStore.loadPlaylist({
+      playlistId: playlist.id,
+      playlistName: playlist.name,
+      tracks: playlist.tracks,
+    })
+    await syncCurrentTrack(shouldResume)
+  }
+  catch (error) {
+    console.error(`Failed to load playlist ${playlistId}:`, error)
+  }
 }
 
 async function loadDefaultPlaylist(): Promise<void> {
@@ -172,16 +180,23 @@ async function loadDefaultPlaylist(): Promise<void> {
     return
   }
 
-  const payload = await listPlaylists()
-  const fallback = payload.items.find(item => item.is_default) ?? payload.items[0]
+  try {
+    const payload = await listPlaylists()
+    const fallback = payload.items.find(item => item.is_default) ?? payload.items[0]
 
-  if (!fallback) {
+    if (!fallback) {
+      boundStore.clearPlaylist()
+      await syncCurrentTrack(false)
+      return
+    }
+
+    await loadPlaylistById(fallback.id)
+  }
+  catch (error) {
+    console.error('Failed to load default playlist:', error)
     boundStore.clearPlaylist()
     await syncCurrentTrack(false)
-    return
   }
-
-  await loadPlaylistById(fallback.id)
 }
 
 export function useMusicPlayer() {
