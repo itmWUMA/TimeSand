@@ -14,6 +14,8 @@ from app.api.music import router as music_router
 from app.api.playlists import router as playlists_router
 from app.api.draw import router as draw_router
 from app.api.photos import router as photos_router
+from app.api.settings import router as settings_router
+from app.api.slideshow import router as slideshow_router
 from app.api.tags import router as tags_router
 from app.core import database as database_module
 from app.core.config import settings
@@ -117,6 +119,8 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     app.include_router(music_router)
     app.include_router(playlists_router)
     app.include_router(draw_router)
+    app.include_router(slideshow_router)
+    app.include_router(settings_router)
 
     resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
     configure_spa_routes(app, resolved_frontend_dist)

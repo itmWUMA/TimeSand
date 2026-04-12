@@ -1,3 +1,23 @@
+<script setup lang="ts">
+defineProps<{
+  disabled?: boolean
+}>()
+
+const emit = defineEmits<{
+  draw: []
+}>()
+
+const layers = [4, 3, 2, 1]
+
+function deckLayerStyle(layer: number): Record<string, string> {
+  return {
+    transform: `translate(-50%, -50%) translate(${layer * 1.5}px, ${layer * 2}px) rotate(${layer * 0.8}deg)`,
+    opacity: String(Math.max(0.28, 0.8 - layer * 0.12)),
+    zIndex: String(10 - layer),
+  }
+}
+</script>
+
 <template>
   <button
     type="button"
@@ -25,21 +45,3 @@
     />
   </button>
 </template>
-
-<script setup lang="ts">
-defineProps<{
-  disabled?: boolean;
-}>();
-
-const emit = defineEmits<{
-  draw: [];
-}>();
-
-const layers = [4, 3, 2, 1];
-
-const deckLayerStyle = (layer: number): Record<string, string> => ({
-  transform: `translate(-50%, -50%) translate(${layer * 1.5}px, ${layer * 2}px) rotate(${layer * 0.8}deg)`,
-  opacity: String(Math.max(0.28, 0.8 - layer * 0.12)),
-  zIndex: String(10 - layer)
-});
-</script>

@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "composite": true,
     "module": "ESNext",
