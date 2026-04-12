@@ -6,9 +6,11 @@ import { useRoute, useRouter } from 'vue-router'
 import SlideshowPlayer from '../components/SlideshowPlayer.vue'
 import { useSlideshow } from '../composables/useSlideshow'
 import { listSlideshowPhotos } from '../services/slideshow'
+import { useSettingsStore } from '../stores/settings'
 
 const route = useRoute()
 const router = useRouter()
+const settingsStore = useSettingsStore()
 
 const photos = ref<Photo[]>([])
 const loading = ref(false)
@@ -25,7 +27,19 @@ function parseAlbumId(value: unknown): number | undefined {
   return parsed
 }
 
+function parseInterval(value: unknown): number | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  const parsed = Number(raw)
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return undefined
+  }
+
+  return parsed
+}
+
 const albumId = computed(() => parseAlbumId(route.query.album_id))
+const intervalOverride = computed(() => parseInterval(route.query.interval))
 
 const {
   currentIndex,
@@ -89,6 +103,15 @@ function handleKeydown(event: KeyboardEvent): void {
 
 watch(albumId, async () => {
   await loadPhotos()
+}, { immediate: true })
+
+watch(intervalOverride, (value) => {
+  if (value != null) {
+    setIntervalSeconds(value)
+    return
+  }
+
+  setIntervalSeconds(settingsStore.getInterval())
 }, { immediate: true })
 
 let previousOverflow = ''
