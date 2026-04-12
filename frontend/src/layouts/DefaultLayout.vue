@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import MusicPlayer from '../components/MusicPlayer.vue'
 
 const route = useRoute()
 const mobileOpen = ref(false)
+const isFullscreenRoute = computed(() => route.name === 'slideshow')
 
 const navItems = [
   { path: '/', label: 'Card Draw' },
@@ -78,17 +80,18 @@ function linkClass(path: string): string {
           </nav>
         </header>
 
-        <main class="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main
+          class="flex-1 px-4 py-6 md:px-8 md:py-8"
+          :class="isFullscreenRoute ? '' : 'pb-32'"
+        >
           <slot />
         </main>
-
-        <footer class="border-t border-white/10 bg-ts-panelSoft px-4 py-3 text-sm text-ts-muted">
-          <div class="flex items-center justify-between">
-            <span>Music Player Slot</span>
-            <span class="text-ts-accent">Ready</span>
-          </div>
-        </footer>
       </div>
     </div>
+
+    <MusicPlayer
+      v-if="!isFullscreenRoute"
+      class="fixed inset-x-0 bottom-0 z-40 md:left-72"
+    />
   </div>
 </template>

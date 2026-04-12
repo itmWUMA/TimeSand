@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import type { Album } from '../types/album'
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import CardDeck from '../components/draw/CardDeck.vue'
 import CardPile from '../components/draw/CardPile.vue'
 import CardScatter from '../components/draw/CardScatter.vue'
 import DrawnCard from '../components/draw/DrawnCard.vue'
 import { useCardDraw } from '../composables/useCardDraw'
+import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { listAlbums } from '../services/album'
 import { useDrawStore } from '../stores/draw'
 
 const drawStore = useDrawStore()
+const { setContext } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
 
@@ -66,6 +68,15 @@ async function handleTouchEnd(event: TouchEvent): Promise<void> {
   await undoLastCard()
 }
 
+async function syncPlayerContext(): Promise<void> {
+  if (drawStore.albumId != null) {
+    await setContext('album', drawStore.albumId)
+    return
+  }
+
+  await setContext('default')
+}
+
 onMounted(async () => {
   try {
     const payload = await listAlbums()
@@ -74,7 +85,16 @@ onMounted(async () => {
   catch {
     albums.value = []
   }
+
+  await syncPlayerContext()
 })
+
+watch(
+  () => drawStore.albumId,
+  async () => {
+    await syncPlayerContext()
+  },
+)
 </script>
 
 <template>
