@@ -5,6 +5,13 @@
         {{ album?.name ?? "Album Detail" }}
       </h1>
       <p class="text-ts-muted">Manage album metadata, photos, and tags in one place.</p>
+      <RouterLink
+        v-if="album"
+        :to="{ path: '/slideshow', query: { album_id: String(album.id) } }"
+        class="inline-flex rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
+      >
+        Start Slideshow
+      </RouterLink>
     </header>
 
     <p v-if="errorMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
