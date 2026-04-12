@@ -4,6 +4,7 @@ docs/draft/*
 
 # claude code
 .claude/*
+!.claude/commands
 
 # Node / Bun
 node_modules/

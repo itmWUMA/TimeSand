@@ -1,0 +1,1 @@
+分析当前项目内容，根据docs/tasks/mvp-task-plan.md以及各自子计划文档，同步docs/mvp-grogress.md进度文档。使用gh将docs/mvp-grogress.md的修改提交并推送到当前分支。
