@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
@@ -26,7 +27,7 @@ describe('app', () => {
 
     const wrapper = mount(App, {
       global: {
-        plugins: [router],
+        plugins: [createPinia(), router],
       },
     })
 

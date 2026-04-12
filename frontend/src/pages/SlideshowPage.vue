@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import type { Photo } from '../types/photo'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-
 import { useRoute, useRouter } from 'vue-router'
+
+import MusicPlayerMini from '../components/MusicPlayerMini.vue'
 import SlideshowPlayer from '../components/SlideshowPlayer.vue'
+import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { useSlideshow } from '../composables/useSlideshow'
 import { listSlideshowPhotos } from '../services/slideshow'
 import { useSettingsStore } from '../stores/settings'
 
 const route = useRoute()
 const router = useRouter()
+const { setContext } = useMusicPlayer()
 const settingsStore = useSettingsStore()
 
 const photos = ref<Photo[]>([])
@@ -72,6 +75,15 @@ async function loadPhotos(): Promise<void> {
   }
 }
 
+async function syncPlayerContext(nextAlbumId: number | undefined): Promise<void> {
+  if (nextAlbumId != null) {
+    await setContext('album', nextAlbumId)
+    return
+  }
+
+  await setContext('default')
+}
+
 function exitSlideshow(): void {
   router.back()
 }
@@ -101,8 +113,11 @@ function handleKeydown(event: KeyboardEvent): void {
   }
 }
 
-watch(albumId, async () => {
-  await loadPhotos()
+watch(albumId, async (nextAlbumId) => {
+  await Promise.all([
+    loadPhotos(),
+    syncPlayerContext(nextAlbumId),
+  ])
 }, { immediate: true })
 
 watch(intervalOverride, (value) => {
@@ -181,5 +196,11 @@ onUnmounted(() => {
       @exit="exitSlideshow"
       @activity="reportActivity"
     />
+
+    <div class="pointer-events-none absolute inset-x-0 bottom-4 z-[60] flex justify-center px-4">
+      <div class="pointer-events-auto">
+        <MusicPlayerMini />
+      </div>
+    </div>
   </section>
 </template>
