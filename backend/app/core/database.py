@@ -15,7 +15,7 @@ engine = create_engine(
 
 def create_db_and_tables() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
-    from app import models  # noqa: F401
+    from app.models import album, music, photo  # noqa: F401
 
     with engine.begin() as connection:
         connection.execute(text("SELECT 1"))

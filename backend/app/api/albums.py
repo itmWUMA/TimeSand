@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 
 from app.core.database import get_session
 from app.models.album import Album, PhotoAlbum, utc_now
+from app.models.music import AlbumPlaylist, Playlist
 from app.models.photo import Photo
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
@@ -34,6 +35,7 @@ class AlbumResponse(BaseModel):
     name: str
     description: str | None = None
     cover_photo_id: int | None = None
+    playlist_id: int | None = None
     cover_photo: str | None = None
     photo_count: int
     created_at: datetime
@@ -47,6 +49,10 @@ class ListAlbumsResponse(BaseModel):
 
 class OkResponse(BaseModel):
     ok: bool
+
+
+class SetAlbumPlaylistRequest(BaseModel):
+    playlist_id: int
 
 
 def get_album_or_404(album_id: int, session: Session) -> Album:
@@ -95,6 +101,9 @@ def resolve_album_cover_photo_id(session: Session, album: Album) -> int | None:
 
 def serialize_album(session: Session, album: Album) -> AlbumResponse:
     resolved_cover_photo_id = resolve_album_cover_photo_id(session, album)
+    playlist_id = session.exec(
+        select(AlbumPlaylist.playlist_id).where(AlbumPlaylist.album_id == (album.id or 0))
+    ).first()
     cover_photo = (
         f"/api/photos/{resolved_cover_photo_id}/thumbnail"
         if resolved_cover_photo_id is not None
@@ -107,6 +116,7 @@ def serialize_album(session: Session, album: Album) -> AlbumResponse:
         name=album.name,
         description=album.description,
         cover_photo_id=resolved_cover_photo_id,
+        playlist_id=playlist_id,
         cover_photo=cover_photo,
         photo_count=photo_count,
         created_at=album.created_at,
@@ -185,6 +195,7 @@ def update_album(
 def delete_album(album_id: int, session: Session = Depends(get_session)) -> OkResponse:
     album = get_album_or_404(album_id, session)
 
+    session.exec(delete(AlbumPlaylist).where(AlbumPlaylist.album_id == album_id))
     session.exec(delete(PhotoAlbum).where(PhotoAlbum.album_id == album_id))
     session.delete(album)
     session.commit()
@@ -252,4 +263,46 @@ def remove_photo_from_album(
         session.add(album)
 
     session.commit()
+    return OkResponse(ok=True)
+
+
+@router.put("/{album_id}/playlist", response_model=OkResponse)
+def set_album_playlist(
+    album_id: int,
+    request: SetAlbumPlaylistRequest,
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    get_album_or_404(album_id, session)
+
+    playlist = session.get(Playlist, request.playlist_id)
+    if playlist is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    existing = session.exec(
+        select(AlbumPlaylist).where(AlbumPlaylist.album_id == album_id)
+    ).first()
+    if existing is None:
+        session.add(AlbumPlaylist(album_id=album_id, playlist_id=request.playlist_id))
+    else:
+        existing.playlist_id = request.playlist_id
+        session.add(existing)
+
+    session.commit()
+    return OkResponse(ok=True)
+
+
+@router.delete("/{album_id}/playlist", response_model=OkResponse)
+def clear_album_playlist(
+    album_id: int,
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    get_album_or_404(album_id, session)
+
+    existing = session.exec(
+        select(AlbumPlaylist).where(AlbumPlaylist.album_id == album_id)
+    ).first()
+    if existing is not None:
+        session.delete(existing)
+        session.commit()
+
     return OkResponse(ok=True)

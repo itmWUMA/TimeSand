@@ -7,12 +7,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlmodel import Session, select
 
 from app.api.albums import router as albums_router
+from app.api.music import router as music_router
+from app.api.playlists import router as playlists_router
 from app.api.photos import router as photos_router
 from app.api.tags import router as tags_router
+from app.core import database as database_module
 from app.core.config import settings
 from app.core.database import create_db_and_tables
+from app.models.music import Playlist
 from app.services.photo_service import ensure_storage_directories
 
 
@@ -23,6 +28,14 @@ def ensure_data_directories() -> None:
         settings.data_dir / "music" / "files",
     ):
         directory.mkdir(parents=True, exist_ok=True)
+
+
+def ensure_default_playlist() -> None:
+    with Session(database_module.engine) as session:
+        default_playlist = session.exec(select(Playlist).where(Playlist.is_default)).first()
+        if default_playlist is None:
+            session.add(Playlist(name="Default Playlist", is_default=True))
+            session.commit()
 
 
 def resolve_frontend_dist() -> Path | None:
@@ -45,6 +58,7 @@ async def lifespan(_: FastAPI):
     ensure_data_directories()
     create_db_and_tables()
     ensure_storage_directories()
+    ensure_default_playlist()
     yield
 
 
@@ -99,6 +113,8 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     app.include_router(photos_router)
     app.include_router(albums_router)
     app.include_router(tags_router)
+    app.include_router(music_router)
+    app.include_router(playlists_router)
 
     resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
     configure_spa_routes(app, resolved_frontend_dist)
