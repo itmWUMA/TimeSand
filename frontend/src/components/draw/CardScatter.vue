@@ -1,3 +1,115 @@
+<script setup lang="ts">
+import type { DrawnCard } from '../../stores/draw'
+import { gsap } from 'gsap'
+
+import { nextTick, ref, watch } from 'vue'
+
+const props = defineProps<{
+  open: boolean
+  cards: DrawnCard[]
+}>()
+
+const emit = defineEmits<{
+  collect: []
+}>()
+
+const overlayRef = ref<HTMLElement | null>(null)
+const loadedOriginalCardIds = ref<Set<number>>(new Set())
+
+watch(
+  () => props.open,
+  async (open) => {
+    if (!open) {
+      return
+    }
+
+    await nextTick()
+    if (!overlayRef.value) {
+      return
+    }
+
+    gsap.fromTo(
+      overlayRef.value,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.25, ease: 'power2.out' },
+    )
+  },
+)
+
+function scatterCardStyle(card: DrawnCard, index: number): Record<string, string> {
+  return {
+    left: `${50 + card.scatterX}%`,
+    top: `${45 + card.scatterY}%`,
+    transform: `translate(-50%, -50%) rotate(${card.scatterRotation}deg)`,
+    zIndex: String(index + 10),
+  }
+}
+
+function markOriginalLoaded(photoId: number): void {
+  if (loadedOriginalCardIds.value.has(photoId)) {
+    return
+  }
+
+  loadedOriginalCardIds.value = new Set(loadedOriginalCardIds.value).add(photoId)
+}
+
+function getCardImageSrc(card: DrawnCard): string {
+  return loadedOriginalCardIds.value.has(card.photo.id)
+    ? `/api/photos/${card.photo.id}/file`
+    : `/api/photos/${card.photo.id}/thumbnail`
+}
+
+function raiseCard(event: MouseEvent): void {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) {
+    return
+  }
+
+  gsap.to(target, {
+    y: -26,
+    scale: 1.24,
+    rotate: 0,
+    duration: 0.2,
+    ease: 'power2.out',
+  })
+}
+
+function settleCard(event: MouseEvent, rotation: number): void {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) {
+    return
+  }
+
+  gsap.to(target, {
+    y: 0,
+    scale: 1,
+    rotate: rotation,
+    duration: 0.2,
+    ease: 'power2.out',
+  })
+}
+
+function handleCardEnter(card: DrawnCard, event: MouseEvent): void {
+  markOriginalLoaded(card.photo.id)
+  raiseCard(event)
+}
+
+function handleCardTap(card: DrawnCard, event: MouseEvent): void {
+  markOriginalLoaded(card.photo.id)
+  raiseCard(event)
+}
+
+function handleCardLeave(card: DrawnCard, event: MouseEvent): void {
+  settleCard(event, card.scatterRotation)
+}
+
+function handleBackdropClick(event: MouseEvent): void {
+  if (event.target === event.currentTarget) {
+    emit('collect')
+  }
+}
+</script>
+
 <template>
   <div
     v-show="open"
@@ -30,117 +142,8 @@
           :alt="card.photo.filename"
           class="h-full w-full object-cover"
           draggable="false"
-        />
+        >
       </button>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { gsap } from "gsap";
-import { nextTick, ref, watch } from "vue";
-
-import type { DrawnCard } from "../../stores/draw";
-
-const props = defineProps<{
-  open: boolean;
-  cards: DrawnCard[];
-}>();
-
-const emit = defineEmits<{
-  collect: [];
-}>();
-
-const overlayRef = ref<HTMLElement | null>(null);
-const loadedOriginalCardIds = ref<Set<number>>(new Set());
-
-watch(
-  () => props.open,
-  async (open) => {
-    if (!open) {
-      return;
-    }
-
-    await nextTick();
-    if (!overlayRef.value) {
-      return;
-    }
-
-    gsap.fromTo(
-      overlayRef.value,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: "power2.out" }
-    );
-  }
-);
-
-const scatterCardStyle = (card: DrawnCard, index: number): Record<string, string> => ({
-  left: `${50 + card.scatterX}%`,
-  top: `${45 + card.scatterY}%`,
-  transform: `translate(-50%, -50%) rotate(${card.scatterRotation}deg)`,
-  zIndex: String(index + 10)
-});
-
-const markOriginalLoaded = (photoId: number): void => {
-  if (loadedOriginalCardIds.value.has(photoId)) {
-    return;
-  }
-
-  loadedOriginalCardIds.value = new Set(loadedOriginalCardIds.value).add(photoId);
-};
-
-const getCardImageSrc = (card: DrawnCard): string =>
-  loadedOriginalCardIds.value.has(card.photo.id)
-    ? `/api/photos/${card.photo.id}/file`
-    : `/api/photos/${card.photo.id}/thumbnail`;
-
-const raiseCard = (event: MouseEvent): void => {
-  const target = event.currentTarget as HTMLElement | null;
-  if (!target) {
-    return;
-  }
-
-  gsap.to(target, {
-    y: -26,
-    scale: 1.24,
-    rotate: 0,
-    duration: 0.2,
-    ease: "power2.out"
-  });
-};
-
-const settleCard = (event: MouseEvent, rotation: number): void => {
-  const target = event.currentTarget as HTMLElement | null;
-  if (!target) {
-    return;
-  }
-
-  gsap.to(target, {
-    y: 0,
-    scale: 1,
-    rotate: rotation,
-    duration: 0.2,
-    ease: "power2.out"
-  });
-};
-
-const handleCardEnter = (card: DrawnCard, event: MouseEvent): void => {
-  markOriginalLoaded(card.photo.id);
-  raiseCard(event);
-};
-
-const handleCardTap = (card: DrawnCard, event: MouseEvent): void => {
-  markOriginalLoaded(card.photo.id);
-  raiseCard(event);
-};
-
-const handleCardLeave = (card: DrawnCard, event: MouseEvent): void => {
-  settleCard(event, card.scatterRotation);
-};
-
-const handleBackdropClick = (event: MouseEvent): void => {
-  if (event.target === event.currentTarget) {
-    emit("collect");
-  }
-};
-</script>

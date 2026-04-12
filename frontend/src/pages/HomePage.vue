@@ -1,7 +1,88 @@
+<script setup lang="ts">
+import type { Album } from '../types/album'
+
+import { computed, onMounted, ref } from 'vue'
+import CardDeck from '../components/draw/CardDeck.vue'
+import CardPile from '../components/draw/CardPile.vue'
+import CardScatter from '../components/draw/CardScatter.vue'
+import DrawnCard from '../components/draw/DrawnCard.vue'
+import { useCardDraw } from '../composables/useCardDraw'
+import { listAlbums } from '../services/album'
+import { useDrawStore } from '../stores/draw'
+
+const drawStore = useDrawStore()
+const albums = ref<Album[]>([])
+const touchStartX = ref<number | null>(null)
+
+const {
+  activeCard,
+  pileCards,
+  drawnCards,
+  hasDrawnCards,
+  isDrawing,
+  isScatterOpen,
+  errorMessage,
+  lastWeightReason,
+  drawNextCard,
+  openScatter,
+  collectScatter,
+  reshuffle,
+  undoLastCard,
+} = useCardDraw()
+
+const selectedAlbumValue = computed(() =>
+  drawStore.albumId === null ? '' : String(drawStore.albumId),
+)
+
+function onAlbumChange(event: Event): void {
+  const target = event.target as HTMLSelectElement
+  const nextValue = Number.parseInt(target.value, 10)
+  drawStore.setAlbumFilter(Number.isNaN(nextValue) ? null : nextValue)
+}
+
+function handleTouchStart(event: TouchEvent): void {
+  touchStartX.value = event.changedTouches[0]?.clientX ?? null
+}
+
+async function handleTouchEnd(event: TouchEvent): Promise<void> {
+  const startX = touchStartX.value
+  const endX = event.changedTouches[0]?.clientX ?? null
+  touchStartX.value = null
+
+  if (startX === null || endX === null) {
+    return
+  }
+
+  const distance = endX - startX
+  if (Math.abs(distance) < 42) {
+    return
+  }
+
+  if (distance < 0) {
+    await drawNextCard()
+    return
+  }
+
+  await undoLastCard()
+}
+
+onMounted(async () => {
+  try {
+    const payload = await listAlbums()
+    albums.value = payload.items
+  }
+  catch {
+    albums.value = []
+  }
+})
+</script>
+
 <template>
   <section class="mx-auto max-w-6xl space-y-6">
     <header class="space-y-3">
-      <h1 class="text-3xl font-semibold text-ts-accent">Card Draw</h1>
+      <h1 class="text-3xl font-semibold text-ts-accent">
+        Card Draw
+      </h1>
       <p class="text-sm text-ts-muted">
         Deck -> flip reveal -> center stage -> bottom pile -> scatter -> collect
       </p>
@@ -84,81 +165,3 @@
     <CardScatter :open="isScatterOpen" :cards="drawnCards" @collect="collectScatter" />
   </section>
 </template>
-
-<script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-
-import CardDeck from "../components/draw/CardDeck.vue";
-import CardPile from "../components/draw/CardPile.vue";
-import CardScatter from "../components/draw/CardScatter.vue";
-import DrawnCard from "../components/draw/DrawnCard.vue";
-import { useCardDraw } from "../composables/useCardDraw";
-import { listAlbums } from "../services/album";
-import { useDrawStore } from "../stores/draw";
-import type { Album } from "../types/album";
-
-const drawStore = useDrawStore();
-const albums = ref<Album[]>([]);
-const touchStartX = ref<number | null>(null);
-
-const {
-  activeCard,
-  pileCards,
-  drawnCards,
-  hasDrawnCards,
-  isDrawing,
-  isScatterOpen,
-  errorMessage,
-  lastWeightReason,
-  drawNextCard,
-  openScatter,
-  collectScatter,
-  reshuffle,
-  undoLastCard
-} = useCardDraw();
-
-const selectedAlbumValue = computed(() =>
-  drawStore.albumId === null ? "" : String(drawStore.albumId)
-);
-
-const onAlbumChange = (event: Event): void => {
-  const target = event.target as HTMLSelectElement;
-  const nextValue = Number.parseInt(target.value, 10);
-  drawStore.setAlbumFilter(Number.isNaN(nextValue) ? null : nextValue);
-};
-
-const handleTouchStart = (event: TouchEvent): void => {
-  touchStartX.value = event.changedTouches[0]?.clientX ?? null;
-};
-
-const handleTouchEnd = async (event: TouchEvent): Promise<void> => {
-  const startX = touchStartX.value;
-  const endX = event.changedTouches[0]?.clientX ?? null;
-  touchStartX.value = null;
-
-  if (startX === null || endX === null) {
-    return;
-  }
-
-  const distance = endX - startX;
-  if (Math.abs(distance) < 42) {
-    return;
-  }
-
-  if (distance < 0) {
-    await drawNextCard();
-    return;
-  }
-
-  await undoLastCard();
-};
-
-onMounted(async () => {
-  try {
-    const payload = await listAlbums();
-    albums.value = payload.items;
-  } catch {
-    albums.value = [];
-  }
-});
-</script>

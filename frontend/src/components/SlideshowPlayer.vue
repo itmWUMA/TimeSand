@@ -1,3 +1,73 @@
+<script setup lang="ts">
+import type { Photo } from '../types/photo'
+
+import { computed, ref } from 'vue'
+
+const props = defineProps<{
+  photos: Photo[]
+  currentIndex: number
+  isPlaying: boolean
+  intervalSeconds: number
+  intervalOptions: number[]
+  controlsVisible: boolean
+}>()
+
+const emit = defineEmits<{
+  (event: 'next'): void
+  (event: 'prev'): void
+  (event: 'togglePlay'): void
+  (event: 'setInterval', seconds: number): void
+  (event: 'exit'): void
+  (event: 'activity'): void
+}>()
+
+const touchStartX = ref<number | null>(null)
+
+const currentPhoto = computed(() => props.photos[props.currentIndex] ?? null)
+
+function emitActivity(): void {
+  emit('activity')
+}
+
+function onIntervalChange(event: Event): void {
+  const target = event.target as HTMLSelectElement
+  const nextValue = Number.parseInt(target.value, 10)
+
+  if (!Number.isNaN(nextValue)) {
+    emit('setInterval', nextValue)
+  }
+}
+
+function onTouchStart(event: TouchEvent): void {
+  emitActivity()
+  touchStartX.value = event.changedTouches[0]?.clientX ?? null
+}
+
+function onTouchEnd(event: TouchEvent): void {
+  emitActivity()
+
+  const startX = touchStartX.value
+  const endX = event.changedTouches[0]?.clientX ?? null
+  touchStartX.value = null
+
+  if (startX === null || endX === null) {
+    return
+  }
+
+  const distance = endX - startX
+  if (Math.abs(distance) < 40) {
+    return
+  }
+
+  if (distance < 0) {
+    emit('next')
+    return
+  }
+
+  emit('prev')
+}
+</script>
+
 <template>
   <section
     class="relative h-full w-full overflow-hidden bg-[#0a0a0a]"
@@ -18,7 +88,7 @@
           class="max-h-full max-w-full object-contain slideshow-ken-burns"
           :style="{ animationDuration: `${intervalSeconds}s` }"
           draggable="false"
-        />
+        >
       </figure>
     </Transition>
 
@@ -53,7 +123,7 @@
           data-testid="control-play-pause"
           type="button"
           class="rounded border border-white/35 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/70 hover:bg-white/10"
-          @click="$emit('toggle-play')"
+          @click="$emit('togglePlay')"
         >
           {{ isPlaying ? "Pause" : "Play" }}
         </button>
@@ -82,76 +152,6 @@
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-import { computed, ref } from "vue";
-
-import type { Photo } from "../types/photo";
-
-const props = defineProps<{
-  photos: Photo[];
-  currentIndex: number;
-  isPlaying: boolean;
-  intervalSeconds: number;
-  intervalOptions: number[];
-  controlsVisible: boolean;
-}>();
-
-const emit = defineEmits<{
-  (event: "next"): void;
-  (event: "prev"): void;
-  (event: "toggle-play"): void;
-  (event: "set-interval", seconds: number): void;
-  (event: "exit"): void;
-  (event: "activity"): void;
-}>();
-
-const touchStartX = ref<number | null>(null);
-
-const currentPhoto = computed(() => props.photos[props.currentIndex] ?? null);
-
-const emitActivity = (): void => {
-  emit("activity");
-};
-
-const onIntervalChange = (event: Event): void => {
-  const target = event.target as HTMLSelectElement;
-  const nextValue = Number.parseInt(target.value, 10);
-
-  if (!Number.isNaN(nextValue)) {
-    emit("set-interval", nextValue);
-  }
-};
-
-const onTouchStart = (event: TouchEvent): void => {
-  emitActivity();
-  touchStartX.value = event.changedTouches[0]?.clientX ?? null;
-};
-
-const onTouchEnd = (event: TouchEvent): void => {
-  emitActivity();
-
-  const startX = touchStartX.value;
-  const endX = event.changedTouches[0]?.clientX ?? null;
-  touchStartX.value = null;
-
-  if (startX === null || endX === null) {
-    return;
-  }
-
-  const distance = endX - startX;
-  if (Math.abs(distance) < 40) {
-    return;
-  }
-
-  if (distance < 0) {
-    emit("next");
-    return;
-  }
-
-  emit("prev");
-};
-</script>
 
 <style scoped>
 .slideshow-fade-enter-active,

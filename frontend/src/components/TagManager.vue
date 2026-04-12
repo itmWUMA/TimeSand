@@ -1,3 +1,49 @@
+<script setup lang="ts">
+import type { Tag } from '../types/album'
+
+import { computed, ref } from 'vue'
+
+const props = defineProps<{
+  tags: Tag[]
+  availableTags: Tag[]
+}>()
+
+const emit = defineEmits<{
+  addTag: [tagId: number]
+  removeTag: [tagId: number]
+  createTag: [tagName: string]
+}>()
+
+const inputValue = ref('')
+const datalistId = `tag-options-${Math.random().toString(36).slice(2, 8)}`
+
+const selectedTagIds = computed(() => new Set(props.tags.map(tag => tag.id)))
+
+const availableOptions = computed(() =>
+  props.availableTags.filter(tag => !selectedTagIds.value.has(tag.id)),
+)
+
+function handleAdd(): void {
+  const rawValue = inputValue.value.trim()
+  if (!rawValue) {
+    return
+  }
+
+  const matchedTag = availableOptions.value.find(
+    tag => tag.name.toLowerCase() === rawValue.toLowerCase(),
+  )
+
+  if (matchedTag) {
+    emit('addTag', matchedTag.id)
+  }
+  else {
+    emit('createTag', rawValue)
+  }
+
+  inputValue.value = ''
+}
+</script>
+
 <template>
   <section class="space-y-2">
     <div class="flex flex-wrap gap-2">
@@ -13,7 +59,7 @@
           :title="`Remove tag ${tag.name}`"
           type="button"
           class="rounded px-1 text-[10px] text-ts-accent hover:bg-ts-accent/20"
-          @click="$emit('remove-tag', tag.id)"
+          @click="$emit('removeTag', tag.id)"
         >
           x
         </button>
@@ -22,14 +68,14 @@
 
     <div class="flex items-center gap-2">
       <input
-        data-testid="tag-input"
         v-model="inputValue"
+        data-testid="tag-input"
         type="text"
         placeholder="Add tag"
         :list="datalistId"
         class="w-full rounded border border-white/15 bg-ts-panel px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
         @keydown.enter.prevent="handleAdd"
-      />
+      >
       <button
         data-testid="add-tag-button"
         type="button"
@@ -45,48 +91,3 @@
     </datalist>
   </section>
 </template>
-
-<script setup lang="ts">
-import { computed, ref } from "vue";
-
-import type { Tag } from "../types/album";
-
-const props = defineProps<{
-  tags: Tag[];
-  availableTags: Tag[];
-}>();
-
-const emit = defineEmits<{
-  "add-tag": [tagId: number];
-  "remove-tag": [tagId: number];
-  "create-tag": [tagName: string];
-}>();
-
-const inputValue = ref("");
-const datalistId = `tag-options-${Math.random().toString(36).slice(2, 8)}`;
-
-const selectedTagIds = computed(() => new Set(props.tags.map((tag) => tag.id)));
-
-const availableOptions = computed(() =>
-  props.availableTags.filter((tag) => !selectedTagIds.value.has(tag.id))
-);
-
-const handleAdd = (): void => {
-  const rawValue = inputValue.value.trim();
-  if (!rawValue) {
-    return;
-  }
-
-  const matchedTag = availableOptions.value.find(
-    (tag) => tag.name.toLowerCase() === rawValue.toLowerCase()
-  );
-
-  if (matchedTag) {
-    emit("add-tag", matchedTag.id);
-  } else {
-    emit("create-tag", rawValue);
-  }
-
-  inputValue.value = "";
-};
-</script>

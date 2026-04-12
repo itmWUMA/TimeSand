@@ -1,28 +1,26 @@
-import type { Photo } from "../types/photo";
-import api from "./api";
+import type { Photo } from '../types/photo'
+import api from './api'
 
-export type SlideshowOrder = "random" | "chronological";
+export type SlideshowOrder = 'random' | 'chronological'
 
-type ListSlideshowPhotosParams = {
-  albumId?: number;
-  order?: SlideshowOrder;
-  limit?: number;
-};
+interface ListSlideshowPhotosParams {
+  albumId?: number
+  order?: SlideshowOrder
+  limit?: number
+}
 
-type ListSlideshowPhotosResponse = {
-  photos: Photo[];
-};
+interface ListSlideshowPhotosResponse {
+  photos: Photo[]
+}
 
-export const listSlideshowPhotos = async (
-  params: ListSlideshowPhotosParams = {}
-): Promise<ListSlideshowPhotosResponse> => {
-  const response = await api.get<ListSlideshowPhotosResponse>("/slideshow/photos", {
+export async function listSlideshowPhotos(params: ListSlideshowPhotosParams = {}): Promise<ListSlideshowPhotosResponse> {
+  const response = await api.get<ListSlideshowPhotosResponse>('/slideshow/photos', {
     params: {
       album_id: params.albumId,
-      order: params.order ?? "random",
-      limit: params.limit
-    }
-  });
+      order: params.order ?? 'random',
+      limit: params.limit,
+    },
+  })
 
-  return response.data;
-};
+  return response.data
+}

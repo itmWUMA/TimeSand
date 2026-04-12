@@ -5,6 +5,7 @@ Self-hosted smart photo wall & music box. Helps users rediscover photos through 
 ## Tech Stack
 
 - **Frontend**: Vue 3 + GSAP + Radix Vue + TailwindCSS
+- **Linting**: ESLint ([@antfu/eslint-config](https://github.com/antfu/eslint-config)) — flat config, no Prettier needed
 - **Build**: Vite + Bun
 - **Backend**: FastAPI (Python)
 - **Python**: 3.12 + venv
@@ -61,7 +62,8 @@ cd frontend
 bun install              # Install dependencies
 bun run dev              # Dev server (Vite)
 bun run build            # Production build
-bun run lint             # Lint
+bun run lint             # Lint (ESLint)
+bun run lint:fix         # Lint + auto-fix
 bun run type-check       # TypeScript check
 bun run test             # Run unit tests (Vitest)
 ```
