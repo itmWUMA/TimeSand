@@ -2,7 +2,7 @@
 
 ## Overview
 
-A GitHub Actions workflow for building, validating, and releasing TimeSand. Triggered manually via `workflow_dispatch`, it runs parallel validation jobs (frontend tests, backend tests, Docker build verification), then creates a git tag and GitHub Release with auto-generated release notes.
+A GitHub Actions workflow for building, validating, and releasing TimeSand. Triggered manually via `workflow_dispatch`, it runs parallel validation jobs (frontend tests, backend tests, Docker build verification), then bumps version numbers in source files, creates a git tag, and publishes a GitHub Release with auto-generated release notes.
 
 ## Trigger
 
@@ -74,16 +74,36 @@ workflow_dispatch (version, release_type)
 - **Runs on**: `ubuntu-latest`
 - **Needs**: `test-frontend`, `test-backend`, `docker-verify`
 - **Steps**:
-  1. Checkout code
-  2. Create lightweight tag `v{version}` on current HEAD
-  3. Push tag to origin
-  4. Create GitHub Release using `gh release create`:
+  1. Checkout code with `fetch-depth: 0` and `token: ${{ secrets.RELEASE_TOKEN }}`
+     (PAT is required to push commits past branch protection)
+  2. Configure git user (GitHub Actions bot: `github-actions[bot]`)
+  3. Update version in `frontend/package.json` (field: `version`) using `jq` or `sed`
+  4. Update version in `backend/pyproject.toml` (field: `version` under `[project]`) using `sed`
+  5. Commit: `chore: bump version to {version}`
+  6. Create annotated tag `v{version}` on the version bump commit
+  7. Push commit and tag to `main`
+  8. Create GitHub Release using `gh release create`:
      - Tag: `v{version}`
      - Title: `v{version}`
      - Body: auto-generated release notes (`--generate-notes`)
      - Flag: `--prerelease` if `release_type` is `pre-release`
 
-**Note on version bump**: The workflow does NOT commit version changes to `frontend/package.json` or `backend/pyproject.toml` because `main` has branch protection (requires PR + review). Version numbers in source files should be updated as part of the normal development workflow before the release is triggered. The git tag is the authoritative version identifier.
+## Authentication
+
+The `release` job needs to push a version bump commit directly to `main`, which has branch protection. The default `GITHUB_TOKEN` cannot bypass this.
+
+**Solution**: A fine-grained Personal Access Token (PAT) stored as repository secret `RELEASE_TOKEN`.
+
+**PAT setup**:
+1. Go to GitHub → Settings → Developer settings → Fine-grained personal access tokens
+2. Create token scoped to the `itmWUMA/TimeSand` repository only
+3. Grant permissions: **Contents: Read and write**
+4. Save the token as a repository secret named `RELEASE_TOKEN`
+   (Repository → Settings → Secrets and variables → Actions → New repository secret)
+
+**Usage in workflow**:
+- `actions/checkout` uses `token: ${{ secrets.RELEASE_TOKEN }}` so `git push` inherits the PAT
+- `gh release create` uses `GITHUB_TOKEN` (sufficient for creating releases)
 
 ## Permissions
 
