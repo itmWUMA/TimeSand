@@ -4,9 +4,9 @@
 
 ## Overall Progress
 
-**Completed**: 4 / 9 tasks
-**Current Phase**: Phase 4 — Parallel Features (Music & Playlist, Card Draw, Slideshow, Settings)
-**Last Updated**: 2026-04-11
+**Completed**: 5 / 9 tasks
+**Current Phase**: Phase 4 — Parallel Features (Card Draw, Slideshow, Settings)
+**Last Updated**: 2026-04-12
 
 ## Task Status
 
@@ -15,7 +15,7 @@
 | 1 | Project Foundation | `feat/project-foundation` | Done | [#1](https://github.com/itmWUMA/TimeSand/pull/1) | 2026-04-06 |
 | 2 | Photo Management | `feat/photo-management` | Done | [#3](https://github.com/itmWUMA/TimeSand/pull/3) | 2026-04-06 |
 | 3 | Album & Tag Management | `feat/album-tag-management` | Done | [#5](https://github.com/itmWUMA/TimeSand/pull/5) | 2026-04-11 |
-| 4 | Music & Playlist | `feat/music-playlist` | Not Started | — | — |
+| 4 | Music & Playlist | `feat/music-playlist` | Done | [#7](https://github.com/itmWUMA/TimeSand/pull/7) | 2026-04-12 |
 | 5 | Card Draw | `feat/card-draw` | Not Started | — | — |
 | 6 | Slideshow | `feat/slideshow` | Not Started | — | — |
 | 7 | Music Player | `feat/music-player` | Not Started | — | — |

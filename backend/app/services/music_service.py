@@ -70,14 +70,17 @@ def create_music_from_upload(filename: str | None, mime_type: str | None, data: 
 
 
 def extract_audio_metadata(file_path: Path) -> tuple[str | None, str | None, float | None]:
-    audio_easy = MutagenFile(file_path, easy=True)
     audio_full = MutagenFile(file_path, easy=False)
+    if audio_full is None:
+        raise InvalidMusicUploadError("File is not a valid audio file")
+
+    audio_easy = MutagenFile(file_path, easy=True)
 
     title = extract_tag_value(audio_easy, ("title", "TIT2"))
     artist = extract_tag_value(audio_easy, ("artist", "TPE1"))
 
     duration = None
-    if audio_full is not None and getattr(audio_full, "info", None) is not None:
+    if getattr(audio_full, "info", None) is not None:
         length = getattr(audio_full.info, "length", None)
         if length is not None:
             duration = float(length)

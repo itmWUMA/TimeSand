@@ -304,7 +304,13 @@ const removeMusic = async (musicId: number): Promise<void> => {
 };
 
 watch(selectedPlaylistId, async () => {
-  await loadSelectedPlaylist();
+  errorMessage.value = null;
+  try {
+    await loadSelectedPlaylist();
+  } catch {
+    selectedPlaylist.value = null;
+    errorMessage.value = "Failed to load selected playlist.";
+  }
 });
 
 onMounted(async () => {

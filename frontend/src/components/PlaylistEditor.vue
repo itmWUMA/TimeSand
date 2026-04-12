@@ -22,6 +22,7 @@
         @dragstart="onDragStart(index)"
         @dragover.prevent
         @drop.prevent="onDrop(index)"
+        @dragend="dragSourceIndex = null"
       >
         <span class="w-6 text-center text-xs text-ts-muted">{{ index + 1 }}</span>
         <div class="min-w-0 flex-1">
