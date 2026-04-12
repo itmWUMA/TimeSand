@@ -119,7 +119,11 @@ jobs:
       - name: Commit version bump
         run: |
           git add frontend/package.json backend/pyproject.toml
-          git commit -m "chore: bump version to ${{ inputs.version }}"
+          if git diff --cached --quiet; then
+            echo "Version already set to ${{ inputs.version }}, skipping commit"
+          else
+            git commit -m "chore: bump version to ${{ inputs.version }}"
+          fi
 
       - name: Create tag
         run: git tag -a "v${{ inputs.version }}" -m "v${{ inputs.version }}"
