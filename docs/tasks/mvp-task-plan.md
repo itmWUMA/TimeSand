@@ -59,7 +59,8 @@ Task 1: project-foundation
 
 ## Shared Conventions
 
-- Branch naming: `feat/<task-slug>`
+- Branch naming: `feat/<task-slug>`, branched from `dev`
+- Merge target: `dev` (via PR with `gh pr create -B dev`)
 - Commit style: `feat(<scope>): <description>`
 - All code and comments in English
 - Backend: Python type hints, `uv run ruff check .` + `uv run pytest` before commit

@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/photo-management`
 - **Scope**: Photo SQLModel model, batch upload with UUID-based filenames, Pillow thumbnail generation (max 400px longest side), EXIF extraction (taken_at), CRUD API, file serving endpoints, frontend upload page with drag-and-drop and photo grid display.
-- **Dependencies**: Task 1 (project-foundation) must be merged first
+- **Dependencies**: Task 1 (project-foundation) must be merged into `dev` first
 
 ## Files
 

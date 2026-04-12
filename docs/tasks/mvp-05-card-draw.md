@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/card-draw`
 - **Scope**: Time-weighted random draw algorithm (backend service), draw API, full frontend card draw experience on the home page with GSAP animations: deck → flip reveal → center stage → bottom pile → scatter → collect.
-- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 3 (album-tag-management) must be merged first
+- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 3 (album-tag-management) must be merged into `dev` first
 
 ## Files
 

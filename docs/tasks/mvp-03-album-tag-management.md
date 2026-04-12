@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/album-tag-management`
 - **Scope**: Album and Tag SQLModel models with many-to-many join tables (PhotoAlbum, PhotoTag). Full CRUD APIs for albums and tags. Frontend album list page with cover thumbnails, album detail page showing photos with management controls, and tag management UI.
-- **Dependencies**: Task 1 (project-foundation) and Task 2 (photo-management) must be merged first
+- **Dependencies**: Task 1 (project-foundation) and Task 2 (photo-management) must be merged into `dev` first
 
 ## Files
 

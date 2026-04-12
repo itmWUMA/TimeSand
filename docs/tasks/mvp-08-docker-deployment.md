@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/docker-deployment`
 - **Scope**: Production-ready Docker setup. Multi-stage Dockerfile (Stage 1: build frontend with bun, Stage 2: Python backend serves built frontend as static files). Finalized docker-compose with volume mapping, restart policy. Backend serves SPA with fallback routing.
-- **Dependencies**: All other tasks should be merged first for full integration testing. Can start basic work after Task 1 is merged, finalize after all tasks are merged.
+- **Dependencies**: All other tasks should be merged into `dev` first for full integration testing. Can start basic work after Task 1 is merged into `dev`, finalize after all tasks are merged.
 
 ## Files
 

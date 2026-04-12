@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/music-playlist`
 - **Scope**: Music and Playlist SQLModel models with ordered join table (PlaylistMusic with position) and album-playlist association (AlbumPlaylist). Music upload with metadata extraction (title, artist, duration via mutagen). Playlist CRUD with track ordering. Frontend music management page.
-- **Dependencies**: Task 1 (project-foundation) and Task 3 (album-tag-management) must be merged first
+- **Dependencies**: Task 1 (project-foundation) and Task 3 (album-tag-management) must be merged into `dev` first
 
 ## Files
 

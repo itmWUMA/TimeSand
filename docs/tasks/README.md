@@ -7,7 +7,7 @@ This directory contains task planning documents that decompose design specs into
 1. Claude Code creates task planning documents from design specs
 2. Each sub-task is implemented on its own `feat/<task-slug>` branch
 3. Codex reads the task document and implements each sub-task independently
-4. Each branch creates a PR to `main` via `gh pr create`
+4. Each branch creates a PR to `dev` via `gh pr create -B dev`
 
 ## Task Document Format
 
@@ -45,5 +45,5 @@ Visual representation of task dependencies and execution order.
 
 - Each sub-task must be self-contained and implementable in isolation
 - Branch naming: `feat/<task-slug>` matching the task document
-- Dependencies must be merged before dependent tasks start
+- Dependencies must be merged (into `dev`) before dependent tasks start
 - All code and comments in English

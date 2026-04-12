@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/settings-page`
 - **Scope**: Settings page with storage usage info, slideshow defaults, and basic app configuration. Lightweight — mostly frontend display with one settings API endpoint.
-- **Dependencies**: Task 1 (project-foundation) and Task 2 (photo-management) must be merged first. Best implemented after Task 6 (slideshow) for slideshow defaults.
+- **Dependencies**: Task 1 (project-foundation) and Task 2 (photo-management) must be merged into `dev` first. Best implemented after Task 6 (slideshow) for slideshow defaults.
 
 ## Files
 

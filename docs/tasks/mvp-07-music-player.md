@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/music-player`
 - **Scope**: Persistent background music player component visible at the bottom of the layout. Plays from playlists with standard controls (play/pause, next/previous, volume, progress bar, seek). Integrates with card draw and slideshow page contexts — auto-selects album's associated playlist or the global default playlist. Player state persists across page navigation.
-- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 4 (music-playlist) must be merged first
+- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 4 (music-playlist) must be merged into `dev` first
 
 ## Files
 

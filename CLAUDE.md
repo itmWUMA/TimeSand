@@ -142,13 +142,25 @@ All environments should use domestic mirrors for faster downloads:
 - External gallery integration
 - Built-in royalty-free music
 
+## Branch Strategy
+
+```
+main          ← only accepts merges from dev (production-ready)
+  └── dev     ← integration branch, accepts feat/* PRs
+       └── feat/<task-slug>  ← feature branches
+```
+
+- **`main`**: Production-ready branch. Only accepts merges from `dev`. Protected: requires PR with 1 approving review, branch must be up-to-date, no force push, no deletion.
+- **`dev`**: Integration branch. All `feat/*` branches merge here via PR. Same protection rules as `main`: requires PR with 1 approving review, branch must be up-to-date, no force push, no deletion.
+- **`feat/<task-slug>`**: Feature branches created from `dev`. Merged back into `dev` via PR.
+
 ## Development Workflow
 
 ### Phase Overview
 
 ```
-Requirement Alignment → Task Planning → Parallel Development → Integration
-  (Claude Code)        (Claude Code)       (Codex/Claude)       (merge to main)
+Requirement Alignment → Task Planning → Parallel Development → Integration → Release
+  (Claude Code)        (Claude Code)       (Codex/Claude)     (merge to dev)  (dev → main)
 ```
 
 ### 1. Requirement Alignment (Claude Code)
@@ -192,7 +204,7 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 3. **Explicit dependency graph** — every task declares upstream dependencies:
    - Dependencies determine execution phases (tasks with same deps → parallel)
    - Draw the graph in the overview file to visualize parallelism opportunities
-   - A task can only start after ALL its dependencies are merged to `main`
+   - A task can only start after ALL its dependencies are merged to `dev`
 
 4. **Maximize parallelism** — group independent tasks into execution phases:
    - Sequential phases for tasks with dependency chains
@@ -214,7 +226,7 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 
 ### 3. Parallel Development (Codex)
 
-- Each sub-task is developed on its own `feat/<task-slug>` branch
+- Each sub-task is developed on its own `feat/<task-slug>` branch, created from `dev`
 - Codex reads the task planning document and implements independently
 - Each branch should be buildable and testable in isolation
 - **Codex completes implementation by staging changes (`git add`) only — do NOT commit**
@@ -222,8 +234,9 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 
 ### 4. Integration
 
-- Each feat branch creates a PR to `main` via `gh pr create`
+- Each feat branch creates a PR to `dev` via `gh pr create -B dev`
 - Review and merge sequentially, resolving conflicts as needed
+- Once a set of features is stable on `dev`, create a PR from `dev` to `main` for release
 
 ### 5. Progress Tracking
 

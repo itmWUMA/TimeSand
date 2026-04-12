@@ -107,6 +107,18 @@ docker-compose up -d     # Start in background
 - SQLModel models in `backend/app/models/`, one file per entity group
 - All code and comments in English
 
+## Branch Strategy
+
+```
+main          ← only accepts merges from dev (production-ready)
+  └── dev     ← integration branch, accepts feat/* PRs
+       └── feat/<task-slug>  ← feature branches
+```
+
+- **`main`**: Production-ready. Only merged from `dev`.
+- **`dev`**: Integration branch. All `feat/*` branches merge here via PR.
+- **`feat/<task-slug>`**: Feature branches created from `dev`, merged back into `dev`.
+
 ## Development Workflow (for Codex)
 
 ### How Tasks Are Structured
@@ -116,7 +128,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 - Each task represents one complete feature domain (e.g., "photo management"), NOT a horizontal layer (e.g., "all models")
 - Each task includes: backend models + API routes + service logic + frontend UI + tests
 - Tasks are ordered by data model hierarchy: infrastructure → core entities → derived features → deployment
-- Tasks declare explicit dependencies; a task can only start after ALL its dependencies are merged
+- Tasks declare explicit dependencies; a task can only start after ALL its dependencies are merged to `dev`
 - Each task has its own detail file in `docs/tasks/` that is self-contained — you can implement the task by reading only the detail file + this conventions file
 
 **Task detail file structure:**
@@ -132,7 +144,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 ### How to Pick Up a Task
 
 1. Read the task planning document in `docs/tasks/` to find your assigned sub-task
-2. Create a feature branch from `main`: `git checkout -b feat/<task-slug> main`
+2. Create a feature branch from `dev`: `git checkout -b feat/<task-slug> dev`
 3. Implement according to the scope, files, and acceptance criteria listed in the task document
 4. Run tests and linting:
    - Frontend: `cd frontend && bun run lint && bun run type-check && bun run test`
@@ -157,7 +169,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 - Each feat branch implements exactly ONE sub-task from the planning document
 - Do not modify files outside of your sub-task's listed scope unless absolutely necessary
 - If your task has dependencies on another task, ensure that task's branch is merged first (or coordinate)
-- Always base your branch on latest `main`
+- Always base your branch on latest `dev`
 - All code and comments in English
 
 ## Mirrors (China)

@@ -2,7 +2,7 @@
 
 - **Branch**: `feat/slideshow`
 - **Scope**: Slideshow photo list API (ordered, filterable by album), full-screen slideshow frontend with auto-advance, fade and Ken Burns transitions, keyboard/touch controls, controls auto-hide.
-- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 3 (album-tag-management) must be merged first
+- **Dependencies**: Task 1 (project-foundation), Task 2 (photo-management), and Task 3 (album-tag-management) must be merged into `dev` first
 
 ## Files
 
