@@ -1,21 +1,19 @@
 filters:
   and:
-    - 'type == "task"'
+    - type == "task"
     - file.inFolder("iterations/v0.0-mvp")
-
 properties:
   status:
-    displayName: "Status"
+    displayName: Status
   branch:
-    displayName: "Branch"
+    displayName: Branch
   pr:
-    displayName: "PR"
+    displayName: PR
   completed:
-    displayName: "Completed"
-
+    displayName: Completed
 views:
   - type: table
-    name: "MVP Tasks"
+    name: MVP Tasks
     order:
       - file.name
       - status

@@ -131,7 +131,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 - Each task includes: backend models + API routes + service logic + frontend UI + tests
 - Tasks are ordered by data model hierarchy: infrastructure → core entities → derived features → deployment
 - Tasks declare explicit dependencies; a task can only start after ALL its dependencies are merged to `dev`
-- Each task has its own detail file in `docs/tasks/` that is self-contained — you can implement the task by reading only the detail file + this conventions file
+- Each task has its own detail file in `docs/iterations/<ver>-<slug>/` (e.g., `docs/iterations/v0.0-mvp/01-project-foundation.md`) that is self-contained — you can implement the task by reading only the detail file + this conventions file
 
 **Task detail file structure:**
 - **Scope**: what this task implements (1-2 sentences)
@@ -145,7 +145,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 
 ### How to Pick Up a Task
 
-1. Read the task planning document in `docs/tasks/` to find your assigned sub-task
+1. Read the task detail file in `docs/iterations/<ver>-<slug>/` (e.g., `docs/iterations/v1.1-design-system/01-i18n.md`) to find your assigned sub-task
 2. Create a feature branch from `dev`: `git checkout -b feat/<task-slug> dev`
 3. Implement according to the scope, files, and acceptance criteria listed in the task document
 4. Run tests and linting:
