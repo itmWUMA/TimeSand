@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/album-tag-management"
+pr: 5
+completed: 2026-04-11
+tags:
+  - mvp
+---
+
 # Task 3: Album & Tag Management
 
 - **Branch**: `feat/album-tag-management`

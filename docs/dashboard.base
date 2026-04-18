@@ -1,0 +1,43 @@
+filters: type == "task"
+formulas:
+  days_since_done: if(completed, (today() - date(completed)).days, "")
+properties:
+  iteration:
+    displayName: Iteration
+  status:
+    displayName: Status
+  branch:
+    displayName: Branch
+  pr:
+    displayName: PR
+  completed:
+    displayName: Completed
+  formula.days_since_done:
+    displayName: Days Ago
+views:
+  - type: table
+    name: All Tasks
+    groupBy:
+      property: iteration
+      direction: ASC
+    order:
+      - file.name
+      - iteration
+      - status
+      - branch
+      - pr
+      - completed
+    summaries:
+      status: Filled
+  - type: table
+    name: Active Tasks
+    filters:
+      not:
+        - status == "done"
+    order:
+      - file.name
+      - iteration
+      - status
+      - branch
+    summaries:
+      status: Filled

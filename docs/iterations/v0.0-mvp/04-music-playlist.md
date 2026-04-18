@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/music-playlist"
+pr: 7
+completed: 2026-04-12
+tags:
+  - mvp
+---
+
 # Task 4: Music & Playlist
 
 - **Branch**: `feat/music-playlist`

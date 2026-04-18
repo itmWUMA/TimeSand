@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/project-foundation"
+pr: 1
+completed: 2026-04-06
+tags:
+  - mvp
+---
+
 # Task 1: Project Foundation
 
 - **Branch**: `feat/project-foundation`
