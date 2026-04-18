@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/photo-management"
+pr: 3
+completed: 2026-04-06
+tags:
+  - mvp
+---
+
 # Task 2: Photo Management
 
 - **Branch**: `feat/photo-management`

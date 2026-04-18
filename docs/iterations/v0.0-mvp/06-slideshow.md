@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/slideshow"
+pr: 8
+completed: 2026-04-12
+tags:
+  - mvp
+---
+
 # Task 6: Slideshow
 
 - **Branch**: `feat/slideshow`

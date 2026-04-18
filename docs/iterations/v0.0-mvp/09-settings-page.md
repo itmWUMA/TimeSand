@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/settings-page"
+pr: 10
+completed: 2026-04-12
+tags:
+  - mvp
+---
+
 # Task 9: Settings Page
 
 - **Branch**: `feat/settings-page`

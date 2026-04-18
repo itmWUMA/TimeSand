@@ -44,6 +44,18 @@ timesand/
 │   │   ├── core/            # Config, database, dependencies
 │   │   └── main.py          # App entry
 │   └── pyproject.toml
+├── docs/                    # Documentation (Obsidian vault)
+│   ├── product-roadmap.md   # Product roadmap
+│   ├── dashboard.base       # Global task dashboard (Obsidian Bases)
+│   ├── iterations/          # Per-iteration docs
+│   │   ├── overview.canvas  # Iterations visual map
+│   │   └── <ver>-<slug>/    # e.g., v0.0-mvp/
+│   │       ├── spec.md      # Design spec
+│   │       ├── task-plan.md # Task decomposition
+│   │       ├── tasks.base   # Iteration dashboard
+│   │       ├── dependencies.canvas
+│   │       └── NN-<task>.md # Individual task files (with frontmatter)
+│   └── templates/           # Obsidian templates for new docs
 ├── data/                    # Runtime data (Docker volume)
 │   ├── photos/
 │   │   ├── originals/
@@ -123,6 +135,46 @@ All environments should use domestic mirrors for faster downloads:
 - Code and comments in English; conversation in Chinese
 - Version control on GitHub; use `gh` CLI for PR/issue operations
 
+## Documentation Conventions
+
+The `docs/` directory is an **Obsidian vault** with CLI tooling support.
+
+### Structure
+
+- **Iteration-based**: each iteration lives in `docs/iterations/<ver>-<slug>/` with its own spec, task plan, sub-tasks, dashboard, and dependency graph
+- **Global dashboard**: `docs/dashboard.base` auto-aggregates all tasks across iterations
+- **Templates**: `docs/templates/` contains templates for new task, spec, and task plan files
+
+### Frontmatter
+
+Every doc file in the vault must have YAML frontmatter with at minimum:
+- `type`: `task` | `spec` | `plan`
+- `iteration`: version string (e.g., `"0.0"`, `"1.1"`)
+- `tags`: list of relevant tags
+
+Task files additionally require: `status`, `branch`, `pr`, `completed`
+
+### Internal Links
+
+- Use **wikilinks** (`[[Note Name]]`) for all cross-references within the vault
+- Use standard **markdown links** (`[text](url)`) only for external URLs
+- Obsidian tracks wikilink renames automatically
+
+### Obsidian Tooling
+
+- **Obsidian Bases** (`.base` files): YAML-based database views that query frontmatter — replaces manual progress tracking
+- **JSON Canvas** (`.canvas` files): Visual dependency graphs and iteration maps
+- **Obsidian CLI** (`obsidian` command): Interact with the vault from terminal (requires Obsidian app running)
+
+### Naming Conventions
+
+- Iteration directories: `v<major>.<minor>-<slug>` (e.g., `v0.0-mvp`, `v1.1-design-system`)
+- Task files: `NN-<task-slug>.md` (e.g., `01-project-foundation.md`)
+- Spec files: `spec.md` (primary), `<topic>-spec.md` (secondary)
+- Task plan: `task-plan.md`
+- Dashboard: `tasks.base`
+- Dependency graph: `dependencies.canvas`
+
 ## MVP Scope
 
 ### In Scope
@@ -168,19 +220,19 @@ Requirement Alignment → Task Planning → Parallel Development → Integration
 ### 1. Requirement Alignment (Claude Code)
 
 - Brainstorm with user, clarify scope and design decisions
-- Output: design spec in `docs/superpowers/specs/`
+- Output: design spec in `docs/iterations/<ver>-<slug>/spec.md`
 
 ### 2. Task Planning (Claude Code)
 
 - Decompose the design spec into independent sub-tasks (sub-features)
-- Output: task planning document in `docs/tasks/`
+- Output: task planning document in `docs/iterations/<ver>-<slug>/`
 - Each sub-task must be self-contained with:
   - Clear scope and acceptance criteria
   - Files to create/modify
   - API contracts (if applicable)
   - Dependencies on other sub-tasks (if any)
   - Branch name: `feat/<task-slug>`
-- Task document format: see `docs/tasks/README.md`
+- Use templates from `docs/templates/` as starting point
 
 #### Task Decomposition Methodology
 
@@ -222,9 +274,14 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 
 **Output structure:**
 
-- One overview file: `docs/tasks/<plan-name>.md` — dependency graph, sub-task index table, execution phases, shared conventions
-- One detail file per sub-task: `docs/tasks/<plan-name>-NN-<task-slug>.md` — scope, files list (with create/modify), API contracts, acceptance criteria, tests
+- One iteration directory: `docs/iterations/<ver>-<slug>/` — contains all docs for that iteration
+- One spec file: `docs/iterations/<ver>-<slug>/spec.md` — design specification
+- One overview file: `docs/iterations/<ver>-<slug>/task-plan.md` — dependency graph, sub-task index table, execution phases, shared conventions
+- One detail file per sub-task: `docs/iterations/<ver>-<slug>/NN-<task-slug>.md` — scope, files list (with create/modify), API contracts, acceptance criteria, tests
+- One dashboard: `docs/iterations/<ver>-<slug>/tasks.base` — Obsidian Bases auto-summary of task status
+- One dependency graph: `docs/iterations/<ver>-<slug>/dependencies.canvas` — visual dependency graph
 - Detail files are self-contained: an agent can implement the task by reading only the detail file + project conventions
+- All doc files must have YAML frontmatter (see Documentation Conventions below)
 
 ### 3. Parallel Development (Codex)
 
@@ -242,47 +299,53 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 
 ### 5. Progress Tracking
 
-- Task progress is tracked in `docs/tasks/mvp-progress.md`
-- **After each task is confirmed complete** (PR merged or work verified), update `mvp-progress.md`:
-  - Set the task's Status to `Done`
-  - Fill in the PR link and Completed Date
-  - Update the Overall Progress count and Current Phase
-  - Add any relevant notes
-- This file is the source of truth for current development status
+- Task progress is tracked via **Obsidian Bases** (`.base` files) that auto-query frontmatter metadata
+- Global dashboard: `docs/dashboard.base` — shows all tasks across iterations
+- Per-iteration dashboard: `docs/iterations/<ver>-<slug>/tasks.base`
+- **After each task is confirmed complete** (PR merged or work verified), update the task file's frontmatter:
+  - Set `status: done`
+  - Fill in `pr` number and `completed` date
+- The `.base` dashboards are the source of truth — no manual progress files needed
 
 ### Task Planning Document Format
 
-Task documents live in `docs/tasks/` and follow this structure:
+Task documents live in `docs/iterations/<ver>-<slug>/` and follow this structure (see `docs/templates/` for ready-to-use templates):
 
 ```markdown
-# Task Plan: <Feature Name>
+---
+type: task
+iteration: "<version>"
+status: pending
+branch: "feat/<task-slug>"
+pr:
+completed:
+tags:
+  - <iteration-tag>
+---
 
-## Overview
-Brief description of the feature being decomposed.
+# Task N: <Task Name>
 
-## Sub-tasks
-
-### Task 1: <task-slug>
 - **Branch**: `feat/<task-slug>`
 - **Scope**: What this task implements
-- **Files**:
+- **Dependencies**: None | Task X must be merged first
+
+## Files
   - `backend/app/models/foo.py` (create)
   - `backend/app/api/foo.py` (create)
-  - ...
-- **API Contracts** (if applicable):
+
+## API Contracts (if applicable)
   - `POST /api/foo` — request/response schema
-- **Acceptance Criteria**:
+
+## Acceptance Criteria
   - [ ] Criterion 1
   - [ ] Criterion 2
-- **Dependencies**: None | Task X must be merged first
-- **Tests**:
+
+## Tests
   - Backend: describe what to test
   - Frontend: describe what to test
-
-### Task 2: <task-slug>
-...
 ```
 
 ## Spec
 
-Full design spec: `docs/superpowers/specs/2026-04-06-timesand-mvp-design.md`
+MVP design spec: `docs/iterations/v0.0-mvp/spec.md`
+Product roadmap: `docs/product-roadmap.md`

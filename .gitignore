@@ -5,6 +5,7 @@ docs/draft/*
 # claude code
 .claude/*
 !.claude/commands
+!.claude/skills
 
 # Node / Bun
 node_modules/
@@ -56,3 +57,6 @@ docker-compose.override.yml
 # Logs
 *.log
 npm-debug.log*
+
+# Obsidian
+docs/.obsidian

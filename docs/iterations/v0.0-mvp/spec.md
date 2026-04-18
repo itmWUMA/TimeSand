@@ -1,3 +1,11 @@
+---
+type: spec
+iteration: "0.0"
+created: 2026-04-06
+tags:
+  - mvp
+---
+
 # TimeSand MVP Design Spec
 
 ## 1. Product Overview
