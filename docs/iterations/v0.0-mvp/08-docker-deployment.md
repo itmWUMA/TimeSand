@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/docker-deployment"
+pr: 4
+completed: 2026-04-06
+tags:
+  - mvp
+---
+
 # Task 8: Docker Deployment
 
 - **Branch**: `feat/docker-deployment`

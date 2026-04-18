@@ -1,0 +1,173 @@
+{
+  "nodes": [
+    {
+      "id": "b1a2c3d4e5f60001",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 300,
+      "height": 100,
+      "text": "## v0.0 — MVP\n**Status**: Done (9/9 tasks)\n**Released**: v0.0.1",
+      "color": "4"
+    },
+    {
+      "id": "b1a2c3d4e5f60010",
+      "type": "group",
+      "x": -30,
+      "y": 180,
+      "width": 1560,
+      "height": 180,
+      "label": "Phase 1 — Polishing (v0.1.0)",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60002",
+      "type": "text",
+      "x": 0,
+      "y": 200,
+      "width": 280,
+      "height": 80,
+      "text": "## 1.1 Design System\ni18n + HEIC + Tokens",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60003",
+      "type": "text",
+      "x": 310,
+      "y": 200,
+      "width": 280,
+      "height": 80,
+      "text": "## 1.2 Core Experience\nCard draw ceremony + Slideshow",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60004",
+      "type": "text",
+      "x": 620,
+      "y": 200,
+      "width": 280,
+      "height": 80,
+      "text": "## 1.3 Full Page Upgrade\nApply design system everywhere",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60005",
+      "type": "text",
+      "x": 930,
+      "y": 200,
+      "width": 280,
+      "height": 80,
+      "text": "## 1.4 Responsive & Mobile\nHamburger menu + Touch gestures",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60006",
+      "type": "text",
+      "x": 1240,
+      "y": 200,
+      "width": 280,
+      "height": 80,
+      "text": "## 1.5 Infrastructure\nCI/CD + Alembic + Backup",
+      "color": "3"
+    },
+    {
+      "id": "b1a2c3d4e5f60020",
+      "type": "group",
+      "x": -30,
+      "y": 440,
+      "width": 940,
+      "height": 120,
+      "label": "Phase 2 — Enhancement (v0.2.x ~ v0.4.x)",
+      "color": "2"
+    },
+    {
+      "id": "b1a2c3d4e5f60021",
+      "type": "text",
+      "x": 0,
+      "y": 460,
+      "width": 280,
+      "height": 80,
+      "text": "## Phase 2\nMemory discovery, Video, Search,\nMusic upgrade, Light theme",
+      "color": "2"
+    },
+    {
+      "id": "b1a2c3d4e5f60030",
+      "type": "group",
+      "x": -30,
+      "y": 640,
+      "width": 630,
+      "height": 120,
+      "label": "Phase 3 — Expansion (v0.5.x+ → v1.0)",
+      "color": "6"
+    },
+    {
+      "id": "b1a2c3d4e5f60031",
+      "type": "text",
+      "x": 0,
+      "y": 660,
+      "width": 280,
+      "height": 80,
+      "text": "## Phase 3\nAuth, Multi-user, External integrations,\nAI, PWA, Plugin system",
+      "color": "6"
+    }
+  ],
+  "edges": [
+    {
+      "id": "f1a2c3d4e5f60001",
+      "fromNode": "b1a2c3d4e5f60001",
+      "fromSide": "bottom",
+      "toNode": "b1a2c3d4e5f60002",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "next"
+    },
+    {
+      "id": "f1a2c3d4e5f60002",
+      "fromNode": "b1a2c3d4e5f60002",
+      "fromSide": "right",
+      "toNode": "b1a2c3d4e5f60003",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f1a2c3d4e5f60003",
+      "fromNode": "b1a2c3d4e5f60003",
+      "fromSide": "right",
+      "toNode": "b1a2c3d4e5f60004",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f1a2c3d4e5f60004",
+      "fromNode": "b1a2c3d4e5f60004",
+      "fromSide": "right",
+      "toNode": "b1a2c3d4e5f60005",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f1a2c3d4e5f60005",
+      "fromNode": "b1a2c3d4e5f60005",
+      "fromSide": "right",
+      "toNode": "b1a2c3d4e5f60006",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f1a2c3d4e5f60006",
+      "fromNode": "b1a2c3d4e5f60010",
+      "fromSide": "bottom",
+      "toNode": "b1a2c3d4e5f60020",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f1a2c3d4e5f60007",
+      "fromNode": "b1a2c3d4e5f60020",
+      "fromSide": "bottom",
+      "toNode": "b1a2c3d4e5f60030",
+      "toSide": "top",
+      "toEnd": "arrow"
+    }
+  ]
+}

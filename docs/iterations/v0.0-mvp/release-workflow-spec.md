@@ -1,3 +1,12 @@
+---
+type: spec
+iteration: "0.0"
+created: 2026-04-12
+tags:
+  - mvp
+  - infrastructure
+---
+
 # Design Spec: Release Workflow (GitHub Actions)
 
 ## Overview

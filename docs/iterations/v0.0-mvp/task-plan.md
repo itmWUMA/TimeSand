@@ -1,10 +1,18 @@
+---
+type: plan
+iteration: "0.0"
+created: 2026-04-06
+tags:
+  - mvp
+---
+
 # Task Plan: TimeSand MVP
 
 ## Overview
 
 Decompose the TimeSand MVP into independent sub-tasks for parallel development. The MVP delivers: photo upload & management, album & tag organization, music & playlist management, card draw experience, slideshow, background music player, and Docker deployment.
 
-Full design spec: `docs/superpowers/specs/2026-04-06-timesand-mvp-design.md`
+Full design spec: [[spec|TimeSand MVP Design Spec]]
 
 ## Dependency Graph
 
@@ -36,15 +44,15 @@ Task 1: project-foundation
 
 | # | Task | Branch | Dependencies | Doc |
 |---|------|--------|-------------|-----|
-| 1 | Project Foundation | `feat/project-foundation` | None | [mvp-01-project-foundation.md](mvp-01-project-foundation.md) |
-| 2 | Photo Management | `feat/photo-management` | Task 1 | [mvp-02-photo-management.md](mvp-02-photo-management.md) |
-| 3 | Album & Tag Management | `feat/album-tag-management` | Task 1, 2 | [mvp-03-album-tag-management.md](mvp-03-album-tag-management.md) |
-| 4 | Music & Playlist | `feat/music-playlist` | Task 1, 3 | [mvp-04-music-playlist.md](mvp-04-music-playlist.md) |
-| 5 | Card Draw | `feat/card-draw` | Task 1, 2, 3 | [mvp-05-card-draw.md](mvp-05-card-draw.md) |
-| 6 | Slideshow | `feat/slideshow` | Task 1, 2, 3 | [mvp-06-slideshow.md](mvp-06-slideshow.md) |
-| 7 | Music Player | `feat/music-player` | Task 1, 2, 4 | [mvp-07-music-player.md](mvp-07-music-player.md) |
-| 8 | Docker Deployment | `feat/docker-deployment` | All | [mvp-08-docker-deployment.md](mvp-08-docker-deployment.md) |
-| 9 | Settings Page | `feat/settings-page` | Task 1, 2 | [mvp-09-settings-page.md](mvp-09-settings-page.md) |
+| 1 | Project Foundation | `feat/project-foundation` | None | [[01-project-foundation]] |
+| 2 | Photo Management | `feat/photo-management` | Task 1 | [[02-photo-management]] |
+| 3 | Album & Tag Management | `feat/album-tag-management` | Task 1, 2 | [[03-album-tag-management]] |
+| 4 | Music & Playlist | `feat/music-playlist` | Task 1, 3 | [[04-music-playlist]] |
+| 5 | Card Draw | `feat/card-draw` | Task 1, 2, 3 | [[05-card-draw]] |
+| 6 | Slideshow | `feat/slideshow` | Task 1, 2, 3 | [[06-slideshow]] |
+| 7 | Music Player | `feat/music-player` | Task 1, 2, 4 | [[07-music-player]] |
+| 8 | Docker Deployment | `feat/docker-deployment` | All | [[08-docker-deployment]] |
+| 9 | Settings Page | `feat/settings-page` | Task 1, 2 | [[09-settings-page]] |
 
 ## Execution Order
 

@@ -1,3 +1,14 @@
+---
+type: task
+iteration: "0.0"
+status: done
+branch: "feat/card-draw"
+pr: 6
+completed: 2026-04-12
+tags:
+  - mvp
+---
+
 # Task 5: Card Draw
 
 - **Branch**: `feat/card-draw`
