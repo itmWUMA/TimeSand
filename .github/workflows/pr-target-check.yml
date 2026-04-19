@@ -1,0 +1,16 @@
+name: PR Target Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only dev can merge into main
+        if: github.head_ref != 'dev'
+        run: |
+          echo "::error::Direct PRs to main are not allowed. Please merge into dev first, then create a PR from dev to main."
+          exit 1
