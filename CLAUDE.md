@@ -134,6 +134,7 @@ All environments should use domestic mirrors for faster downloads:
 - SQLModel models in `backend/app/models/`, one file per entity group
 - Code and comments in English; conversation in Chinese
 - Version control on GitHub; use `gh` CLI for PR/issue operations
+- **Never `git commit` or `git push` without explicit user approval** — stage changes and present a summary, then wait for the user to confirm before committing
 
 ## Documentation Conventions
 
@@ -289,7 +290,7 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 - Codex reads the task planning document and implements independently
 - Each branch should be buildable and testable in isolation
 - **Codex completes implementation by staging changes (`git add`) only — do NOT commit**
-- After review, Claude Code or the user will commit and create the PR
+- After review, the user decides when to commit — Claude Code must **never commit or push without explicit user approval**
 
 ### 4. Integration
 
