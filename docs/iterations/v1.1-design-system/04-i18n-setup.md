@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: done
 branch: "feat/i18n-setup"
-pr:
-completed:
+pr: 15
+completed: 2026-04-19
 tags:
   - i18n
   - phase-1
