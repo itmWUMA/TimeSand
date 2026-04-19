@@ -64,7 +64,7 @@ function onDrop(event: DragEvent): void {
         Drag photos here
       </p>
       <p class="mt-1 text-sm text-ts-muted">
-        JPEG, PNG, WebP, GIF, HEIC
+        JPEG, PNG, WebP, GIF, HEIC/HEIF
       </p>
 
       <button
