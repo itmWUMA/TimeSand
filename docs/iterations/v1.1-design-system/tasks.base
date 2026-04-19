@@ -1,24 +1,25 @@
----
-filter:
-  type: task
-  iteration: "1.1"
-columns:
-  - property: file.name
-    label: Task
-    width: 200
-  - property: status
-    label: Status
-    width: 100
-  - property: branch
-    label: Branch
-    width: 180
-  - property: pr
-    label: PR
-    width: 60
-  - property: completed
-    label: Completed
-    width: 120
-sort:
-  - property: file.name
-    direction: asc
----
+filters:
+  and:
+    - type == "task"
+    - file.inFolder("iterations/v1.1-design-system")
+properties:
+  status:
+    displayName: Status
+  branch:
+    displayName: Branch
+  pr:
+    displayName: PR
+  completed:
+    displayName: Completed
+views:
+  - type: table
+    name: v1.1 Tasks
+    order:
+      - file.name
+      - status
+      - branch
+      - pr
+      - completed
+    summaries:
+      status: Filled
+      pr: Filled

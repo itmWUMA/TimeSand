@@ -56,11 +56,11 @@ Visual graph: [[dependencies]]
 
 ## Execution Order
 
-| Phase | Tasks | Parallel? |
-|-------|-------|-----------|
-| 1 | Task 1, Task 4, Task 7 | Yes |
-| 2 | Task 2, Task 5 | Yes |
-| 3 | Task 3, Task 6 | Yes |
+| Phase | Tasks                  | Parallel? |
+| ----- | ---------------------- | --------- |
+| 1     | Task 1, Task 4, Task 7 | Yes       |
+| 2     | Task 2, Task 5         | Yes       |
+| 3     | Task 3, Task 6         | Yes       |
 
 Each phase branches from `dev` after the previous phase's PRs are merged.
 
