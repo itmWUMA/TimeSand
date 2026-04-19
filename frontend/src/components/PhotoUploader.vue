@@ -64,7 +64,7 @@ function onDrop(event: DragEvent): void {
         Drag photos here
       </p>
       <p class="mt-1 text-sm text-ts-muted">
-        JPEG, PNG, WebP, GIF
+        JPEG, PNG, WebP, GIF, HEIC/HEIF
       </p>
 
       <button
@@ -80,7 +80,7 @@ function onDrop(event: DragEvent): void {
         ref="fileInput"
         class="hidden"
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
         multiple
         :disabled="uploading"
         @change="onFileInputChange"
