@@ -18,10 +18,12 @@
     "radix-vue": "^1.9.11",
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.13",
+    "vue-i18n": "10.0.5",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.1.1",
+    "@intlify/devtools-types": "10.0.5",
     "@types/node": "^22.13.5",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",

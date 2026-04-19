@@ -11,10 +11,12 @@
         "radix-vue": "^1.9.11",
         "tailwindcss": "^3.4.17",
         "vue": "^3.5.13",
+        "vue-i18n": "10.0.5",
         "vue-router": "^4.5.0",
       },
       "devDependencies": {
         "@antfu/eslint-config": "^8.1.1",
+        "@intlify/devtools-types": "10.0.5",
         "@types/node": "^22.13.5",
         "@vitejs/plugin-vue": "^5.2.1",
         "@vue/test-utils": "^2.4.6",
@@ -157,6 +159,14 @@
     "@internationalized/date": ["@internationalized/date@3.12.0", "https://registry.npmmirror.com/@internationalized/date/-/date-3.12.0.tgz", { "dependencies": { "@swc/helpers": "^0.5.0" } }, "sha512-/PyIMzK29jtXaGU23qTvNZxvBXRtKbNnGDFD+PY6CZw/Y8Ex8pFUzkuCJCG9aOqmShjqhS9mPqP6Dk5onQY8rQ=="],
 
     "@internationalized/number": ["@internationalized/number@3.6.5", "https://registry.npmmirror.com/@internationalized/number/-/number-3.6.5.tgz", { "dependencies": { "@swc/helpers": "^0.5.0" } }, "sha512-6hY4Kl4HPBvtfS62asS/R22JzNNy8vi/Ssev7x6EobfCp+9QIB2hKvI2EtbdJ0VSQacxVNtqhE/NmF/NZ0gm6g=="],
+
+    "@intlify/core-base": ["@intlify/core-base@10.0.5", "https://registry.npmmirror.com/@intlify/core-base/-/core-base-10.0.5.tgz", { "dependencies": { "@intlify/message-compiler": "10.0.5", "@intlify/shared": "10.0.5" } }, "sha512-F3snDTQs0MdvnnyzTDTVkOYVAZOE/MHwRvF7mn7Jw1yuih4NrFYLNYIymGlLmq4HU2iIdzYsZ7f47bOcwY73XQ=="],
+
+    "@intlify/devtools-types": ["@intlify/devtools-types@10.0.5", "https://registry.npmmirror.com/@intlify/devtools-types/-/devtools-types-10.0.5.tgz", { "dependencies": { "@intlify/core-base": "10.0.5", "@intlify/shared": "10.0.5" } }, "sha512-bGnMQiG6zKlMa42MdWF26KKqYIDwOTV4zCY0j48KdTQa7eQGeHlYydfh7f0dUAcZ+FRMJ9o7j4l6KEKbO0okeg=="],
+
+    "@intlify/message-compiler": ["@intlify/message-compiler@10.0.5", "https://registry.npmmirror.com/@intlify/message-compiler/-/message-compiler-10.0.5.tgz", { "dependencies": { "@intlify/shared": "10.0.5", "source-map-js": "^1.0.2" } }, "sha512-6GT1BJ852gZ0gItNZN2krX5QAmea+cmdjMvsWohArAZ3GmHdnNANEcF9JjPXAMRtQ6Ux5E269ymamg/+WU6tQA=="],
+
+    "@intlify/shared": ["@intlify/shared@10.0.5", "https://registry.npmmirror.com/@intlify/shared/-/shared-10.0.5.tgz", {}, "sha512-bmsP4L2HqBF6i6uaMqJMcFBONVjKt+siGluRq4Ca4C0q7W2eMaVZr8iCgF9dKbcVXutftkC7D6z2SaSMmLiDyA=="],
 
     "@isaacs/cliui": ["@isaacs/cliui@8.0.2", "https://registry.npmmirror.com/@isaacs/cliui/-/cliui-8.0.2.tgz", { "dependencies": { "string-width": "^5.1.2", "string-width-cjs": "npm:string-width@^4.2.0", "strip-ansi": "^7.0.1", "strip-ansi-cjs": "npm:strip-ansi@^6.0.1", "wrap-ansi": "^8.1.0", "wrap-ansi-cjs": "npm:wrap-ansi@^7.0.0" } }, "sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA=="],
 
@@ -1101,6 +1111,8 @@
     "vue-demi": ["vue-demi@0.14.10", "https://registry.npmmirror.com/vue-demi/-/vue-demi-0.14.10.tgz", { "peerDependencies": { "@vue/composition-api": "^1.0.0-rc.1", "vue": "^3.0.0-0 || ^2.6.0" }, "optionalPeers": ["@vue/composition-api"], "bin": { "vue-demi-fix": "bin/vue-demi-fix.js", "vue-demi-switch": "bin/vue-demi-switch.js" } }, "sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg=="],
 
     "vue-eslint-parser": ["vue-eslint-parser@10.4.0", "https://registry.npmmirror.com/vue-eslint-parser/-/vue-eslint-parser-10.4.0.tgz", { "dependencies": { "debug": "^4.4.0", "eslint-scope": "^8.2.0 || ^9.0.0", "eslint-visitor-keys": "^4.2.0 || ^5.0.0", "espree": "^10.3.0 || ^11.0.0", "esquery": "^1.6.0", "semver": "^7.6.3" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0" } }, "sha512-Vxi9pJdbN3ZnVGLODVtZ7y4Y2kzAAE2Cm0CZ3ZDRvydVYxZ6VrnBhLikBsRS+dpwj4Jv4UCv21PTEwF5rQ9WXg=="],
+
+    "vue-i18n": ["vue-i18n@10.0.5", "https://registry.npmmirror.com/vue-i18n/-/vue-i18n-10.0.5.tgz", { "dependencies": { "@intlify/core-base": "10.0.5", "@intlify/shared": "10.0.5", "@vue/devtools-api": "^6.5.0" }, "peerDependencies": { "vue": "^3.0.0" } }, "sha512-9/gmDlCblz3i8ypu/afiIc/SUIfTTE1mr0mZhb9pk70xo2csHAM9mp2gdQ3KD2O0AM3Hz/5ypb+FycTj/lHlPQ=="],
 
     "vue-router": ["vue-router@4.6.4", "https://registry.npmmirror.com/vue-router/-/vue-router-4.6.4.tgz", { "dependencies": { "@vue/devtools-api": "^6.6.4" }, "peerDependencies": { "vue": "^3.5.0" } }, "sha512-Hz9q5sa33Yhduglwz6g9skT8OBPii+4bFn88w6J+J4MfEo4KRRpmiNG/hHHkdbRFlLBOqxN8y8gf2Fb0MTUgVg=="],
 
