@@ -1,0 +1,24 @@
+---
+filter:
+  type: task
+  iteration: "1.1"
+columns:
+  - property: file.name
+    label: Task
+    width: 200
+  - property: status
+    label: Status
+    width: 100
+  - property: branch
+    label: Branch
+    width: 180
+  - property: pr
+    label: PR
+    width: 60
+  - property: completed
+    label: Completed
+    width: 120
+sort:
+  - property: file.name
+    direction: asc
+---
