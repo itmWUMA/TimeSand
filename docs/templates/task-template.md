@@ -39,6 +39,7 @@ tags: []
 
 - [ ] Criterion 1
 - [ ] Criterion 2
+- [ ] (if deps changed) Clean-install verification passes: `rm -rf node_modules && bun install && bun run type-check && bun run test`
 
 ## Tests
 

@@ -234,6 +234,7 @@ Requirement Alignment → Task Planning → Parallel Development → Integration
   - Dependencies on other sub-tasks (if any)
   - Branch name: `feat/<task-slug>`
 - Use templates from `docs/templates/` as starting point
+- **Dependency due diligence**: when a task introduces a new npm/PyPI package, check its peer dependencies (e.g. `bun pm ls --peer` / `npm info <pkg> peerDependencies`) and list any that need explicit installation in the task doc
 
 #### Task Decomposition Methodology
 
@@ -340,6 +341,7 @@ tags:
 ## Acceptance Criteria
   - [ ] Criterion 1
   - [ ] Criterion 2
+  - [ ] (if deps changed) Clean-install verification passes: `rm -rf node_modules && bun install && bun run type-check && bun run test`
 
 ## Tests
   - Backend: describe what to test

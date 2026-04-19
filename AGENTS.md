@@ -151,6 +151,7 @@ Tasks are decomposed using **domain-first, full-stack vertical slicing**:
 4. Run tests and linting:
    - Frontend: `cd frontend && bun run lint && bun run type-check && bun run test`
    - Backend: `cd backend && uv run ruff check . && uv run pytest`
+   - If your task changed `package.json` or `pyproject.toml`, also verify with a clean install: `cd frontend && rm -rf node_modules && bun install && bun run type-check && bun run test`
 5. **Stage all changes (`git add`) but do NOT commit** — the reviewer (Claude Code or user) will commit and create the PR
 
 ### Branch Naming
