@@ -2,7 +2,7 @@
 	"nodes":[
 		{"id":"b1a2c3d4e5f60001","type":"text","x":0,"y":0,"width":300,"height":100,"text":"## v0.0 — MVP\n**Status**: Done (9/9 tasks)\n**Released**: v0.0.1","color":"4"},
 		{"id":"b1a2c3d4e5f60010","type":"group","x":-30,"y":180,"width":1560,"height":180,"label":"Phase 1 — Polishing (v0.1.0)","color":"3"},
-		{"id":"b1a2c3d4e5f60002","type":"text","x":0,"y":200,"width":280,"height":80,"text":"## 1.1 Design System\ni18n + HEIC + Tokens","color":"3"},
+		{"id":"b1a2c3d4e5f60002","type":"text","x":0,"y":200,"width":280,"height":80,"text":"## 1.1 Design System\ni18n + HEIC + Tokens\n**In Progress** (1/7)","color":"5"},
 		{"id":"b1a2c3d4e5f60003","type":"text","x":310,"y":200,"width":280,"height":80,"text":"## 1.2 Core Experience\nCard draw ceremony + Slideshow","color":"3"},
 		{"id":"b1a2c3d4e5f60004","type":"text","x":620,"y":200,"width":280,"height":80,"text":"## 1.3 Full Page Upgrade\nApply design system everywhere","color":"3"},
 		{"id":"b1a2c3d4e5f60005","type":"text","x":930,"y":200,"width":280,"height":80,"text":"## 1.4 Responsive & Mobile\nHamburger menu + Touch gestures","color":"3"},

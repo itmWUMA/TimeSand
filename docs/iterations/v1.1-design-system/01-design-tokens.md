@@ -1,7 +1,7 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: in-progress
 branch: "feat/design-tokens"
 pr:
 completed:
@@ -26,17 +26,17 @@ tags:
 
 ## Acceptance Criteria
 
-- [ ] All token dimensions from spec (color, font, spacing, radius, shadow, z-index, duration, blur) defined as CSS custom properties in `tokens.css`
-- [ ] `tailwind.config.ts` references `var(--ts-*)` for all color values
-- [ ] Non-color tokens available via `ts-` prefixed Tailwind utilities (e.g., `rounded-ts-md`, `shadow-ts-sm`)
-- [ ] Existing Tailwind classes (`bg-ts-bg`, `text-ts-accent`, `shadow-glow`, etc.) continue to work identically
+- [x] All token dimensions from spec (color, font, spacing, radius, shadow, z-index, duration, blur) defined as CSS custom properties in `tokens.css`
+- [x] `tailwind.config.ts` references `var(--ts-*)` for all color values
+- [x] Non-color tokens available via `ts-` prefixed Tailwind utilities (e.g., `rounded-ts-md`, `shadow-ts-sm`)
+- [x] Existing Tailwind classes (`bg-ts-bg`, `text-ts-accent`, `shadow-glow`, etc.) continue to work identically
 - [ ] No visual regression in existing pages
 - [ ] `bun run build` succeeds
 - [ ] `bun run type-check` passes
 
 ## Implementation Steps
 
-- [ ] **Step 1: Create `tokens.css` with all design token definitions**
+- [x] **Step 1: Create `tokens.css` with all design token definitions**
 
 Create `frontend/src/assets/tokens.css`:
 
@@ -117,7 +117,7 @@ Create `frontend/src/assets/tokens.css`:
 }
 ```
 
-- [ ] **Step 2: Update `main.css` to import tokens and remove inline variables**
+- [x] **Step 2: Update `main.css` to import tokens and remove inline variables**
 
 Replace the full content of `frontend/src/assets/main.css`:
 
@@ -142,7 +142,7 @@ Key changes:
 - Removed the `:root { ... }` block (7 inline variables now live in `tokens.css`)
 - Changed `font-family` to use `var(--ts-font-sans)` instead of hardcoded font stack
 
-- [ ] **Step 3: Update `tailwind.config.ts` to reference CSS variables**
+- [x] **Step 3: Update `tailwind.config.ts` to reference CSS variables**
 
 Replace the full content of `frontend/tailwind.config.ts`:
 
