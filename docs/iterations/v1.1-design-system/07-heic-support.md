@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: done
 branch: "feat/heic-support"
 pr:
-completed:
+completed: 2026-04-19
 tags:
   - heic
   - phase-1

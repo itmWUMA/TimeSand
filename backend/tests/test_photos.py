@@ -36,6 +36,24 @@ def build_jpeg_bytes(width: int = 1200, height: int = 800, with_exif: bool = Tru
     return buffer.getvalue()
 
 
+def build_heic_bytes(width: int = 800, height: int = 600, with_exif: bool = True) -> bytes:
+    from pillow_heif import register_heif_opener
+
+    register_heif_opener()
+
+    image = Image.new("RGB", (width, height), color=(100, 200, 50))
+    buffer = BytesIO()
+
+    if with_exif:
+        exif = Image.Exif()
+        exif[36867] = "2024:01:20 14:30:00"
+        image.save(buffer, format="HEIF", exif=exif)
+    else:
+        image.save(buffer, format="HEIF")
+
+    return buffer.getvalue()
+
+
 def upload_photo(client: TestClient) -> dict:
     response = client.post(
         "/api/photos/upload",
@@ -105,6 +123,79 @@ def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.M
 
     assert response.status_code == 413
     assert response.json() == {"detail": "File too large"}
+
+
+def test_upload_heic_converts_to_jpeg(client: TestClient) -> None:
+    heic_data = build_heic_bytes()
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("photo.heic", heic_data, "image/heic"))]
+    )
+
+    assert response.status_code == 201
+    photo = response.json()["photos"][0]
+
+    assert photo["mime_type"] == "image/jpeg"
+    assert photo["filename"] == "photo.heic"
+    assert photo["file_path"].endswith(".jpg")
+    assert photo["thumbnail_path"].endswith(".jpg")
+    assert photo["width"] == 800
+    assert photo["height"] == 600
+
+
+def test_upload_heic_preserves_exif(client: TestClient) -> None:
+    heic_data = build_heic_bytes(with_exif=True)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("exif.heic", heic_data, "image/heic"))]
+    )
+
+    assert response.status_code == 201
+    photo = response.json()["photos"][0]
+    assert photo["taken_at"] is not None
+
+
+def test_upload_heif_mime_type_accepted(client: TestClient) -> None:
+    heic_data = build_heic_bytes(with_exif=False)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("photo.heif", heic_data, "image/heif"))]
+    )
+
+    assert response.status_code == 201
+    photo = response.json()["photos"][0]
+    assert photo["mime_type"] == "image/jpeg"
+
+
+def test_upload_heic_sequence_mime_type_accepted(client: TestClient) -> None:
+    heic_data = build_heic_bytes(with_exif=False)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("photo.heic", heic_data, "image/heic-sequence"))]
+    )
+
+    assert response.status_code == 201
+    photo = response.json()["photos"][0]
+    assert photo["mime_type"] == "image/jpeg"
+    assert photo["file_path"].endswith(".jpg")
+
+
+def test_upload_heic_octet_stream_with_extension_accepted(client: TestClient) -> None:
+    heic_data = build_heic_bytes(with_exif=False)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("IMG_1205.HEIC", heic_data, "application/octet-stream"))]
+    )
+
+    assert response.status_code == 201
+    photo = response.json()["photos"][0]
+    assert photo["mime_type"] == "image/jpeg"
+    assert photo["file_path"].endswith(".jpg")
 
 
 def test_create_photo_rolls_back_file_on_thumbnail_failure(
