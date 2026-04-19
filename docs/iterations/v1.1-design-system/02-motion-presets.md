@@ -37,6 +37,64 @@ tags:
 - [ ] Unit tests pass for function signatures and return types
 - [ ] `bun run type-check` passes
 
+## Design Reference: P3R Ethereal Flow
+
+本库的动效风格源自 **Persona 3 Reload (P3R)** 的空灵流动美学，经色彩适配后融入 TimeSand 的琥珀金暖色调。实现时需把握以下核心特征：
+
+### 美学关键词
+
+**空灵 · 如梦 · 时间流逝感** — 不是 P5 那种锐利、高能、强视觉冲击，而是柔和、诗意、有呼吸感的动态。
+
+### 色彩适配
+
+P3R 原版使用蓝色月光色调 (`rgba(70,120,180)` / `rgba(100,180,220)`)。TimeSand 将其替换为琥珀金暖光：
+
+| P3R 原版 | TimeSand 适配 | 用途 |
+|----------|---------------|------|
+| `rgba(70,120,180,0.3)` | `rgba(212,168,67,0.35)` | 主光晕 (glow) |
+| `rgba(100,180,220,0.15)` | `rgba(212,168,67,0.15)` | 柔和光晕 (glow-soft) |
+| `rgba(56,100,160,0.1)` | `rgba(212,168,67,0.08)` | 背景漂移光斑 |
+
+### 四大视觉元素
+
+1. **光晕呼吸 (Glow Breath)** — 元素发出柔和的琥珀金光晕，以 `sine.inOut` 缓动无限循环明暗。参考 P3R 月光脉搏效果。不是闪烁，是缓慢的"呼吸"。
+
+2. **丝带流动 (Ribbon Flow)** — 水平光带从左向右流过，带有渐入渐出的透明度变化。参考 P3R UI 中的流动光线装饰。CSS 参考：
+   ```css
+   @keyframes ribbonFlow {
+     0% { transform: translateX(-100%); opacity: 0; }
+     30% { opacity: 1; }
+     70% { opacity: 1; }
+     100% { transform: translateX(100%); opacity: 0; }
+   }
+   ```
+
+3. **粒子飘散 (Particle Drift)** — 小圆点以不同相位缓慢上下浮动，营造"尘埃在光线中漂浮"的感觉。透明度在 0.3–0.8 间变化，垂直位移约 12px。CSS 参考：
+   ```css
+   @keyframes particleFloat {
+     0%, 100% { transform: translateY(0); opacity: 0.3; }
+     50% { transform: translateY(-12px); opacity: 0.8; }
+   }
+   ```
+
+4. **半透明叠层 (Translucent Layers)** — 利用 `backdrop-blur` 和低透明度背景创造层次感。Token 中已提供 `--ts-blur-sm/md/lg`。
+
+### 动效节奏
+
+- **入场**：`power2.out` — 温和展开，不突兀
+- **退场**：`power2.in` — 优雅消退
+- **循环**：`sine.inOut` / `power1.inOut` — 如呼吸般自然
+- **微交互**（按钮悬停等）：`back.out(1.2)` — 轻微回弹，增添灵动
+- **时长偏长**：常规动效 0.4s，沉浸效果 0.7-1.2s。比 P5 慢，比纯柔和风格快。
+
+### 与 UI 组件的关系
+
+- `glowBreath` → 用于卡片聚焦态、按钮 primary 悬停光晕
+- `ribbonFlow` → 用于装饰性光带（加载态、分隔线）
+- `particleDrift` → 用于抽卡页面背景氛围
+- `fadeIn` / `slideUp` / `scaleIn` → 用于面板、弹窗、Toast 的入场
+- `staggerIn` → 用于列表/网格的分层依次进入
+
 ## Implementation Steps
 
 - [ ] **Step 1: Create preset constants**
@@ -140,24 +198,41 @@ export function scaleIn(el: gsap.TweenTarget, opts?: MotionOpts): gsap.core.Twee
   )
 }
 
+// P3R moonlight pulse → amber glow breath
+// Slowly oscillates box-shadow intensity like breathing, not blinking.
+// Reference: etherealGlow keyframes from design brainstorm.
 export function glowBreath(el: gsap.TweenTarget): gsap.core.Tween {
-  return gsap.to(el, {
-    boxShadow: '0 0 40px rgba(212, 168, 67, 0.5)',
-    duration: DURATION.drift,
-    ease: EASING.breath,
-    repeat: -1,
-    yoyo: true,
-  })
+  return gsap.fromTo(el,
+    { boxShadow: '0 0 20px rgba(212, 168, 67, 0.15)' },
+    {
+      boxShadow: '0 0 45px rgba(212, 168, 67, 0.45)',
+      scale: 1.03,
+      duration: DURATION.drift,
+      ease: EASING.breath,
+      repeat: -1,
+      yoyo: true,
+    },
+  )
 }
 
+// P3R ribbon/light band — horizontal light streak flowing across.
+// The element should have overflow:hidden. The inner pseudo/child moves
+// via translateX from -100% to +100% with opacity fade at edges.
 export function ribbonFlow(el: gsap.TweenTarget): gsap.core.Tween {
   return gsap.fromTo(el,
-    { backgroundPosition: '-200% 0' },
+    { x: '-100%', opacity: 0 },
     {
-      backgroundPosition: '200% 0',
+      x: '100%',
+      opacity: 1,
       duration: DURATION.drift * 2,
       ease: EASING.flow,
       repeat: -1,
+      keyframes: [
+        { x: '-100%', opacity: 0, duration: 0 },
+        { x: '-30%', opacity: 1, duration: DURATION.drift * 0.6 },
+        { x: '30%', opacity: 1, duration: DURATION.drift * 0.8 },
+        { x: '100%', opacity: 0, duration: DURATION.drift * 0.6 },
+      ],
     },
   )
 }
