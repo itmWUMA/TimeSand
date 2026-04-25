@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.2"
-status: pending
+status: done
 branch: "feat/empty-states"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - core-experience
   - empty-states
@@ -33,16 +33,17 @@ tags:
 
 ## Acceptance Criteria
 
-- [ ] `TsEmptyState` component renders icon, title, optional description, and optional CTA button
-- [ ] CTA button navigates to specified route via Vue Router
-- [ ] Component uses `fadeIn` entrance animation from motion presets on mount
-- [ ] Albums page shows empty state when 0 albums exist
-- [ ] Music page shows empty state when 0 tracks exist
-- [ ] All empty state strings available in zh-CN and en
-- [ ] Icons are inline SVGs (stroke style, `currentColor`), not emoji
-- [ ] Unit tests pass: `bun run test -- TsEmptyState`
-- [ ] `bun run type-check` passes
-- [ ] `bun run lint:fix` passes
+- [x] `TsEmptyState` component renders icon, title, optional description, and optional CTA button
+- [x] CTA button navigates to specified route via Vue Router
+- [x] Component uses `fadeIn` entrance animation from motion presets on mount
+- [x] Albums page shows empty state when 0 albums exist
+- [x] Music page shows empty state when 0 tracks exist
+- [x] All empty state strings available in zh-CN and en
+- [x] Icons are inline SVGs (stroke style, `currentColor`), not emoji
+- [x] Unit tests pass: `bun run test -- TsEmptyState`
+- [x] `bun run type-check` passes
+- [x] `bun run lint:fix` passes
+- [x] **[Design Adjustment]** Albums 和 Music 页空状态移除 CTA 按钮（见下方说明）
 
 ## Implementation Steps
 
@@ -319,9 +320,35 @@ EOF
 )"
 ```
 
+## Design Adjustment (2026-04-25)
+
+### 问题
+
+Spec（§7.2）为 Albums 和 Music 空状态设计了 CTA 按钮（"创建相册"/"上传音乐"），`action-to` 指向当前页面自身（`/albums`、`/music`）。验收时发现：
+
+1. **按钮文案与行为的认知错位**：用户看到"创建相册"按钮，预期弹出对话框或文件选择器等直接操作；实际行为是导航到同一页面（无可见变化）
+2. **补救措施不可感知**：实现中添加了 `@action` 事件做 scroll + focus 到页面已有的创建表单/上传区域，但因目标元素已在视口内，视觉反馈等于零
+3. **根本原因**：Spec 中 Albums 行标注了 "(trigger create)"，但 task 文档翻译时将其简化为纯路由导航，丢失了交互语义
+
+### 决策
+
+**移除 Albums 和 Music 页空状态的 CTA 按钮**（方向 A）。理由：
+
+- 这两个页面本身已有创建表单（Albums）和上传区域（Music），用户无需额外按钮引导
+- 空状态保留 icon + 标题 + 描述即可传达"这里还没有内容"的信息，不构成死胡同
+- 避免按钮承诺一个它无法兑现的操作
+
+> 注：`TsEmptyState` 组件本身保留 CTA 按钮能力（`actionLabel` + `actionTo` props），供 Card Draw（→ `/upload`）和 Slideshow（→ `/upload`）等跨页面导航场景使用。
+
+### 变更
+
+- `AlbumsPage.vue`：移除 `actionLabel`、`actionTo`、`@action` 及关联的 `handleEmptyAlbumsAction`、`newNameInputRef`
+- `MusicPage.vue`：移除 `actionLabel`、`actionTo`、`@action` 及关联的 `handleEmptyMusicAction`、`musicUploaderRef`
+- i18n：移除 `empty.albums.action` 和 `empty.music.action` 键（`photos` 和 `slideshow` 的 action 键保留供后续任务使用）
+
 ## Tests
 
 ### Frontend
 
 - **`TsEmptyState.test.ts`**: renders title, optional description, optional CTA button, button navigation, no button when no action
-- **Visual verification**: empty state renders correctly on Albums and Music pages, animation plays, i18n works in both locales
+- **Visual verification**: empty state renders correctly on Albums and Music pages (icon + title + description, no CTA button), animation plays, i18n works in both locales
