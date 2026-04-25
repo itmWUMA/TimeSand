@@ -46,14 +46,18 @@ export function scaleIn(el: gsap.TweenTarget, opts?: MotionOpts): gsap.core.Twee
 }
 
 export function glowBreath(el: gsap.TweenTarget): gsap.core.Tween {
-  return gsap.fromTo(el, { boxShadow: '0 0 20px rgba(212, 168, 67, 0.15)' }, {
-    boxShadow: '0 0 45px rgba(212, 168, 67, 0.45)',
-    scale: 1.03,
-    duration: DURATION.drift,
-    ease: EASING.breath,
-    repeat: -1,
-    yoyo: true,
-  })
+  return gsap.fromTo(
+    el,
+    { scale: 1, filter: 'drop-shadow(0 0 8px rgba(212, 168, 67, 0.2))' },
+    {
+      scale: 1.03,
+      filter: 'drop-shadow(0 0 22px rgba(212, 168, 67, 0.55))',
+      duration: DURATION.drift,
+      ease: EASING.breath,
+      repeat: -1,
+      yoyo: true,
+    },
+  )
 }
 
 export function ribbonFlow(el: gsap.TweenTarget): gsap.core.Tween {
