@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { StorageInfo } from '../services/settings'
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getStorageInfo } from '../services/settings'
 import { SLIDESHOW_INTERVAL_OPTIONS, useSettingsStore } from '../stores/settings'
 
 const settingsStore = useSettingsStore()
+const { t } = useI18n()
 
 const loadingStorage = ref(false)
 const storageInfo = ref<StorageInfo | null>(null)
@@ -39,7 +41,7 @@ async function loadStorageInfo(): Promise<void> {
     storageInfo.value = await getStorageInfo()
   }
   catch {
-    errorMessage.value = 'Failed to load storage information.'
+    errorMessage.value = t('settings.loadFailed')
   }
   finally {
     loadingStorage.value = false
@@ -55,10 +57,10 @@ onMounted(async () => {
   <section class="space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
-        Settings
+        {{ $t('settings.title') }}
       </h1>
       <p class="text-ts-muted">
-        Manage storage overview, slideshow defaults, and app information.
+        {{ $t('settings.description') }}
       </p>
     </header>
 
@@ -72,14 +74,14 @@ onMounted(async () => {
     >
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-ts-accent">
-          Storage Info
+          {{ $t('settings.storageInfo') }}
         </h2>
         <button
           type="button"
           class="rounded border border-white/25 px-3 py-1 text-xs text-ts-muted transition hover:border-white/40 hover:text-ts-text"
           @click="loadStorageInfo"
         >
-          Refresh
+          {{ $t('settings.refresh') }}
         </button>
       </div>
 
@@ -87,13 +89,13 @@ onMounted(async () => {
         v-if="loadingStorage"
         class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3 text-sm text-ts-muted"
       >
-        Loading storage info...
+        {{ $t('settings.loadingStorage') }}
       </p>
 
       <div v-else-if="storageInfo" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <article class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Photos
+            {{ $t('settings.photos') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-ts-text">
             {{ storageInfo.photo_count }}
@@ -101,7 +103,7 @@ onMounted(async () => {
         </article>
         <article class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Music Tracks
+            {{ $t('settings.musicTracks') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-ts-text">
             {{ storageInfo.music_count }}
@@ -109,7 +111,7 @@ onMounted(async () => {
         </article>
         <article class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Thumbnails
+            {{ $t('settings.thumbnails') }}
           </p>
           <p class="mt-1 text-lg font-semibold text-ts-text">
             {{ storageInfo.thumbnail_count }}
@@ -117,7 +119,7 @@ onMounted(async () => {
         </article>
         <article class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Photo Storage
+            {{ $t('settings.photoStorage') }}
           </p>
           <p class="mt-1 text-sm font-semibold text-ts-text">
             {{ formatBytes(storageInfo.photo_storage_bytes) }}
@@ -125,7 +127,7 @@ onMounted(async () => {
         </article>
         <article class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Music Storage
+            {{ $t('settings.musicStorage') }}
           </p>
           <p class="mt-1 text-sm font-semibold text-ts-text">
             {{ formatBytes(storageInfo.music_storage_bytes) }}
@@ -133,7 +135,7 @@ onMounted(async () => {
         </article>
         <article class="rounded border border-ts-accent/45 bg-ts-panelSoft px-3 py-3">
           <p class="text-xs uppercase tracking-wide text-ts-muted">
-            Total Storage
+            {{ $t('settings.totalStorage') }}
           </p>
           <p class="mt-1 text-sm font-semibold text-ts-accent">
             {{ formatBytes(storageInfo.total_storage_bytes) }}
@@ -144,13 +146,13 @@ onMounted(async () => {
 
     <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
       <h2 class="text-xl font-semibold text-ts-accent">
-        Slideshow Defaults
+        {{ $t('settings.slideshowDefaults') }}
       </h2>
       <p class="text-sm text-ts-muted">
-        Applied when slideshow starts without explicit interval override.
+        {{ $t('settings.slideshowDesc') }}
       </p>
       <label class="flex max-w-xs items-center justify-between gap-3 text-sm text-ts-text">
-        <span>Default interval</span>
+        <span>{{ $t('settings.defaultInterval') }}</span>
         <select
           v-model.number="slideshowInterval"
           data-testid="settings-interval-select"
@@ -165,13 +167,13 @@ onMounted(async () => {
 
     <section class="space-y-2 rounded-xl border border-white/10 bg-ts-panel p-4">
       <h2 class="text-xl font-semibold text-ts-accent">
-        About
+        {{ $t('settings.about') }}
       </h2>
       <p class="text-sm text-ts-text">
-        TimeSand
+        {{ $t('app.name') }}
       </p>
       <p class="text-sm text-ts-muted">
-        Version {{ appVersion }}
+        {{ $t('settings.version', { version: appVersion }) }}
       </p>
       <a
         href="https://github.com/itmWUMA/TimeSand"
@@ -179,7 +181,7 @@ onMounted(async () => {
         rel="noreferrer"
         class="inline-flex w-fit rounded border border-ts-accent/60 px-3 py-1.5 text-sm font-medium text-ts-accent transition hover:bg-ts-accent hover:text-black"
       >
-        GitHub Repository
+        {{ $t('settings.github') }}
       </a>
     </section>
   </section>

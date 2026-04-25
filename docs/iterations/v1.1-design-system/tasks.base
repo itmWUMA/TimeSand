@@ -1,0 +1,25 @@
+filters:
+  and:
+    - type == "task"
+    - file.inFolder("iterations/v1.1-design-system")
+properties:
+  status:
+    displayName: Status
+  branch:
+    displayName: Branch
+  pr:
+    displayName: PR
+  completed:
+    displayName: Completed
+views:
+  - type: table
+    name: v1.1 Tasks
+    order:
+      - file.name
+      - status
+      - branch
+      - pr
+      - completed
+    summaries:
+      status: Filled
+      pr: Filled

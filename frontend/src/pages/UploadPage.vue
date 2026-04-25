@@ -2,10 +2,12 @@
 import type { Photo } from '../types/photo'
 
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PhotoGrid from '../components/PhotoGrid.vue'
 import PhotoUploader from '../components/PhotoUploader.vue'
 import { listPhotos, uploadPhotos } from '../services/photo'
 
+const { t } = useI18n()
 const photos = ref<Photo[]>([])
 const uploading = ref(false)
 const progress = ref(0)
@@ -33,7 +35,7 @@ async function handleUpload(files: File[]): Promise<void> {
     photos.value = [...uploaded, ...photos.value]
   }
   catch {
-    errorMessage.value = 'Upload failed. Please try again.'
+    errorMessage.value = t('photo.uploadFailed')
   }
   finally {
     uploading.value = false
@@ -45,7 +47,7 @@ onMounted(async () => {
     await loadPhotos()
   }
   catch {
-    errorMessage.value = 'Failed to load existing photos.'
+    errorMessage.value = t('photo.loadFailed')
   }
 })
 </script>
@@ -54,10 +56,10 @@ onMounted(async () => {
   <section class="space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
-        Upload
+        {{ $t('photo.uploadTitle') }}
       </h1>
       <p class="text-ts-muted">
-        Batch upload your memories and review them instantly.
+        {{ $t('photo.uploadDesc') }}
       </p>
     </header>
 

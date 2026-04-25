@@ -8,15 +8,22 @@ from uuid import uuid4
 
 from PIL import Image, UnidentifiedImageError
 from PIL.ExifTags import GPSTAGS
+from pillow_heif import register_heif_opener
 
 from app.core.config import settings
 from app.models.photo import Photo
+
+register_heif_opener()
 
 ALLOWED_MIME_TYPES: dict[str, str] = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
     "image/webp": ".webp",
-    "image/gif": ".gif"
+    "image/gif": ".gif",
+    "image/heic": ".jpg",
+    "image/heif": ".jpg",
+    "image/heic-sequence": ".jpg",
+    "image/heif-sequence": ".jpg"
 }
 
 IMAGE_FORMAT_BY_SUFFIX: dict[str, str] = {
@@ -26,6 +33,18 @@ IMAGE_FORMAT_BY_SUFFIX: dict[str, str] = {
     ".webp": "WEBP",
     ".gif": "GIF"
 }
+
+FALLBACK_MIME_BY_EXTENSION: dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".heic": "image/heic",
+    ".heif": "image/heif"
+}
+
+MIME_TYPES_ALLOWING_EXTENSION_FALLBACK = {"", "application/octet-stream"}
 
 
 class InvalidPhotoUploadError(ValueError):
@@ -53,22 +72,70 @@ def get_thumbnail_path(relative_path: str) -> Path:
     return thumbnails_directory() / relative_path
 
 
-def create_photo_from_upload(filename: str | None, mime_type: str | None, data: bytes) -> Photo:
+def resolve_upload_mime_type_and_suffix(
+    filename: str | None,
+    mime_type: str | None
+) -> tuple[str, str]:
     normalized_mime_type = (mime_type or "").lower()
     suffix = ALLOWED_MIME_TYPES.get(normalized_mime_type)
-    if suffix is None:
+    if suffix is not None:
+        return normalized_mime_type, suffix
+
+    if normalized_mime_type not in MIME_TYPES_ALLOWING_EXTENSION_FALLBACK:
         raise InvalidPhotoUploadError("Unsupported file type")
+
+    extension = Path(filename or "").suffix.lower()
+    fallback_mime = FALLBACK_MIME_BY_EXTENSION.get(extension)
+    if fallback_mime is None:
+        raise InvalidPhotoUploadError("Unsupported file type")
+
+    return fallback_mime, ALLOWED_MIME_TYPES[fallback_mime]
+
+
+def create_photo_from_upload(filename: str | None, mime_type: str | None, data: bytes) -> Photo:
+    normalized_mime_type, suffix = resolve_upload_mime_type_and_suffix(
+        filename=filename,
+        mime_type=mime_type
+    )
 
     if not data:
         raise InvalidPhotoUploadError("Empty upload")
 
     ensure_storage_directories()
 
+    is_heic = normalized_mime_type in {
+        "image/heic",
+        "image/heif",
+        "image/heic-sequence",
+        "image/heif-sequence"
+    }
+
     try:
         with Image.open(BytesIO(data)) as image:
             image.load()
-            width, height = image.size
+
             taken_at, latitude, longitude = extract_exif_metadata(image)
+            width, height = image.size
+            thumbnail_source = image
+
+            if is_heic:
+                exif_bytes = image.getexif().tobytes()
+
+                if image.mode != "RGB":
+                    thumbnail_source = image.convert("RGB")
+                else:
+                    thumbnail_source = image
+
+                converted_buffer = BytesIO()
+                thumbnail_source.save(
+                    converted_buffer,
+                    format="JPEG",
+                    quality=95,
+                    exif=exif_bytes
+                )
+                data = converted_buffer.getvalue()
+                suffix = ".jpg"
+                normalized_mime_type = "image/jpeg"
 
             storage_id = str(uuid4())
             original_name = f"{storage_id}{suffix}"
@@ -79,7 +146,7 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
 
             try:
                 original_path.write_bytes(data)
-                save_thumbnail(image, thumbnail_path, suffix)
+                save_thumbnail(thumbnail_source, thumbnail_path, suffix)
             except OSError:
                 original_path.unlink(missing_ok=True)
                 thumbnail_path.unlink(missing_ok=True)

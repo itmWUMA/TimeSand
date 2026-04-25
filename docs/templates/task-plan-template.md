@@ -41,3 +41,5 @@ Task 1: <slug>
 - Merge target: `dev` (via PR with `gh pr create -B dev`)
 - Commit style: `feat(<scope>): <description>`
 - All code and comments in English
+- When adding new packages, check and document peer dependencies that need explicit installation
+- Tasks that change dependencies must include clean-install verification in acceptance criteria

@@ -61,10 +61,10 @@ function onDrop(event: DragEvent): void {
       @drop.prevent="onDrop"
     >
       <p class="text-base text-ts-text">
-        Drag photos here
+        {{ $t('photo.dropHint') }}
       </p>
       <p class="mt-1 text-sm text-ts-muted">
-        JPEG, PNG, WebP, GIF
+        {{ $t('photo.formats') }}
       </p>
 
       <button
@@ -73,14 +73,14 @@ function onDrop(event: DragEvent): void {
         :disabled="uploading"
         @click="openPicker"
       >
-        {{ uploading ? "Uploading..." : "Choose Files" }}
+        {{ uploading ? $t('common.uploading') : $t('photo.chooseFiles') }}
       </button>
 
       <input
         ref="fileInput"
         class="hidden"
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.heic,.heif"
         multiple
         :disabled="uploading"
         @change="onFileInputChange"
@@ -92,7 +92,7 @@ function onDrop(event: DragEvent): void {
         <div class="h-full bg-ts-accent transition-all" :style="{ width: `${progress}%` }" />
       </div>
       <p class="text-sm text-ts-muted">
-        Upload progress: {{ progress }}%
+        {{ $t('photo.uploadProgress', { progress }) }}
       </p>
     </div>
   </section>

@@ -51,16 +51,16 @@ function onDrop(targetIndex: number): void {
   <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
     <header class="flex items-center justify-between">
       <h2 class="text-lg font-semibold text-ts-accent">
-        Playlist Tracks
+        {{ $t('music.playlistTracks') }}
       </h2>
-      <span class="text-xs text-ts-muted">{{ localTracks.length }} tracks</span>
+      <span class="text-xs text-ts-muted">{{ $t('music.trackCount', { count: localTracks.length }) }}</span>
     </header>
 
     <p
       v-if="localTracks.length === 0"
       class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3 text-sm text-ts-muted"
     >
-      No tracks in this playlist yet.
+      {{ $t('music.noPlaylistTracks') }}
     </p>
 
     <ul v-else class="space-y-2">
@@ -81,7 +81,7 @@ function onDrop(targetIndex: number): void {
             {{ track.title }}
           </p>
           <p class="truncate text-xs text-ts-muted">
-            {{ track.artist || "Unknown Artist" }}
+            {{ track.artist || $t('music.unknownArtist') }}
           </p>
         </div>
         <button
@@ -90,7 +90,7 @@ function onDrop(targetIndex: number): void {
           class="rounded border border-red-400/50 px-2 py-1 text-xs text-red-200 hover:bg-red-500/10"
           @click="$emit('removeTrack', track.id)"
         >
-          Remove
+          {{ $t('common.remove') }}
         </button>
       </li>
     </ul>

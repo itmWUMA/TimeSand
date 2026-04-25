@@ -20,7 +20,7 @@ defineProps<{
         v-else
         class="flex h-full w-full items-center justify-center bg-gradient-to-br from-ts-panel to-ts-panelSoft text-sm text-ts-muted"
       >
-        No cover photo
+        {{ $t('photo.noCoverPhoto') }}
       </div>
     </div>
 
@@ -29,7 +29,7 @@ defineProps<{
         {{ album.name }}
       </p>
       <p class="text-sm text-ts-muted">
-        {{ album.photo_count }} photos
+        {{ $t('common.photos', { count: album.photo_count }) }}
       </p>
     </div>
   </article>

@@ -1,8 +1,9 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getStorageInfo } from '../../services/settings'
+import { mountWithI18n } from '../../test-utils'
 import SettingsPage from '../SettingsPage.vue'
 
 vi.mock('../../services/settings', () => ({
@@ -22,7 +23,7 @@ describe('settingsPage', () => {
   })
 
   it('renders storage info section', async () => {
-    const wrapper = mount(SettingsPage, {
+    const wrapper = mountWithI18n(SettingsPage, {
       global: {
         plugins: [createPinia()],
       },

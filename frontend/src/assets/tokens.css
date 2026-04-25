@@ -1,0 +1,74 @@
+:root {
+  /* Colors */
+  --ts-bg: #0b0c10;
+  --ts-panel: #171923;
+  --ts-panel-soft: #1f2330;
+  --ts-text: #f4f5f7;
+  --ts-muted: #a3a9b8;
+  --ts-accent: #d4a843;
+  --ts-accent-soft: #be9334;
+  --ts-border: rgb(255 255 255 / 10%);
+
+  /* Font Family */
+  --ts-font-sans: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ts-font-mono: "Cascadia Code", "Fira Code", monospace;
+
+  /* Font Size */
+  --ts-text-xs: 12px;
+  --ts-text-sm: 14px;
+  --ts-text-base: 16px;
+  --ts-text-lg: 18px;
+  --ts-text-xl: 20px;
+  --ts-text-2xl: 24px;
+
+  /* Font Weight */
+  --ts-font-normal: 400;
+  --ts-font-medium: 500;
+  --ts-font-semibold: 600;
+
+  /* Line Height */
+  --ts-leading-tight: 1.25;
+  --ts-leading-normal: 1.5;
+  --ts-leading-relaxed: 1.75;
+
+  /* Spacing (4px base) */
+  --ts-space-1: 4px;
+  --ts-space-2: 8px;
+  --ts-space-3: 12px;
+  --ts-space-4: 16px;
+  --ts-space-6: 24px;
+  --ts-space-8: 32px;
+  --ts-space-12: 48px;
+  --ts-space-16: 64px;
+
+  /* Border Radius */
+  --ts-radius-sm: 6px;
+  --ts-radius-md: 12px;
+  --ts-radius-lg: 16px;
+  --ts-radius-xl: 24px;
+  --ts-radius-full: 9999px;
+
+  /* Shadow */
+  --ts-shadow-sm: 0 1px 3px rgb(0 0 0 / 40%);
+  --ts-shadow-md: 0 4px 12px rgb(0 0 0 / 50%);
+  --ts-glow-accent: 0 0 30px rgb(212 168 67 / 35%);
+  --ts-glow-soft: 0 0 20px rgb(212 168 67 / 15%);
+
+  /* Z-index */
+  --ts-z-dropdown: 100;
+  --ts-z-sticky: 150;
+  --ts-z-modal: 200;
+  --ts-z-toast: 300;
+  --ts-z-tooltip: 400;
+
+  /* Transition Duration */
+  --ts-duration-fast: 200ms;
+  --ts-duration-normal: 400ms;
+  --ts-duration-slow: 700ms;
+  --ts-duration-drift: 1200ms;
+
+  /* Blur (glassmorphism) */
+  --ts-blur-sm: 4px;
+  --ts-blur-md: 12px;
+  --ts-blur-lg: 24px;
+}

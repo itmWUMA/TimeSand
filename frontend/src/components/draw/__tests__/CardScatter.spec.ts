@@ -1,7 +1,7 @@
 import type { DrawnCard } from '../../../stores/draw'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it, vi } from 'vitest'
+import { mountWithI18n } from '../../../test-utils'
 import CardScatter from '../CardScatter.vue'
 
 vi.mock('gsap', () => ({
@@ -40,7 +40,7 @@ const cards: DrawnCard[] = [
 
 describe('cardScatter', () => {
   it('loads original image on hover and restores scatter rotation on settle', async () => {
-    const wrapper = mount(CardScatter, {
+    const wrapper = mountWithI18n(CardScatter, {
       props: {
         open: true,
         cards,

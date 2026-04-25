@@ -1,7 +1,7 @@
 import type { Album } from '../../types/album'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it } from 'vitest'
+import { mountWithI18n } from '../../test-utils'
 import AlbumCard from '../AlbumCard.vue'
 
 const album: Album = {
@@ -17,7 +17,7 @@ const album: Album = {
 
 describe('albumCard', () => {
   it('renders album name, photo count, and cover image', () => {
-    const wrapper = mount(AlbumCard, {
+    const wrapper = mountWithI18n(AlbumCard, {
       props: {
         album,
       },

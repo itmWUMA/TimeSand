@@ -7,6 +7,9 @@ docs/draft/*
 !.claude/commands
 !.claude/skills
 
+# superpowers brainstorming
+.superpowers/
+
 # Node / Bun
 node_modules/
 dist/

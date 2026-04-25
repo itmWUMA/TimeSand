@@ -134,6 +134,7 @@ All environments should use domestic mirrors for faster downloads:
 - SQLModel models in `backend/app/models/`, one file per entity group
 - Code and comments in English; conversation in Chinese
 - Version control on GitHub; use `gh` CLI for PR/issue operations
+- **Never `git commit` or `git push` without explicit user approval** — stage changes and present a summary, then wait for the user to confirm before committing
 
 ## Documentation Conventions
 
@@ -165,6 +166,38 @@ Task files additionally require: `status`, `branch`, `pr`, `completed`
 - **Obsidian Bases** (`.base` files): YAML-based database views that query frontmatter — replaces manual progress tracking
 - **JSON Canvas** (`.canvas` files): Visual dependency graphs and iteration maps
 - **Obsidian CLI** (`obsidian` command): Interact with the vault from terminal (requires Obsidian app running)
+
+#### Obsidian CLI Usage
+
+On Windows, the `obsidian` CLI must be invoked via PowerShell (bash cannot resolve it):
+
+```bash
+powershell -Command "obsidian <command> <args>"
+```
+
+Common operations for task management:
+
+```bash
+# Read/set frontmatter properties
+powershell -Command "obsidian property:read name=status path='iterations/v1.1-design-system/01-task.md'"
+powershell -Command "obsidian property:set name=status value=done path='iterations/v1.1-design-system/01-task.md'"
+
+# List tasks and their status
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md'"
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md' done"
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md' todo"
+
+# Read frontmatter of a file
+powershell -Command "obsidian properties path='iterations/v1.1-design-system/01-task.md'"
+
+# Query a base dashboard
+powershell -Command "obsidian base:query path='iterations/v1.1-design-system/tasks.base'"
+
+# Toggle a task checkbox
+powershell -Command "obsidian task path='iterations/v1.1-design-system/01-task.md' line=29 done"
+```
+
+Prefer Obsidian CLI over direct file editing for frontmatter and task updates — it keeps Obsidian's index in sync.
 
 ### Naming Conventions
 
@@ -233,6 +266,7 @@ Requirement Alignment → Task Planning → Parallel Development → Integration
   - Dependencies on other sub-tasks (if any)
   - Branch name: `feat/<task-slug>`
 - Use templates from `docs/templates/` as starting point
+- **Dependency due diligence**: when a task introduces a new npm/PyPI package, check its peer dependencies (e.g. `bun pm ls --peer` / `npm info <pkg> peerDependencies`) and list any that need explicit installation in the task doc
 
 #### Task Decomposition Methodology
 
@@ -289,7 +323,7 @@ Good split (vertical): "Task A: photo management (model + API + service + UI + t
 - Codex reads the task planning document and implements independently
 - Each branch should be buildable and testable in isolation
 - **Codex completes implementation by staging changes (`git add`) only — do NOT commit**
-- After review, Claude Code or the user will commit and create the PR
+- After review, the user decides when to commit — Claude Code must **never commit or push without explicit user approval**
 
 ### 4. Integration
 
@@ -339,6 +373,7 @@ tags:
 ## Acceptance Criteria
   - [ ] Criterion 1
   - [ ] Criterion 2
+  - [ ] (if deps changed) Clean-install verification passes: `rm -rf node_modules && bun install && bun run type-check && bun run test`
 
 ## Tests
   - Backend: describe what to test
