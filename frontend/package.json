@@ -14,6 +14,7 @@
   "dependencies": {
     "axios": "^1.8.1",
     "gsap": "^3.12.5",
+    "howler": "^2.2.4",
     "pinia": "^2.3.1",
     "radix-vue": "^1.9.11",
     "tailwindcss": "^3.4.17",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^8.1.1",
     "@intlify/devtools-types": "10.0.5",
+    "@types/howler": "^2.2.12",
     "@types/node": "^22.13.5",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",

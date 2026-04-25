@@ -1,7 +1,7 @@
 ---
 type: task
 iteration: "1.2"
-status: pending
+status: review-passed
 branch: "feat/sound-effects"
 pr:
 completed:
