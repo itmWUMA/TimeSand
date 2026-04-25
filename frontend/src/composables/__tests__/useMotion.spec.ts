@@ -1,5 +1,6 @@
 import { gsap } from 'gsap'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { effectScope } from 'vue'
 
 import { DISTANCE, DURATION, EASING, STAGGER } from '../motion'
 import { useMotion } from '../useMotion'
@@ -91,5 +92,19 @@ describe('useMotion', () => {
     const tween = fadeIn(el, { delay: 0.5, duration: 1.0, distance: 50 })
     expect(tween).toBeInstanceOf(gsap.core.Tween)
     tween.kill()
+  })
+
+  it('auto-kills animations on scope dispose', () => {
+    const scope = effectScope()
+    let tween: gsap.core.Tween
+
+    scope.run(() => {
+      const motion = useMotion()
+      tween = motion.glowBreath(document.createElement('div'))
+    })
+
+    const killSpy = vi.spyOn(tween!, 'kill')
+    scope.stop()
+    expect(killSpy).toHaveBeenCalled()
   })
 })
