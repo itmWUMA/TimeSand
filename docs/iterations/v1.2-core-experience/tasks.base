@@ -1,0 +1,25 @@
+filters:
+  and:
+    - type == "task"
+    - file.inFolder("iterations/v1.2-core-experience")
+properties:
+  status:
+    displayName: Status
+  branch:
+    displayName: Branch
+  pr:
+    displayName: PR
+  completed:
+    displayName: Completed
+views:
+  - type: table
+    name: v1.2 Tasks
+    order:
+      - file.name
+      - status
+      - branch
+      - pr
+      - completed
+    summaries:
+      status: Filled
+      pr: Filled
