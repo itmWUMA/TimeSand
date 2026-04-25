@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import MusicPlayer from '../components/MusicPlayer.vue'
 
 const route = useRoute()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const mobileOpen = ref(false)
 const isFullscreenRoute = computed(() => route.name === 'slideshow')
 
@@ -27,6 +27,17 @@ function linkClass(path: string): string {
 
   return 'text-ts-muted hover:bg-white/10 hover:text-ts-text'
 }
+
+function toggleLocale(): void {
+  const next = locale.value === 'zh-CN' ? 'en' : 'zh-CN'
+  locale.value = next
+  localStorage.setItem('ts-locale', next)
+  document.documentElement.lang = next
+}
+
+onMounted(() => {
+  document.documentElement.lang = locale.value
+})
 </script>
 
 <template>
@@ -52,6 +63,16 @@ function linkClass(path: string): string {
             {{ t(item.labelKey) }}
           </RouterLink>
         </nav>
+        <div class="border-t border-white/10 px-4 py-3">
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-ts-muted transition hover:bg-white/10 hover:text-ts-text"
+            @click="toggleLocale"
+          >
+            <span class="text-base">🌐</span>
+            <span>{{ locale === 'zh-CN' ? '\u4E2D\u6587 / EN' : 'EN / \u4E2D\u6587' }}</span>
+          </button>
+        </div>
       </aside>
 
       <div class="flex min-h-screen flex-1 flex-col">
@@ -79,6 +100,14 @@ function linkClass(path: string): string {
             >
               {{ t(item.labelKey) }}
             </RouterLink>
+            <button
+              type="button"
+              class="mt-2 flex w-full items-center gap-2 rounded-lg border-t border-white/10 px-3 py-2 pt-3 text-sm text-ts-muted transition hover:bg-white/10 hover:text-ts-text"
+              @click="toggleLocale"
+            >
+              <span class="text-base">🌐</span>
+              <span>{{ locale === 'zh-CN' ? '\u4E2D\u6587 / EN' : 'EN / \u4E2D\u6587' }}</span>
+            </button>
           </nav>
         </header>
 
