@@ -1,7 +1,7 @@
 import type { Tag } from '../../types/album'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it } from 'vitest'
+import { mountWithI18n } from '../../test-utils'
 import TagManager from '../TagManager.vue'
 
 const allTags: Tag[] = [
@@ -11,7 +11,7 @@ const allTags: Tag[] = [
 
 describe('tagManager', () => {
   it('renders existing tags and emits add/remove actions', async () => {
-    const wrapper = mount(TagManager, {
+    const wrapper = mountWithI18n(TagManager, {
       props: {
         tags: [allTags[0]],
         availableTags: allTags,
@@ -31,7 +31,7 @@ describe('tagManager', () => {
   })
 
   it('emits createTag when user enters an unknown tag', async () => {
-    const wrapper = mount(TagManager, {
+    const wrapper = mountWithI18n(TagManager, {
       props: {
         tags: [],
         availableTags: allTags,

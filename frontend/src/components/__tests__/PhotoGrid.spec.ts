@@ -1,7 +1,7 @@
 import type { Photo } from '../../types/photo'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it } from 'vitest'
+import { mountWithI18n } from '../../test-utils'
 import PhotoGrid from '../PhotoGrid.vue'
 
 const photos: Photo[] = [
@@ -37,7 +37,7 @@ const photos: Photo[] = [
 
 describe('photoGrid', () => {
   it('renders thumbnail images from props', () => {
-    const wrapper = mount(PhotoGrid, {
+    const wrapper = mountWithI18n(PhotoGrid, {
       props: {
         photos,
       },

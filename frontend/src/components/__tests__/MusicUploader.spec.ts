@@ -1,11 +1,11 @@
-import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
+import { mountWithI18n } from '../../test-utils'
 import MusicUploader from '../MusicUploader.vue'
 
 describe('musicUploader', () => {
   it('renders upload zone and file input', () => {
-    const wrapper = mount(MusicUploader, {
+    const wrapper = mountWithI18n(MusicUploader, {
       props: {
         uploading: false,
       },

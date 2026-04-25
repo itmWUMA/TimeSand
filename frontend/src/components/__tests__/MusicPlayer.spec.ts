@@ -1,9 +1,9 @@
-import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { __resetMusicPlayerForTests } from '../../composables/useMusicPlayer'
 import { usePlayerStore } from '../../stores/player'
+import { mountWithI18n } from '../../test-utils'
 import MusicPlayer from '../MusicPlayer.vue'
 
 class FakeAudio extends EventTarget {
@@ -62,7 +62,7 @@ describe('musicPlayer', () => {
       ],
     })
 
-    const wrapper = mount(MusicPlayer, {
+    const wrapper = mountWithI18n(MusicPlayer, {
       global: {
         plugins: [pinia],
       },
@@ -78,7 +78,7 @@ describe('musicPlayer', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
 
-    const wrapper = mount(MusicPlayer, {
+    const wrapper = mountWithI18n(MusicPlayer, {
       global: {
         plugins: [pinia],
       },

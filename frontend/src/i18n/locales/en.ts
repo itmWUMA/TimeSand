@@ -38,6 +38,7 @@ const en: MessageSchema = {
   },
   photo: {
     uploadTitle: 'Upload',
+    uploadDesc: 'Batch upload your memories and review them instantly.',
     dropHint: 'Drag photos here',
     formats: 'JPEG, PNG, WebP, GIF, HEIC',
     chooseFiles: 'Choose Files',
@@ -46,6 +47,7 @@ const en: MessageSchema = {
     loadFailed: 'Failed to load existing photos.',
     noCoverPhoto: 'No cover photo',
     uploadedPhotos: 'Uploaded Photos',
+    emptyState: 'No photos uploaded yet.',
   },
   album: {
     title: 'Albums',
@@ -103,6 +105,8 @@ const en: MessageSchema = {
     emptyState: 'No tracks yet. Upload your first audio file.',
     unknownArtist: 'Unknown Artist',
     deleteFailed: 'Failed to delete track.',
+    deleteTrackFailed: 'Failed to delete track.',
+    deletePlaylistFailed: 'Failed to delete playlist.',
     playlists: 'Playlists',
     newPlaylistPlaceholder: 'New playlist name',
     createFailed: 'Failed to create playlist.',
@@ -116,6 +120,8 @@ const en: MessageSchema = {
     playlistTracks: 'Playlist Tracks',
     noPlaylistTracks: 'No tracks in this playlist yet.',
     dragHint: 'MP3, WAV, FLAC, OGG, AAC',
+    dropHint: 'Drag music files here',
+    formats: 'MP3, WAV, FLAC, OGG, AAC',
     chooseAudio: 'Choose Audio Files',
   },
   slideshow: {

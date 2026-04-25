@@ -1,7 +1,7 @@
 import type { Photo } from '../../types/photo'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it } from 'vitest'
+import { mountWithI18n } from '../../test-utils'
 import SlideshowPlayer from '../SlideshowPlayer.vue'
 
 const photos: Photo[] = [
@@ -23,7 +23,7 @@ const photos: Photo[] = [
 
 describe('slideshowPlayer', () => {
   it('renders current photo and control buttons', () => {
-    const wrapper = mount(SlideshowPlayer, {
+    const wrapper = mountWithI18n(SlideshowPlayer, {
       props: {
         photos,
         currentIndex: 0,

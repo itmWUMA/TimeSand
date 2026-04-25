@@ -98,7 +98,7 @@ function onTouchEnd(event: TouchEvent): void {
     >
       <div class="flex items-center justify-between">
         <p class="rounded bg-black/45 px-3 py-1 text-xs text-white/80">
-          {{ currentPhoto ? currentPhoto.filename : "No photos" }}
+          {{ currentPhoto ? currentPhoto.filename : $t('slideshow.noPhotos') }}
         </p>
         <button
           data-testid="control-exit"
@@ -106,7 +106,7 @@ function onTouchEnd(event: TouchEvent): void {
           class="rounded border border-white/35 bg-black/35 px-3 py-1.5 text-sm text-white transition hover:border-white/70 hover:bg-black/60"
           @click="$emit('exit')"
         >
-          Exit
+          {{ $t('slideshow.exit') }}
         </button>
       </div>
 
@@ -117,7 +117,7 @@ function onTouchEnd(event: TouchEvent): void {
           class="rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('prev')"
         >
-          Prev
+          {{ $t('slideshow.prev') }}
         </button>
         <button
           data-testid="control-play-pause"
@@ -125,7 +125,7 @@ function onTouchEnd(event: TouchEvent): void {
           class="rounded border border-white/35 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('togglePlay')"
         >
-          {{ isPlaying ? "Pause" : "Play" }}
+          {{ isPlaying ? $t('slideshow.pause') : $t('slideshow.play') }}
         </button>
         <button
           data-testid="control-next"
@@ -133,10 +133,10 @@ function onTouchEnd(event: TouchEvent): void {
           class="rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('next')"
         >
-          Next
+          {{ $t('slideshow.next') }}
         </button>
         <label class="flex items-center gap-2 text-sm text-white/85">
-          <span>Interval</span>
+          <span>{{ $t('slideshow.interval') }}</span>
           <select
             data-testid="control-interval"
             :value="intervalSeconds"

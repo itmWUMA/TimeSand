@@ -36,6 +36,7 @@ export default {
   },
   photo: {
     uploadTitle: '上传',
+    uploadDesc: '批量上传你的回忆，并即时预览。',
     dropHint: '将照片拖拽到此处',
     formats: 'JPEG, PNG, WebP, GIF, HEIC',
     chooseFiles: '选择文件',
@@ -44,6 +45,7 @@ export default {
     loadFailed: '加载已有照片失败。',
     noCoverPhoto: '无封面照片',
     uploadedPhotos: '已上传照片',
+    emptyState: '暂无已上传照片。',
   },
   album: {
     title: '相册',
@@ -72,7 +74,7 @@ export default {
     addTagFailed: '添加标签失败。',
     removeTagFailed: '移除标签失败。',
     createTagFailed: '创建标签失败。',
-    invalidId: '相册ID无效。',
+    invalidId: '相册 ID 无效。',
     loadingDetails: '加载相册详情中...',
   },
   draw: {
@@ -87,13 +89,13 @@ export default {
     tapToDraw: '点击抽卡',
     tapToScatter: '点击散开',
     collect: '收集',
-    drawHint: '抽卡以构建卡堆',
+    drawHint: '抽卡以构建牌堆',
     noCaptureDate: '无拍摄日期',
     unknownDate: '未知拍摄日期',
   },
   music: {
     title: '音乐与播放列表',
-    description: '上传曲目、整理播放列表，拖拽调整播放顺序。',
+    description: '上传曲目、整理播放列表，并拖拽调整播放顺序。',
     uploadFailed: '上传音乐文件失败。',
     allTracks: '全部曲目',
     trackCount: '{count} 首曲目',
@@ -101,6 +103,8 @@ export default {
     emptyState: '暂无曲目。上传你的第一个音频文件吧。',
     unknownArtist: '未知艺术家',
     deleteFailed: '删除曲目失败。',
+    deleteTrackFailed: '删除曲目失败。',
+    deletePlaylistFailed: '删除播放列表失败。',
     playlists: '播放列表',
     newPlaylistPlaceholder: '新播放列表名称',
     createFailed: '创建播放列表失败。',
@@ -114,6 +118,8 @@ export default {
     playlistTracks: '播放列表曲目',
     noPlaylistTracks: '此播放列表暂无曲目。',
     dragHint: 'MP3, WAV, FLAC, OGG, AAC',
+    dropHint: '将音乐文件拖拽到此处',
+    formats: 'MP3, WAV, FLAC, OGG, AAC',
     chooseAudio: '选择音频文件',
   },
   slideshow: {
@@ -152,7 +158,7 @@ export default {
     language: '语言',
   },
   player: {
-    noMusic: '暂无音乐 - 上传曲目以开始',
+    noMusic: '暂无音乐，上传曲目后开始播放',
     noTrack: '未选择曲目',
     unknownArtist: '未知艺术家',
     prev: '上一首',

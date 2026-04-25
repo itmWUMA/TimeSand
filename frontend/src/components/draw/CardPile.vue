@@ -42,11 +42,11 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
         >
       </span>
       <span class="pointer-events-none relative z-20 text-xs font-semibold uppercase tracking-wide text-ts-accent">
-        Tap To Scatter
+        {{ $t('draw.tapToScatter') }}
       </span>
     </template>
     <span v-else class="text-xs text-ts-muted">
-      Draw cards to build the pile
+      {{ $t('draw.drawHint') }}
     </span>
   </button>
 </template>

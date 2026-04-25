@@ -1,9 +1,9 @@
-import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import App from '../src/App.vue'
+import { mountWithI18n } from '../src/test-utils'
 
 const routes = [
   { path: '/', component: { template: '<div>Home</div>' } },
@@ -25,7 +25,7 @@ describe('app', () => {
     await router.push('/')
     await router.isReady()
 
-    const wrapper = mount(App, {
+    const wrapper = mountWithI18n(App, {
       global: {
         plugins: [createPinia(), router],
       },

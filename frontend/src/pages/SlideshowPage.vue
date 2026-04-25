@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Photo } from '../types/photo'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
 import MusicPlayerMini from '../components/MusicPlayerMini.vue'
@@ -12,6 +13,7 @@ import { useSettingsStore } from '../stores/settings'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const { setContext } = useMusicPlayer()
 const settingsStore = useSettingsStore()
 
@@ -68,7 +70,7 @@ async function loadPhotos(): Promise<void> {
     photos.value = payload.photos
   }
   catch {
-    errorMessage.value = 'Failed to load slideshow photos.'
+    errorMessage.value = t('slideshow.loadFailed')
   }
   finally {
     loading.value = false
@@ -146,7 +148,7 @@ onUnmounted(() => {
 <template>
   <section class="fixed inset-0 z-50 bg-[#0a0a0a]">
     <div v-if="loading" class="flex h-full items-center justify-center text-sm text-white/75">
-      Loading slideshow...
+      {{ $t('slideshow.loading') }}
     </div>
 
     <div
@@ -161,7 +163,7 @@ onUnmounted(() => {
         class="rounded border border-white/35 px-4 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
         @click="exitSlideshow"
       >
-        Go Back
+        {{ $t('slideshow.goBack') }}
       </button>
     </div>
 
@@ -170,14 +172,14 @@ onUnmounted(() => {
       class="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"
     >
       <p class="text-sm text-white/70">
-        {{ albumId ? "No photos found in this album." : "No photos available for slideshow." }}
+        {{ albumId ? $t('slideshow.noPhotosAlbum') : $t('slideshow.noPhotosDefault') }}
       </p>
       <button
         type="button"
         class="rounded border border-white/35 px-4 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
         @click="exitSlideshow"
       >
-        Go Back
+        {{ $t('slideshow.goBack') }}
       </button>
     </div>
 

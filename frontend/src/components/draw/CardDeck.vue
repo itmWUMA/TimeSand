@@ -34,7 +34,7 @@ function deckLayerStyle(layer: number): Record<string, string> {
     <span
       class="pointer-events-none absolute inset-x-0 bottom-5 text-center text-sm font-semibold tracking-wide text-ts-accent"
     >
-      {{ disabled ? "Drawing..." : "Tap To Draw" }}
+      {{ disabled ? $t('draw.drawing') : $t('draw.tapToDraw') }}
     </span>
 
     <span

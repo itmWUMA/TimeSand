@@ -60,10 +60,10 @@ function onDrop(event: DragEvent): void {
       @drop.prevent="onDrop"
     >
       <p class="text-base text-ts-text">
-        Drag music files here
+        {{ $t('music.dropHint') }}
       </p>
       <p class="mt-1 text-sm text-ts-muted">
-        MP3, WAV, FLAC, OGG, AAC
+        {{ $t('music.formats') }}
       </p>
 
       <button
@@ -72,7 +72,7 @@ function onDrop(event: DragEvent): void {
         :disabled="uploading"
         @click="openPicker"
       >
-        {{ uploading ? "Uploading..." : "Choose Audio Files" }}
+        {{ uploading ? $t('common.uploading') : $t('music.chooseAudio') }}
       </button>
 
       <input
