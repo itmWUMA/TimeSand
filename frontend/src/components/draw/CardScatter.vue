@@ -123,7 +123,7 @@ function handleBackdropClick(event: MouseEvent): void {
       class="absolute right-4 top-4 rounded border border-ts-accent/60 bg-ts-panel px-4 py-2 text-sm font-semibold text-ts-accent hover:bg-ts-accent hover:text-black"
       @click.stop="emit('collect')"
     >
-      Collect
+      {{ $t('draw.collect') }}
     </button>
 
     <div class="relative h-full w-full">

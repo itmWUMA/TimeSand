@@ -19,15 +19,15 @@ function formatDate(value: string): string {
   <section class="space-y-3">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-ts-accent">
-        Uploaded Photos
+        {{ $t('photo.uploadedPhotos') }}
       </h2>
       <p class="text-sm text-ts-muted">
-        {{ photos.length }} items
+        {{ $t('common.items', { count: photos.length }) }}
       </p>
     </div>
 
     <p v-if="photos.length === 0" class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted">
-      No photos uploaded yet.
+      {{ $t('photo.emptyState') }}
     </p>
 
     <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">

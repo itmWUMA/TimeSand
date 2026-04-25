@@ -101,21 +101,21 @@ watch(
   <section class="mx-auto max-w-6xl space-y-6">
     <header class="space-y-3">
       <h1 class="text-3xl font-semibold text-ts-accent">
-        Card Draw
+        {{ $t('draw.title') }}
       </h1>
       <p class="text-sm text-ts-muted">
-        Deck -> flip reveal -> center stage -> bottom pile -> scatter -> collect
+        {{ $t('draw.description') }}
       </p>
 
       <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-ts-panel p-4 md:flex-row md:items-center">
         <label class="flex items-center gap-2 text-sm text-ts-muted">
-          <span>Album</span>
+          <span>{{ $t('draw.albumLabel') }}</span>
           <select
             :value="selectedAlbumValue"
             class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text focus:border-ts-accent focus:outline-none"
             @change="onAlbumChange"
           >
-            <option value="">All photos</option>
+            <option value="">{{ $t('draw.allPhotos') }}</option>
             <option
               v-for="album in albums"
               :key="album.id"
@@ -132,7 +132,7 @@ watch(
           :disabled="isDrawing"
           @click="drawNextCard"
         >
-          {{ isDrawing ? "Drawing..." : "Draw Next" }}
+          {{ isDrawing ? $t('draw.drawing') : $t('draw.drawNext') }}
         </button>
 
         <button
@@ -141,11 +141,11 @@ watch(
           :disabled="!hasDrawnCards || isDrawing"
           @click="reshuffle"
         >
-          Reshuffle
+          {{ $t('draw.reshuffle') }}
         </button>
 
         <p class="text-xs text-ts-muted md:ml-auto">
-          Mobile: swipe left to draw, swipe right to undo.
+          {{ $t('draw.swipeHint') }}
         </p>
       </div>
     </header>

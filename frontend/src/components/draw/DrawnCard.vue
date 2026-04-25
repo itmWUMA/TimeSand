@@ -2,20 +2,22 @@
 import type { DrawnCard } from '../../stores/draw'
 
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   card: DrawnCard | null
   center?: boolean
 }>()
+const { t } = useI18n()
 
 const takenAtLabel = computed(() => {
   if (!props.card?.photo.taken_at) {
-    return 'No capture date'
+    return t('draw.noCaptureDate')
   }
 
   const date = new Date(props.card.photo.taken_at)
   if (Number.isNaN(date.getTime())) {
-    return 'Unknown capture date'
+    return t('draw.unknownDate')
   }
 
   return date.toLocaleDateString()

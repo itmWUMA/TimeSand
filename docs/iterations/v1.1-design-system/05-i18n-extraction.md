@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: done
 branch: "feat/i18n-extraction"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - i18n
   - phase-1

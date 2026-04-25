@@ -55,8 +55,8 @@ function handleAdd(): void {
         {{ tag.name }}
         <button
           :data-testid="`remove-tag-${tag.id}`"
-          :aria-label="`Remove tag ${tag.name}`"
-          :title="`Remove tag ${tag.name}`"
+          :aria-label="$t('tag.removeLabel', { name: tag.name })"
+          :title="$t('tag.removeLabel', { name: tag.name })"
           type="button"
           class="rounded px-1 text-[10px] text-ts-accent hover:bg-ts-accent/20"
           @click="$emit('removeTag', tag.id)"
@@ -71,7 +71,7 @@ function handleAdd(): void {
         v-model="inputValue"
         data-testid="tag-input"
         type="text"
-        placeholder="Add tag"
+        :placeholder="$t('tag.addPlaceholder')"
         :list="datalistId"
         class="w-full rounded border border-white/15 bg-ts-panel px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
         @keydown.enter.prevent="handleAdd"
@@ -82,7 +82,7 @@ function handleAdd(): void {
         class="rounded border border-ts-accent/60 px-3 py-2 text-xs font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
         @click="handleAdd"
       >
-        Add
+        {{ $t('tag.add') }}
       </button>
     </div>
 

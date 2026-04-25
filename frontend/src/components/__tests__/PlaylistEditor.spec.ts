@@ -1,7 +1,7 @@
 import type { Music } from '../../types/music'
-import { mount } from '@vue/test-utils'
 
 import { describe, expect, it } from 'vitest'
+import { mountWithI18n } from '../../test-utils'
 import PlaylistEditor from '../PlaylistEditor.vue'
 
 const tracks: Music[] = [
@@ -31,7 +31,7 @@ const tracks: Music[] = [
 
 describe('playlistEditor', () => {
   it('renders track list and allows removal', async () => {
-    const wrapper = mount(PlaylistEditor, {
+    const wrapper = mountWithI18n(PlaylistEditor, {
       props: {
         tracks,
       },

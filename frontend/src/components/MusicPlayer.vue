@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
+
+const { t } = useI18n()
 
 const {
   currentTrack,
@@ -44,16 +47,16 @@ function onVolumeChange(event: Event): void {
       v-if="tracks.length === 0"
       class="text-sm text-ts-muted"
     >
-      No music - upload tracks to get started
+      {{ $t('player.noMusic') }}
     </p>
 
     <div v-else class="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1.2fr)_minmax(8rem,0.4fr)] md:items-center">
       <div class="min-w-0">
         <p data-testid="music-player-track-title" class="truncate text-sm font-semibold text-ts-accent">
-          {{ currentTrack?.title ?? "No track selected" }}
+          {{ currentTrack?.title ?? $t('player.noTrack') }}
         </p>
         <p class="truncate text-xs text-ts-muted">
-          {{ currentTrack?.artist || "Unknown Artist" }}
+          {{ currentTrack?.artist || $t('player.unknownArtist') }}
           <span v-if="playlistName" class="ml-2 text-[11px] uppercase tracking-wider text-ts-muted/80">
             {{ playlistName }}
           </span>
@@ -68,7 +71,7 @@ function onVolumeChange(event: Event): void {
           :disabled="!canControl"
           @click="prev"
         >
-          Prev
+          {{ $t('player.prev') }}
         </button>
         <button
           data-testid="music-player-play-pause"
@@ -77,7 +80,7 @@ function onVolumeChange(event: Event): void {
           :disabled="!canControl"
           @click="togglePlayPause"
         >
-          {{ isPlaying ? "Pause" : "Play" }}
+          {{ isPlaying ? $t('player.pause') : $t('player.play') }}
         </button>
         <button
           data-testid="music-player-next"
@@ -86,7 +89,7 @@ function onVolumeChange(event: Event): void {
           :disabled="!canControl"
           @click="next"
         >
-          Next
+          {{ $t('player.next') }}
         </button>
       </div>
 
@@ -109,7 +112,7 @@ function onVolumeChange(event: Event): void {
       </div>
 
       <label class="flex items-center gap-2 text-xs text-ts-muted">
-        <span>Volume</span>
+        <span>{{ t('player.volume') }}</span>
         <input
           data-testid="music-player-volume"
           type="range"

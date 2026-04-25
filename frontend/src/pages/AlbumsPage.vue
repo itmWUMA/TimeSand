@@ -2,9 +2,11 @@
 import type { Album } from '../types/album'
 
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AlbumCard from '../components/AlbumCard.vue'
 import { createAlbum, listAlbums } from '../services/album'
 
+const { t } = useI18n()
 const albums = ref<Album[]>([])
 const loading = ref(false)
 const creating = ref(false)
@@ -22,7 +24,7 @@ async function loadAlbums(): Promise<void> {
     albums.value = payload.items
   }
   catch {
-    errorMessage.value = 'Failed to load albums.'
+    errorMessage.value = t('album.loadFailed')
   }
   finally {
     loading.value = false
@@ -48,7 +50,7 @@ async function handleCreateAlbum(): Promise<void> {
     newDescription.value = ''
   }
   catch {
-    errorMessage.value = 'Failed to create album.'
+    errorMessage.value = t('album.createFailed')
   }
   finally {
     creating.value = false
@@ -64,10 +66,10 @@ onMounted(async () => {
   <section class="space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
-        Albums
+        {{ $t('album.title') }}
       </h1>
       <p class="text-ts-muted">
-        Create and browse albums with cover photos and quick counts.
+        {{ $t('album.description') }}
       </p>
     </header>
 
@@ -78,13 +80,13 @@ onMounted(async () => {
       <input
         v-model="newName"
         type="text"
-        placeholder="Album name"
+        :placeholder="$t('album.namePlaceholder')"
         class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
       >
       <input
         v-model="newDescription"
         type="text"
-        placeholder="Description (optional)"
+        :placeholder="$t('album.descPlaceholder')"
         class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
       >
       <button
@@ -92,7 +94,7 @@ onMounted(async () => {
         :disabled="creating"
         class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {{ creating ? "Creating..." : "Create Album" }}
+        {{ creating ? $t('common.creating') : $t('common.create') }}
       </button>
     </form>
 
@@ -101,13 +103,13 @@ onMounted(async () => {
     </p>
 
     <p v-if="loading" class="text-sm text-ts-muted">
-      Loading albums...
+      {{ $t('album.loadingAlbums') }}
     </p>
     <p
       v-else-if="albums.length === 0"
       class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted"
     >
-      No albums yet. Create your first album above.
+      {{ $t('album.emptyState') }}
     </p>
 
     <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

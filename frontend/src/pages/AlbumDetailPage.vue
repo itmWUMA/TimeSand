@@ -3,6 +3,7 @@ import type { Album, Tag } from '../types/album'
 import type { Photo } from '../types/photo'
 
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import TagManager from '../components/TagManager.vue'
 import {
@@ -21,6 +22,7 @@ import {
 } from '../services/tag'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const album = ref<Album | null>(null)
 const albumPhotos = ref<Photo[]>([])
@@ -55,7 +57,7 @@ async function loadPhotoTags(photoId: number): Promise<void> {
 
 async function loadAlbumData(): Promise<void> {
   if (!Number.isFinite(albumId.value) || albumId.value <= 0) {
-    errorMessage.value = 'Invalid album id.'
+    errorMessage.value = t('album.invalidId')
     return
   }
 
@@ -89,7 +91,7 @@ async function loadAlbumData(): Promise<void> {
     photoTags.value = Object.fromEntries(tagPairs)
   }
   catch {
-    errorMessage.value = 'Failed to load album detail.'
+    errorMessage.value = t('album.loadFailed')
   }
   finally {
     loading.value = false
@@ -117,7 +119,7 @@ async function saveAlbum(): Promise<void> {
     selectedCoverPhotoId.value = updated.cover_photo_id ?? 0
   }
   catch {
-    errorMessage.value = 'Failed to save album.'
+    errorMessage.value = t('album.saveFailed')
   }
   finally {
     savingAlbum.value = false
@@ -138,7 +140,7 @@ async function addSelectedPhoto(): Promise<void> {
     await loadAlbumData()
   }
   catch {
-    errorMessage.value = 'Failed to add photo to album.'
+    errorMessage.value = t('album.addPhotoFailed')
   }
   finally {
     updatingPhotos.value = false
@@ -166,7 +168,7 @@ async function removePhoto(photoId: number): Promise<void> {
     selectedCoverPhotoId.value = refreshed.cover_photo_id ?? 0
   }
   catch {
-    errorMessage.value = 'Failed to remove photo from album.'
+    errorMessage.value = t('album.removePhotoFailed')
   }
   finally {
     updatingPhotos.value = false
@@ -179,7 +181,7 @@ async function addTagToPhoto(photoId: number, tagId: number): Promise<void> {
     await loadPhotoTags(photoId)
   }
   catch {
-    errorMessage.value = 'Failed to add tag.'
+    errorMessage.value = t('album.addTagFailed')
   }
 }
 
@@ -189,7 +191,7 @@ async function removeTagFromPhotoInAlbum(photoId: number, tagId: number): Promis
     await loadPhotoTags(photoId)
   }
   catch {
-    errorMessage.value = 'Failed to remove tag.'
+    errorMessage.value = t('album.removeTagFailed')
   }
 }
 
@@ -214,7 +216,7 @@ async function createAndAddTag(photoId: number, tagName: string): Promise<void> 
     await loadPhotoTags(photoId)
   }
   catch {
-    errorMessage.value = 'Failed to create tag.'
+    errorMessage.value = t('album.createTagFailed')
   }
 }
 
@@ -227,17 +229,17 @@ onMounted(async () => {
   <section class="space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
-        {{ album?.name ?? "Album Detail" }}
+        {{ album?.name ?? $t('album.detail') }}
       </h1>
       <p class="text-ts-muted">
-        Manage album metadata, photos, and tags in one place.
+        {{ $t('album.detailDesc') }}
       </p>
       <RouterLink
         v-if="album"
         :to="{ path: '/slideshow', query: { album_id: String(album.id) } }"
         class="inline-flex rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
       >
-        Start Slideshow
+        {{ $t('album.startSlideshow') }}
       </RouterLink>
     </header>
 
@@ -246,17 +248,17 @@ onMounted(async () => {
     </p>
 
     <p v-if="loading" class="text-sm text-ts-muted">
-      Loading album details...
+      {{ $t('album.loadingDetails') }}
     </p>
 
     <template v-else-if="album">
       <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
         <h2 class="text-lg font-semibold text-ts-text">
-          Album Settings
+          {{ $t('album.albumSettings') }}
         </h2>
         <div class="grid gap-3 md:grid-cols-2">
           <label class="space-y-1 text-sm text-ts-muted">
-            Name
+            {{ $t('album.nameLabel') }}
             <input
               v-model="editName"
               type="text"
@@ -264,12 +266,12 @@ onMounted(async () => {
             >
           </label>
           <label class="space-y-1 text-sm text-ts-muted">
-            Cover Photo
+            {{ $t('album.coverPhoto') }}
             <select
               v-model.number="selectedCoverPhotoId"
               class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
             >
-              <option :value="0">None</option>
+              <option :value="0">{{ $t('common.none') }}</option>
               <option v-for="photo in albumPhotos" :key="photo.id" :value="photo.id">
                 {{ photo.filename }}
               </option>
@@ -278,7 +280,7 @@ onMounted(async () => {
         </div>
 
         <label class="space-y-1 text-sm text-ts-muted">
-          Description
+          {{ $t('album.descriptionLabel') }}
           <textarea
             v-model="editDescription"
             rows="2"
@@ -292,13 +294,13 @@ onMounted(async () => {
           class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
           @click="saveAlbum"
         >
-          {{ savingAlbum ? "Saving..." : "Save Album" }}
+          {{ savingAlbum ? $t('common.saving') : $t('common.save') }}
         </button>
       </section>
 
       <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
         <h2 class="text-lg font-semibold text-ts-text">
-          Add Photos
+          {{ $t('album.addPhotos') }}
         </h2>
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
           <select
@@ -306,7 +308,7 @@ onMounted(async () => {
             class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent md:max-w-md"
           >
             <option :value="0">
-              Select a photo
+              {{ $t('album.selectPhoto') }}
             </option>
             <option v-for="photo in availablePhotosToAdd" :key="photo.id" :value="photo.id">
               {{ photo.filename }}
@@ -318,7 +320,7 @@ onMounted(async () => {
             class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
             @click="addSelectedPhoto"
           >
-            Add To Album
+            {{ $t('album.addToAlbum') }}
           </button>
         </div>
       </section>
@@ -326,10 +328,10 @@ onMounted(async () => {
       <section class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold text-ts-accent">
-            Album Photos
+            {{ $t('album.albumPhotos') }}
           </h2>
           <p class="text-sm text-ts-muted">
-            {{ album.photo_count }} items
+            {{ $t('common.items', { count: album.photo_count }) }}
           </p>
         </div>
 
@@ -337,7 +339,7 @@ onMounted(async () => {
           v-if="albumPhotos.length === 0"
           class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted"
         >
-          No photos in this album yet.
+          {{ $t('album.noPhotos') }}
         </p>
 
         <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
@@ -362,7 +364,7 @@ onMounted(async () => {
                 class="rounded border border-red-400/40 px-2 py-1 text-xs text-red-200 hover:bg-red-500/20"
                 @click="removePhoto(photo.id)"
               >
-                Remove
+                {{ $t('common.remove') }}
               </button>
             </div>
 

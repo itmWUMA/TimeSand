@@ -1,11 +1,11 @@
-import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
+import { mountWithI18n } from '../../test-utils'
 import PhotoUploader from '../PhotoUploader.vue'
 
 describe('photoUploader', () => {
   it('renders drop zone and file input', () => {
-    const wrapper = mount(PhotoUploader, {
+    const wrapper = mountWithI18n(PhotoUploader, {
       props: {
         uploading: false,
         progress: 0,
