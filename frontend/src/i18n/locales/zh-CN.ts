@@ -92,6 +92,12 @@ export default {
     drawHint: '抽卡以构建牌堆',
     noCaptureDate: '无拍摄日期',
     unknownDate: '未知拍摄日期',
+    memory: {
+      lastYearToday: '去年的今天',
+      lastYearNearby: '大约去年的这几天',
+      yearsAgoToday: '{n} 年前的今天',
+      yearsAgoNearby: '大约 {n} 年前的这几天',
+    },
   },
   music: {
     title: '音乐与播放列表',

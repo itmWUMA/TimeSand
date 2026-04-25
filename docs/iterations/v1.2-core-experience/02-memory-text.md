@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.2"
-status: pending
+status: done
 branch: "feat/memory-text"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - core-experience
   - memory-text
