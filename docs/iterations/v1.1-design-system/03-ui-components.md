@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: done
 branch: "feat/ui-components"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - design-system
   - phase-1
@@ -48,14 +48,14 @@ tags:
 
 ## Acceptance Criteria
 
-- [ ] All 11 components created in `components/ui/`
-- [ ] Each component uses design tokens via Tailwind classes (`bg-ts-*`, `rounded-ts-*`, etc.)
-- [ ] Radix-based components use correct Radix Vue primitives
-- [ ] Entrance/exit animations use motion preset functions
-- [ ] TsButton supports 3 variants (`primary`, `secondary`, `ghost`) and 3 sizes (`sm`, `md`, `lg`)
-- [ ] All 10 test files pass
-- [ ] `bun run type-check` passes
-- [ ] `bun run lint:fix` passes
+- [x] All 11 components created in `components/ui/`
+- [x] Each component uses design tokens via Tailwind classes (`bg-ts-*`, `rounded-ts-*`, etc.)
+- [x] Radix-based components use correct Radix Vue primitives
+- [x] Entrance/exit animations use motion preset functions
+- [x] TsButton supports 3 variants (`primary`, `secondary`, `ghost`) and 3 sizes (`sm`, `md`, `lg`)
+- [x] All 10 test files pass
+- [x] `bun run type-check` passes
+- [x] `bun run lint:fix` passes
 
 ## Implementation Steps
 
