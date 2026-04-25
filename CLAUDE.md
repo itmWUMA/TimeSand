@@ -167,6 +167,38 @@ Task files additionally require: `status`, `branch`, `pr`, `completed`
 - **JSON Canvas** (`.canvas` files): Visual dependency graphs and iteration maps
 - **Obsidian CLI** (`obsidian` command): Interact with the vault from terminal (requires Obsidian app running)
 
+#### Obsidian CLI Usage
+
+On Windows, the `obsidian` CLI must be invoked via PowerShell (bash cannot resolve it):
+
+```bash
+powershell -Command "obsidian <command> <args>"
+```
+
+Common operations for task management:
+
+```bash
+# Read/set frontmatter properties
+powershell -Command "obsidian property:read name=status path='iterations/v1.1-design-system/01-task.md'"
+powershell -Command "obsidian property:set name=status value=done path='iterations/v1.1-design-system/01-task.md'"
+
+# List tasks and their status
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md'"
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md' done"
+powershell -Command "obsidian tasks path='iterations/v1.1-design-system/01-task.md' todo"
+
+# Read frontmatter of a file
+powershell -Command "obsidian properties path='iterations/v1.1-design-system/01-task.md'"
+
+# Query a base dashboard
+powershell -Command "obsidian base:query path='iterations/v1.1-design-system/tasks.base'"
+
+# Toggle a task checkbox
+powershell -Command "obsidian task path='iterations/v1.1-design-system/01-task.md' line=29 done"
+```
+
+Prefer Obsidian CLI over direct file editing for frontmatter and task updates — it keeps Obsidian's index in sync.
+
 ### Naming Conventions
 
 - Iteration directories: `v<major>.<minor>-<slug>` (e.g., `v0.0-mvp`, `v1.1-design-system`)

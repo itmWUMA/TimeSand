@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: in-progress
+status: done
 branch: "feat/design-tokens"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - design-system
   - phase-1
@@ -30,9 +30,9 @@ tags:
 - [x] `tailwind.config.ts` references `var(--ts-*)` for all color values
 - [x] Non-color tokens available via `ts-` prefixed Tailwind utilities (e.g., `rounded-ts-md`, `shadow-ts-sm`)
 - [x] Existing Tailwind classes (`bg-ts-bg`, `text-ts-accent`, `shadow-glow`, etc.) continue to work identically
-- [ ] No visual regression in existing pages
-- [ ] `bun run build` succeeds
-- [ ] `bun run type-check` passes
+- [x] No visual regression in existing pages
+- [x] `bun run build` succeeds
+- [x] `bun run type-check` passes
 
 ## Implementation Steps
 
@@ -213,7 +213,7 @@ Key decisions:
 - `shadow-glow` preserved (same class name, now references variable)
 - `fontFamily.sans` overrides Tailwind default so `font-sans` uses our stack
 
-- [ ] **Step 4: Verify build and lint pass**
+- [x] **Step 4: Verify build and lint pass**
 
 Run:
 ```bash
@@ -227,7 +227,7 @@ cd frontend && bun run lint:fix
 ```
 Expected: No lint errors (or auto-fixed).
 
-- [ ] **Step 5: Verify no visual regression**
+- [x] **Step 5: Verify no visual regression**
 
 Start the dev server and check all existing pages in the browser:
 ```bash
@@ -245,7 +245,7 @@ Verify:
 
 All existing Tailwind classes should produce identical visual results because the CSS variable values match the previously hardcoded hex values.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/assets/tokens.css frontend/src/assets/main.css frontend/tailwind.config.ts
