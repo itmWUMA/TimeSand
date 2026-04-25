@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
-branch: "feat/language-switch"
+status: done
+branch: feat/language-switch
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - i18n
   - phase-1
