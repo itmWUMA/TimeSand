@@ -94,6 +94,12 @@ const en: MessageSchema = {
     drawHint: 'Draw cards to build the pile',
     noCaptureDate: 'No capture date',
     unknownDate: 'Unknown capture date',
+    memory: {
+      lastYearToday: 'One year ago today',
+      lastYearNearby: 'Around this time last year',
+      yearsAgoToday: '{n} years ago today',
+      yearsAgoNearby: 'Around this time {n} years ago',
+    },
   },
   music: {
     title: 'Music & Playlists',
