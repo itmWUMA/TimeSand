@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.1"
-status: pending
+status: done
 branch: "feat/motion-presets"
 pr:
-completed:
+completed: 2026-04-25
 tags:
   - design-system
   - phase-1
@@ -29,13 +29,13 @@ tags:
 
 ## Acceptance Criteria
 
-- [ ] Preset constants defined: 5 easings, 4 durations, 3 distances, 3 staggers
-- [ ] 8 animation functions implemented: `fadeIn`, `fadeOut`, `slideUp`, `scaleIn`, `glowBreath`, `ribbonFlow`, `staggerIn`, `particleDrift`
-- [ ] Each function returns a GSAP Tween or Timeline instance
-- [ ] All `opts` parameters are optional overrides with preset defaults
-- [ ] `useMotion()` composable exposes all animation functions
-- [ ] Unit tests pass for function signatures and return types
-- [ ] `bun run type-check` passes
+- [x] Preset constants defined: 5 easings, 4 durations, 3 distances, 3 staggers
+- [x] 8 animation functions implemented: `fadeIn`, `fadeOut`, `slideUp`, `scaleIn`, `glowBreath`, `ribbonFlow`, `staggerIn`, `particleDrift`
+- [x] Each function returns a GSAP Tween or Timeline instance
+- [x] All `opts` parameters are optional overrides with preset defaults
+- [x] `useMotion()` composable exposes all animation functions
+- [x] Unit tests pass for function signatures and return types
+- [x] `bun run type-check` passes
 
 ## Design Reference: P3R Ethereal Flow
 
