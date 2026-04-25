@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useId } from 'vue'
+
 const props = withDefaults(defineProps<{
   modelValue?: string
   label?: string
@@ -19,6 +21,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const inputId = useId()
+const errorId = useId()
+
 function onInput(event: Event): void {
   const target = event.target as HTMLInputElement
   emit('update:modelValue', target.value)
@@ -27,15 +32,18 @@ function onInput(event: Event): void {
 
 <template>
   <div class="space-y-1">
-    <label v-if="props.label" class="block text-sm text-ts-muted">
+    <label v-if="props.label" :for="inputId" class="block text-sm text-ts-muted">
       {{ props.label }}
     </label>
 
     <input
+      :id="inputId"
       :type="props.type"
       :value="props.modelValue"
       :placeholder="props.placeholder"
       :disabled="props.disabled"
+      :aria-invalid="props.error ? true : undefined"
+      :aria-describedby="props.error ? errorId : undefined"
       class="w-full rounded-ts-sm border bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none transition duration-fast placeholder:text-ts-muted/60"
       :class="[
         props.error
@@ -46,7 +54,7 @@ function onInput(event: Event): void {
       @input="onInput"
     >
 
-    <p v-if="props.error" class="text-xs text-red-300">
+    <p v-if="props.error" :id="errorId" class="text-xs text-red-300">
       {{ props.error }}
     </p>
   </div>

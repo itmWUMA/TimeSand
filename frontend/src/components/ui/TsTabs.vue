@@ -19,10 +19,6 @@ const emit = defineEmits<{
 function onUpdateModelValue(value: string): void {
   emit('update:modelValue', value)
 }
-
-function onTriggerClick(value: string): void {
-  emit('update:modelValue', value)
-}
 </script>
 
 <template>
@@ -38,7 +34,6 @@ function onTriggerClick(value: string): void {
         data-testid="ts-tabs-trigger"
         :value="tab.value"
         class="relative px-4 py-2.5 text-sm text-ts-muted outline-none transition duration-fast hover:text-ts-text data-[state=active]:text-ts-accent"
-        @click="onTriggerClick(tab.value)"
       >
         {{ tab.label }}
       </TabsTrigger>

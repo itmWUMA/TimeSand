@@ -15,6 +15,7 @@ import { scaleIn } from '../../composables/motion'
 const props = defineProps<{
   open: boolean
   title?: string
+  description?: string
 }>()
 
 const emit = defineEmits<{
@@ -57,8 +58,8 @@ function onUpdateOpen(value: boolean): void {
             </DialogClose>
           </div>
 
-          <DialogDescription class="sr-only">
-            Dialog content
+          <DialogDescription :class="props.description ? 'mb-4 text-sm text-ts-muted' : 'sr-only'">
+            {{ props.description ?? 'Dialog' }}
           </DialogDescription>
 
           <slot />

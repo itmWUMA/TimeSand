@@ -19,10 +19,20 @@ describe('tsInput', () => {
     expect(wrapper.find('label').exists()).toBe(false)
   })
 
-  it('shows error message and error class', () => {
+  it('shows error message with aria attributes', () => {
     const wrapper = mount(TsInput, { props: { error: 'Required' } })
+    const input = wrapper.find('input')
     expect(wrapper.text()).toContain('Required')
-    expect(wrapper.find('input').classes()).toContain('border-red-400/60')
+    expect(input.classes()).toContain('border-red-400/60')
+    expect(input.attributes('aria-invalid')).toBe('true')
+    expect(input.attributes('aria-describedby')).toBe(wrapper.find('p').attributes('id'))
+  })
+
+  it('links label to input via for/id', () => {
+    const wrapper = mount(TsInput, { props: { label: 'Email' } })
+    const input = wrapper.find('input')
+    const label = wrapper.find('label')
+    expect(label.attributes('for')).toBe(input.attributes('id'))
   })
 
   it('emits update:modelValue on input', async () => {

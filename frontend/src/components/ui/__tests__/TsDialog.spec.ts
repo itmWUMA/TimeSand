@@ -54,6 +54,18 @@ describe('tsDialog', () => {
     wrapper.unmount()
   })
 
+  it('renders description when provided', async () => {
+    const wrapper = mount(TsDialog, {
+      props: { open: true, description: 'Are you sure?' },
+      slots: { default: 'Body' },
+      attachTo: document.body,
+    })
+
+    await nextTick()
+    expect(getRenderedText(wrapper.text())).toContain('Are you sure?')
+    wrapper.unmount()
+  })
+
   it('runs scaleIn motion when dialog opens', async () => {
     const wrapper = mount(TsDialog, {
       props: { open: false },

@@ -27,9 +27,10 @@ describe('tsTabs', () => {
     })
 
     const secondTab = wrapper.findAll('[data-testid="ts-tabs-trigger"]')[1]
-    await secondTab.trigger('pointerdown')
-    await secondTab.trigger('click')
+    await secondTab.trigger('mousedown', { button: 0 })
 
-    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['two'])
+    const emitted = wrapper.emitted('update:modelValue')!
+    expect(emitted).toHaveLength(1)
+    expect(emitted[0]).toEqual(['two'])
   })
 })

@@ -14,9 +14,12 @@ describe('tsSelect', () => {
     expect(wrapper.find('[data-testid="ts-select-trigger"]').exists()).toBe(true)
   })
 
-  it('renders label when provided', () => {
+  it('renders label linked to trigger via aria-labelledby', () => {
     const wrapper = mount(TsSelect, { props: { options, label: 'Choice' } })
-    expect(wrapper.find('label').text()).toBe('Choice')
+    const label = wrapper.find('label')
+    const trigger = wrapper.find('[data-testid="ts-select-trigger"]')
+    expect(label.text()).toBe('Choice')
+    expect(trigger.attributes('aria-labelledby')).toBe(label.attributes('id'))
   })
 
   it('sets placeholder on trigger', () => {
