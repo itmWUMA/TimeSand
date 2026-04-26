@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.2"
-status: pending
+status: done
 branch: "feat/card-draw-ceremony"
 pr:
-completed:
+completed: 2026-04-26
 tags:
   - core-experience
   - card-draw
