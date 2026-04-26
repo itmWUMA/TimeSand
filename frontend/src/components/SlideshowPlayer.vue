@@ -322,24 +322,40 @@ function loadIncomingAndTransition(nextPhoto: Photo): void {
   }
 
   const token = ++imageLoadToken
-  setImageContent(next, nextPhoto)
+
+  const cleanupImageHandlers = () => {
+    next.onload = null
+    next.onerror = null
+  }
 
   const beginTransition = () => {
     if (token !== imageLoadToken) {
       return
     }
-    next.onload = null
-    next.onerror = null
+    cleanupImageHandlers()
     runTransition(current, next, nextPhoto)
   }
 
-  if (next.complete && next.naturalWidth > 0) {
-    beginTransition()
-    return
+  const handleLoadError = () => {
+    if (token !== imageLoadToken) {
+      return
+    }
+    cleanupImageHandlers()
+    resetImageToHidden(next)
   }
 
   next.onload = beginTransition
-  next.onerror = beginTransition
+  next.onerror = handleLoadError
+  setImageContent(next, nextPhoto)
+
+  if (next.complete) {
+    if (next.naturalWidth > 0) {
+      beginTransition()
+      return
+    }
+
+    handleLoadError()
+  }
 }
 
 function syncDisplayedPhoto(forceInitial = false): void {
