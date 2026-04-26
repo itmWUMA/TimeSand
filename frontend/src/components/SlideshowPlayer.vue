@@ -329,18 +329,18 @@ function loadIncomingAndTransition(nextPhoto: Photo): void {
   }
 
   const beginTransition = () => {
+    cleanupImageHandlers()
     if (token !== imageLoadToken) {
       return
     }
-    cleanupImageHandlers()
     runTransition(current, next, nextPhoto)
   }
 
   const handleLoadError = () => {
+    cleanupImageHandlers()
     if (token !== imageLoadToken) {
       return
     }
-    cleanupImageHandlers()
     resetImageToHidden(next)
   }
 
@@ -479,6 +479,16 @@ onMounted(() => {
 
 onUnmounted(() => {
   imageLoadToken += 1
+  const imgA = imgARef.value
+  const imgB = imgBRef.value
+  if (imgA) {
+    imgA.onload = null
+    imgA.onerror = null
+  }
+  if (imgB) {
+    imgB.onload = null
+    imgB.onerror = null
+  }
   motionQuery?.removeEventListener('change', handleMotionQueryEvent)
   killTransitionTweens()
   killAudioTweens()
