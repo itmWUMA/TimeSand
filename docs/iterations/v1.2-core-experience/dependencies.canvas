@@ -1,0 +1,19 @@
+{
+	"nodes":[
+		{"id":"g001","type":"group","x":-30,"y":-30,"width":960,"height":140,"label":"Phase 1 — Parallel","color":"4"},
+		{"id":"t01","type":"text","x":0,"y":0,"width":260,"height":80,"text":"## Task 1\nSound Effects System\n`feat/sound-effects`","color":"4"},
+		{"id":"t02","type":"text","x":330,"y":0,"width":260,"height":80,"text":"## Task 2\nMemory Copywriting\n`feat/memory-text`","color":"4"},
+		{"id":"t03","type":"text","x":660,"y":0,"width":260,"height":80,"text":"## Task 3\nEmpty States\n`feat/empty-states`","color":"4"},
+		{"id":"g002","type":"group","x":-30,"y":180,"width":640,"height":140,"label":"Phase 2 — Parallel","color":"3"},
+		{"id":"t04","type":"text","x":0,"y":210,"width":260,"height":80,"text":"## Task 4\nCard Draw Ceremony\n`feat/card-draw-ceremony`","color":"3"},
+		{"id":"t05","type":"text","x":330,"y":210,"width":260,"height":80,"text":"## Task 5\nSlideshow Transitions\n`feat/slideshow-transitions`","color":"3"},
+		{"id":"g003","type":"group","x":-30,"y":390,"width":640,"height":140,"label":"Phase 3","color":"1"},
+		{"id":"t06","type":"text","x":0,"y":420,"width":260,"height":80,"text":"## Task 6\nOnboarding & Demo Data\n`feat/onboarding`","color":"1"}
+	],
+	"edges":[
+		{"id":"e01","fromNode":"t01","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow","label":"sounds"},
+		{"id":"e02","fromNode":"t02","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow","label":"memory text"},
+		{"id":"e03","fromNode":"t01","fromSide":"bottom","toNode":"t05","toSide":"top","toEnd":"arrow","label":"sounds"},
+		{"id":"e04","fromNode":"t04","fromSide":"bottom","toNode":"t06","toSide":"top","toEnd":"arrow","label":"ceremony"}
+	]
+}

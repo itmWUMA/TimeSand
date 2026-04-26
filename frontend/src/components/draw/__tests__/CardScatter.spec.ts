@@ -4,11 +4,20 @@ import { describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../../test-utils'
 import CardScatter from '../CardScatter.vue'
 
+const { staggerInSpy } = vi.hoisted(() => ({
+  staggerInSpy: vi.fn(),
+}))
+
 vi.mock('gsap', () => ({
   gsap: {
-    fromTo: vi.fn(),
     to: vi.fn(),
+    fromTo: vi.fn(),
+    timeline: vi.fn(),
   },
+}))
+
+vi.mock('../../../composables/motion/sequences', () => ({
+  staggerIn: (...args: unknown[]) => staggerInSpy(...args),
 }))
 
 const gsapApi = await import('gsap')
@@ -39,7 +48,7 @@ const cards: DrawnCard[] = [
 ]
 
 describe('cardScatter', () => {
-  it('loads original image on hover and restores scatter rotation on settle', async () => {
+  it('uses stagger entrance, backdrop blur, and 3D tilt hover interactions', async () => {
     const wrapper = mountWithI18n(CardScatter, {
       props: {
         open: true,
@@ -47,31 +56,59 @@ describe('cardScatter', () => {
       },
     })
 
+    await wrapper.vm.$nextTick()
+
+    const overlay = wrapper.get('[data-draw-scatter]')
     const cardButton = wrapper.findAll('button')[1]
+    const cardFace = wrapper.get('[data-scatter-card-face]')
     const cardImage = wrapper.find('img[alt="memory.jpg"]')
 
+    expect(overlay.classes()).toContain('backdrop-blur-ts-sm')
+    expect(staggerInSpy).toHaveBeenCalledWith(expect.any(Array), {
+      stagger: 0.08,
+    })
     expect(cardImage.attributes('src')).toBe('/api/photos/8/thumbnail')
 
     await cardButton.trigger('mouseenter')
-
     expect(cardImage.attributes('src')).toBe('/api/photos/8/file')
+
+    Object.defineProperty(cardFace.element, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        width: 100,
+        height: 140,
+        left: 100,
+        top: 100,
+        right: 200,
+        bottom: 240,
+        x: 100,
+        y: 100,
+        toJSON: () => ({}),
+      }),
+    })
+
+    await cardButton.trigger('mousemove', {
+      clientX: 180,
+      clientY: 120,
+    })
+
     expect(vi.mocked(gsapApi.gsap.to)).toHaveBeenLastCalledWith(
-      cardButton.element,
+      cardFace.element,
       expect.objectContaining({
-        y: -26,
-        scale: 1.24,
-        rotate: 0,
+        rotateY: expect.any(Number),
+        rotateX: expect.any(Number),
+        scale: 1.08,
       }),
     )
 
     await cardButton.trigger('mouseleave')
 
     expect(vi.mocked(gsapApi.gsap.to)).toHaveBeenLastCalledWith(
-      cardButton.element,
+      cardFace.element,
       expect.objectContaining({
-        y: 0,
+        rotateY: 0,
+        rotateX: 0,
         scale: 1,
-        rotate: 13,
       }),
     )
   })

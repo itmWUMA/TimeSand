@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MusicUploader from '../components/MusicUploader.vue'
 import PlaylistEditor from '../components/PlaylistEditor.vue'
+import TsEmptyState from '../components/TsEmptyState.vue'
 import { deleteMusic, listMusic, uploadMusic } from '../services/music'
 import { addTrackToPlaylist, createPlaylist, deletePlaylist, getPlaylist, listPlaylists, removeTrackFromPlaylist, updatePlaylist } from '../services/playlist'
 
@@ -252,12 +253,11 @@ onMounted(async () => {
         >
           {{ $t('music.loadingTracks') }}
         </p>
-        <p
+        <TsEmptyState
           v-else-if="tracks.length === 0"
-          class="rounded border border-white/10 bg-ts-panelSoft px-3 py-3 text-sm text-ts-muted"
-        >
-          {{ $t('music.emptyState') }}
-        </p>
+          :title="$t('empty.music.title')"
+          :description="$t('empty.music.description')"
+        />
 
         <ul v-else class="space-y-2">
           <li

@@ -4,163 +4,146 @@ import { computed, nextTick, ref } from 'vue'
 
 import { drawPhoto, resetDrawSession } from '../services/draw'
 import { useDrawStore } from '../stores/draw'
+import { EASING } from './motion/presets'
+import { useSoundEffects } from './useSoundEffects'
+
+type CeremonyState = 'IDLE' | 'DRAWING' | 'EMERGING' | 'REVEALING' | 'DISPLAYING'
 
 const DECK_SELECTOR = '[data-draw-deck]'
 const CENTER_CARD_SELECTOR = '[data-draw-center-card]'
+const CARD_INNER_SELECTOR = '[data-card-inner]'
 const PILE_SELECTOR = '[data-draw-pile]'
-const SCATTER_SELECTOR = '[data-draw-scatter]'
+
+const MEMORY_TEXT_SELECTOR = '[data-memory-text]'
 
 function queryElement(selector: string): HTMLElement | null {
-  return typeof document === 'undefined' ? null : document.querySelector<HTMLElement>(selector)
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return document.querySelector<HTMLElement>(selector)
 }
 
-function animateTo(target: Element | null, vars: Record<string, unknown>): Promise<void> {
-  return new Promise((resolve) => {
-    if (!target) {
-      resolve()
-      return
-    }
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false
+  }
 
-    const originalOnComplete = vars.onComplete
-    gsap.to(target, {
-      ...vars,
-      onComplete: () => {
-        if (typeof originalOnComplete === 'function') {
-          originalOnComplete()
-        }
-        resolve()
-      },
-    } as object)
-  })
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function animateFromTo(target: Element | null, fromVars: Record<string, unknown>, toVars: Record<string, unknown>): Promise<void> {
-  return new Promise((resolve) => {
-    if (!target) {
-      resolve()
-      return
-    }
+function computeDelta(source: HTMLElement, target: HTMLElement): { x: number, y: number } {
+  const sourceRect = source.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
 
-    const originalOnComplete = toVars.onComplete
-    gsap.fromTo(target, fromVars, {
-      ...toVars,
-      onComplete: () => {
-        if (typeof originalOnComplete === 'function') {
-          originalOnComplete()
-        }
-        resolve()
-      },
-    } as object)
-  })
+  const sourceCenterX = sourceRect.left + sourceRect.width / 2
+  const sourceCenterY = sourceRect.top + sourceRect.height / 2
+  const targetCenterX = targetRect.left + targetRect.width / 2
+  const targetCenterY = targetRect.top + targetRect.height / 2
+
+  return {
+    x: targetCenterX - sourceCenterX,
+    y: targetCenterY - sourceCenterY,
+  }
+}
+
+function removeGhost(ghost: HTMLElement | null): void {
+  if (!ghost) {
+    return
+  }
+
+  ghost.remove()
+}
+
+function cloneCenterCardAsGhost(source: HTMLElement | null): HTMLElement | null {
+  if (!source || typeof document === 'undefined') {
+    return null
+  }
+
+  const rect = source.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0) {
+    return null
+  }
+
+  const ghost = source.cloneNode(true) as HTMLElement
+  ghost.removeAttribute('data-draw-center-card')
+  ghost.setAttribute('data-draw-card-ghost', 'true')
+  ghost.style.position = 'fixed'
+  ghost.style.left = `${rect.left}px`
+  ghost.style.top = `${rect.top}px`
+  ghost.style.width = `${rect.width}px`
+  ghost.style.height = `${rect.height}px`
+  ghost.style.margin = '0'
+  ghost.style.pointerEvents = 'none'
+  ghost.style.zIndex = '70'
+  ghost.style.transformOrigin = 'center center'
+
+  document.body.append(ghost)
+  return ghost
 }
 
 export function useCardDraw() {
   const drawStore = useDrawStore()
+  const sfx = useSoundEffects()
 
+  const ceremonyState = ref<CeremonyState>('IDLE')
   const isDrawing = ref(false)
   const isScatterOpen = ref(false)
   const errorMessage = ref<string | null>(null)
   const lastWeightReason = ref<string | null>(null)
 
   const activeCard = computed(() => drawStore.activeCard)
-  const pileCards = computed(() => drawStore.pileCards)
+  const pileCards = computed(() =>
+    hiddenPileCardId.value === null
+      ? drawStore.pileCards
+      : drawStore.pileCards.filter(c => c.photo.id !== hiddenPileCardId.value),
+  )
   const drawnCards = computed(() => drawStore.drawnCards)
   const hasDrawnCards = computed(() => drawStore.drawnCards.length > 0)
 
-  const animateDeckTap = async (): Promise<void> => {
-    await animateFromTo(
-      queryElement(DECK_SELECTOR),
-      { scale: 1, y: 0 },
-      {
-        scale: 0.94,
-        y: -4,
-        duration: 0.1,
-        yoyo: true,
-        repeat: 1,
-        ease: 'power1.out',
-      },
-    )
+  const hiddenPileCardId = ref<number | null>(null)
+
+  let ceremonyTimeline: gsap.core.Timeline | null = null
+  let ceremonyGhost: HTMLElement | null = null
+
+  function clearGhost(): void {
+    removeGhost(ceremonyGhost)
+    ceremonyGhost = null
+    hiddenPileCardId.value = null
   }
 
-  const animatePreviousCardToPile = async (): Promise<void> => {
-    const centerCard = queryElement(CENTER_CARD_SELECTOR)
-    const pile = queryElement(PILE_SELECTOR)
-    if (!centerCard || !pile) {
-      return
+  function killCeremony(): void {
+    if (ceremonyTimeline) {
+      ceremonyTimeline.kill()
+      ceremonyTimeline = null
     }
 
-    const centerRect = centerCard.getBoundingClientRect()
-    const pileRect = pile.getBoundingClientRect()
-    const centerX = centerRect.left + centerRect.width / 2
-    const centerY = centerRect.top + centerRect.height / 2
-    const pileX = pileRect.left + pileRect.width / 2
-    const pileY = pileRect.top + pileRect.height / 2
-
-    await animateTo(centerCard, {
-      x: (pileX - centerX) * 0.7,
-      y: (pileY - centerY) * 0.85,
-      scale: 0.54,
-      rotate: 9,
-      opacity: 0.72,
-      duration: 0.34,
-      ease: 'power2.inOut',
-    })
+    clearGhost()
   }
 
-  const animateCenterReveal = async (): Promise<void> => {
-    await animateFromTo(
-      queryElement(CENTER_CARD_SELECTOR),
-      {
-        y: 52,
-        rotateY: 100,
-        opacity: 0,
-        scale: 0.78,
-      },
-      {
-        y: 0,
-        rotateY: 0,
-        opacity: 1,
-        scale: 1,
-        duration: 0.55,
-        ease: 'power3.out',
-      },
-    )
-  }
-
-  const animateScatterIn = async (): Promise<void> => {
-    await animateFromTo(
-      queryElement(SCATTER_SELECTOR),
-      { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: 'power2.out' },
-    )
-  }
-
-  const animateScatterOut = async (): Promise<void> => {
-    await animateTo(queryElement(SCATTER_SELECTOR), {
-      opacity: 0,
-      duration: 0.2,
-      ease: 'power2.in',
-    })
-  }
-
-  const drawNextCard = async (): Promise<void> => {
+  async function drawNextCard(): Promise<void> {
     if (isDrawing.value) {
       return
     }
 
     isDrawing.value = true
     errorMessage.value = null
+    killCeremony()
+
+    const reducedMotion = prefersReducedMotion()
+    ceremonyState.value = 'DRAWING'
 
     try {
-      await animateDeckTap()
-
       const payload = await drawPhoto({
         album_id: drawStore.albumId,
         exclude_ids: [...drawStore.excludeIds],
       })
 
-      if (activeCard.value) {
-        await animatePreviousCardToPile()
+      const hadPreviousCard = !!drawStore.activeCard
+      const previousCardId = drawStore.activeCard?.photo.id ?? null
+      if (!reducedMotion && hadPreviousCard) {
+        ceremonyGhost = cloneCenterCardAsGhost(queryElement(CENTER_CARD_SELECTOR))
+        hiddenPileCardId.value = previousCardId
       }
 
       drawStore.addDrawnCard({
@@ -170,40 +153,174 @@ export function useCardDraw() {
       lastWeightReason.value = payload.weight_reason
 
       await nextTick()
-      await animateCenterReveal()
+
+      if (reducedMotion) {
+        ceremonyState.value = 'DISPLAYING'
+        isDrawing.value = false
+        clearGhost()
+        return
+      }
+
+      const deck = queryElement(DECK_SELECTOR)
+      const pile = queryElement(PILE_SELECTOR)
+      const centerCard = queryElement(CENTER_CARD_SELECTOR)
+      const cardInner = queryElement(CARD_INNER_SELECTOR)
+      const memoryText = queryElement(MEMORY_TEXT_SELECTOR)
+      const settleMarker = { progress: 0 }
+
+      if (centerCard) {
+        gsap.set(centerCard, { y: 80, opacity: 0, scale: 0.7 })
+      }
+
+      if (cardInner) {
+        gsap.set(cardInner, { rotateY: 0, transformPerspective: 1000, transformOrigin: '50% 50%' })
+      }
+
+      if (memoryText) {
+        gsap.set(memoryText, { opacity: 0, y: 12 })
+      }
+
+      sfx.play('shuffle')
+
+      ceremonyTimeline = gsap.timeline({
+        onComplete: () => {
+          ceremonyState.value = 'IDLE'
+          isDrawing.value = false
+          clearGhost()
+          ceremonyTimeline = null
+        },
+      })
+
+      if (deck) {
+        ceremonyTimeline.to(deck, {
+          scale: 0.94,
+          y: -4,
+          duration: 0.1,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power1.out',
+        }, 0)
+      }
+
+      ceremonyTimeline.call(() => {
+        ceremonyState.value = 'EMERGING'
+        sfx.play('whoosh')
+      }, [], 0.3)
+
+      if (ceremonyGhost && pile) {
+        const delta = computeDelta(ceremonyGhost, pile)
+        ceremonyTimeline.to(ceremonyGhost, {
+          x: delta.x * 0.72,
+          y: delta.y * 0.85,
+          scale: 0.55,
+          rotate: 8,
+          opacity: 0.72,
+          duration: 0.35,
+          ease: 'power2.inOut',
+        }, 0.3)
+        ceremonyTimeline.to(ceremonyGhost, {
+          opacity: 0,
+          duration: 0.25,
+          ease: 'power2.in',
+          onComplete: () => clearGhost(),
+        }, 0.65)
+      }
+
+      if (centerCard) {
+        ceremonyTimeline.to(centerCard, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.5,
+          ease: EASING.enter,
+        }, 0.3)
+      }
+
+      ceremonyTimeline.call(() => {
+        ceremonyState.value = 'REVEALING'
+      }, [], 0.8)
+
+      if (cardInner) {
+        ceremonyTimeline.to(cardInner, {
+          rotateY: 180,
+          duration: 0.6,
+          ease: 'power2.inOut',
+        }, 0.8)
+      }
+
+      ceremonyTimeline.call(() => {
+        sfx.play('flip')
+      }, [], 1.05)
+
+      if (centerCard) {
+        ceremonyTimeline.fromTo(centerCard, {
+          scale: 1,
+        }, {
+          scale: 1.15,
+          duration: 0.15,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power2.out',
+        }, 1.4)
+      }
+
+      ceremonyTimeline.call(() => {
+        ceremonyState.value = 'DISPLAYING'
+        sfx.play('reveal')
+        if (payload.weight_reason) {
+          sfx.play('memory')
+        }
+      }, [], 1.4)
+
+      if (memoryText && payload.weight_reason) {
+        ceremonyTimeline.to(memoryText, {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          ease: EASING.enter,
+        }, 1.8)
+      }
+
+      ceremonyTimeline.to(settleMarker, {
+        progress: 1,
+        duration: 0.4,
+        ease: 'none',
+      }, 1.8)
     }
     catch (error) {
+      ceremonyState.value = 'IDLE'
+      clearGhost()
+
       if (isAxiosError<{ detail?: string }>(error)) {
         errorMessage.value = error.response?.data?.detail ?? 'Draw failed'
       }
       else {
         errorMessage.value = 'Draw failed'
       }
-    }
-    finally {
+
       isDrawing.value = false
     }
   }
 
-  const openScatter = async (): Promise<void> => {
+  async function openScatter(): Promise<void> {
     if (!hasDrawnCards.value) {
       return
     }
 
     isScatterOpen.value = true
     await nextTick()
-    await animateScatterIn()
   }
 
-  const collectScatter = async (): Promise<void> => {
-    await animateScatterOut()
+  async function collectScatter(): Promise<void> {
     isScatterOpen.value = false
   }
 
-  const reshuffle = async (): Promise<void> => {
+  async function reshuffle(): Promise<void> {
     if (isDrawing.value) {
       return
     }
+
+    killCeremony()
 
     try {
       await resetDrawSession()
@@ -213,27 +330,101 @@ export function useCardDraw() {
     }
 
     drawStore.resetSession()
+    ceremonyState.value = 'IDLE'
     isScatterOpen.value = false
     errorMessage.value = null
     lastWeightReason.value = null
   }
 
-  const undoLastCard = async (): Promise<void> => {
+  async function undoLastCard(): Promise<void> {
     if (isDrawing.value) {
       return
     }
 
+    killCeremony()
+    const outgoingGhost = cloneCenterCardAsGhost(queryElement(CENTER_CARD_SELECTOR))
+
     const removed = drawStore.undoLastDraw()
     if (!removed) {
+      removeGhost(outgoingGhost)
       return
     }
 
+    ceremonyGhost = outgoingGhost
+    isDrawing.value = true
+
     await nextTick()
-    await animateCenterReveal()
+
+    const reducedMotion = prefersReducedMotion()
+    const centerCard = queryElement(CENTER_CARD_SELECTOR)
+    const pile = queryElement(PILE_SELECTOR)
+
+    if (reducedMotion) {
+      clearGhost()
+      isDrawing.value = false
+      ceremonyState.value = 'IDLE'
+      lastWeightReason.value = drawStore.activeCard?.weightReason ?? null
+      return
+    }
+
+    if (!ceremonyGhost && !centerCard) {
+      isDrawing.value = false
+      lastWeightReason.value = drawStore.activeCard?.weightReason ?? null
+      return
+    }
+
+    ceremonyTimeline = gsap.timeline({
+      onComplete: () => {
+        clearGhost()
+        isDrawing.value = false
+        ceremonyTimeline = null
+      },
+    })
+
+    let hasUndoAnimation = false
+
+    if (centerCard) {
+      gsap.set(centerCard, {
+        y: 20,
+        opacity: 0.45,
+        scale: 0.92,
+      })
+
+      ceremonyTimeline.to(centerCard, {
+        y: 0,
+        opacity: 1,
+        scale: 1,
+        duration: 0.4,
+        ease: 'power2.out',
+      }, 0)
+      hasUndoAnimation = true
+    }
+
+    if (ceremonyGhost && pile) {
+      const delta = computeDelta(ceremonyGhost, pile)
+      ceremonyTimeline.to(ceremonyGhost, {
+        x: delta.x * 0.72,
+        y: delta.y * 0.85,
+        scale: 0.55,
+        rotate: 8,
+        opacity: 0.5,
+        duration: 0.4,
+        ease: 'power2.inOut',
+      }, 0)
+      hasUndoAnimation = true
+    }
+
+    if (!hasUndoAnimation) {
+      isDrawing.value = false
+      clearGhost()
+      ceremonyTimeline = null
+    }
+
     lastWeightReason.value = drawStore.activeCard?.weightReason ?? null
   }
 
   return {
+    ceremonyState,
     activeCard,
     pileCards,
     drawnCards,
@@ -247,5 +438,6 @@ export function useCardDraw() {
     collectScatter,
     reshuffle,
     undoLastCard,
+    killCeremony,
   }
 }

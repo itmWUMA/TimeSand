@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
-from mutagen import File as MutagenFile
+from mutagen import File as MutagenFile, MutagenError
 
 from app.core.config import settings
 from app.models.music import Music
@@ -70,11 +70,17 @@ def create_music_from_upload(filename: str | None, mime_type: str | None, data: 
 
 
 def extract_audio_metadata(file_path: Path) -> tuple[str | None, str | None, float | None]:
-    audio_full = MutagenFile(file_path, easy=False)
+    try:
+        audio_full = MutagenFile(file_path, easy=False)
+    except MutagenError as exc:
+        raise InvalidMusicUploadError("File is not a valid audio file") from exc
     if audio_full is None:
         raise InvalidMusicUploadError("File is not a valid audio file")
 
-    audio_easy = MutagenFile(file_path, easy=True)
+    try:
+        audio_easy = MutagenFile(file_path, easy=True)
+    except MutagenError:
+        audio_easy = None
 
     title = extract_tag_value(audio_easy, ("title", "TIT2"))
     artist = extract_tag_value(audio_easy, ("artist", "TPE1"))

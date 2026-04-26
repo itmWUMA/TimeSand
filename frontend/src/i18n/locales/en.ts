@@ -94,6 +94,12 @@ const en: MessageSchema = {
     drawHint: 'Draw cards to build the pile',
     noCaptureDate: 'No capture date',
     unknownDate: 'Unknown capture date',
+    memory: {
+      lastYearToday: 'One year ago today',
+      lastYearNearby: 'Around this time last year',
+      yearsAgoToday: '{n} years ago today',
+      yearsAgoNearby: 'Around this time {n} years ago',
+    },
   },
   music: {
     title: 'Music & Playlists',
@@ -123,6 +129,26 @@ const en: MessageSchema = {
     dropHint: 'Drag music files here',
     formats: 'MP3, WAV, FLAC, OGG, AAC',
     chooseAudio: 'Choose Audio Files',
+  },
+  empty: {
+    albums: {
+      title: 'No albums yet',
+      description: 'Create an album to organize your photos',
+    },
+    music: {
+      title: 'No music yet',
+      description: 'Upload music to set the mood for browsing photos',
+    },
+    photos: {
+      title: 'No photos yet',
+      description: 'Upload photos to begin your journey through time',
+      action: 'Upload photos',
+    },
+    slideshow: {
+      title: 'No photos yet',
+      description: 'Upload photos to start the slideshow',
+      action: 'Upload photos',
+    },
   },
   slideshow: {
     loading: 'Loading slideshow...',

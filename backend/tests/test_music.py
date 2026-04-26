@@ -89,6 +89,20 @@ def test_upload_non_audio_returns_400(client: TestClient) -> None:
     assert response.json() == {"detail": "No valid audio files provided"}
 
 
+def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
+    corrupt_bytes = b"this is not a real mp3 file at all"
+    response = client.post(
+        "/api/music/upload",
+        files=[("files", ("corrupt.mp3", corrupt_bytes, "audio/mpeg"))],
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "No valid audio files provided"}
+
+    stored = list((settings.data_dir / "music" / "files").glob("*.mp3"))
+    assert stored == []
+
+
 def test_list_music_returns_paginated_response(client: TestClient) -> None:
     upload_wav_track(client, filename="first.wav")
     upload_wav_track(client, filename="second.wav")

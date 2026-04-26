@@ -92,6 +92,12 @@ export default {
     drawHint: '抽卡以构建牌堆',
     noCaptureDate: '无拍摄日期',
     unknownDate: '未知拍摄日期',
+    memory: {
+      lastYearToday: '去年的今天',
+      lastYearNearby: '大约去年的这几天',
+      yearsAgoToday: '{n} 年前的今天',
+      yearsAgoNearby: '大约 {n} 年前的这几天',
+    },
   },
   music: {
     title: '音乐与播放列表',
@@ -121,6 +127,26 @@ export default {
     dropHint: '将音乐文件拖拽到此处',
     formats: 'MP3, WAV, FLAC, OGG, AAC',
     chooseAudio: '选择音频文件',
+  },
+  empty: {
+    albums: {
+      title: '还没有相册',
+      description: '创建相册来整理你的照片',
+    },
+    music: {
+      title: '还没有音乐',
+      description: '上传音乐，为浏览照片增添氛围',
+    },
+    photos: {
+      title: '还没有照片',
+      description: '上传照片，开启你的时光之旅',
+      action: '上传照片',
+    },
+    slideshow: {
+      title: '还没有照片',
+      description: '上传照片后即可开始幻灯片播放',
+      action: '上传照片',
+    },
   },
   slideshow: {
     loading: '加载幻灯片中...',

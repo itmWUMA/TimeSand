@@ -4,6 +4,7 @@ import type { Album } from '../types/album'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AlbumCard from '../components/AlbumCard.vue'
+import TsEmptyState from '../components/TsEmptyState.vue'
 import { createAlbum, listAlbums } from '../services/album'
 
 const { t } = useI18n()
@@ -105,12 +106,11 @@ onMounted(async () => {
     <p v-if="loading" class="text-sm text-ts-muted">
       {{ $t('album.loadingAlbums') }}
     </p>
-    <p
+    <TsEmptyState
       v-else-if="albums.length === 0"
-      class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted"
-    >
-      {{ $t('album.emptyState') }}
-    </p>
+      :title="$t('empty.albums.title')"
+      :description="$t('empty.albums.description')"
+    />
 
     <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <RouterLink
