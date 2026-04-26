@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { DrawnCard } from '../../stores/draw'
-import { gsap } from 'gsap'
 
+import { gsap } from 'gsap'
 import { nextTick, ref, watch } from 'vue'
+import { staggerIn } from '../../composables/motion/sequences'
 
 const props = defineProps<{
   open: boolean
@@ -15,11 +16,14 @@ const emit = defineEmits<{
 
 const overlayRef = ref<HTMLElement | null>(null)
 const loadedOriginalCardIds = ref<Set<number>>(new Set())
+let entranceTween: gsap.core.Tween | null = null
 
 watch(
   () => props.open,
   async (open) => {
     if (!open) {
+      entranceTween?.kill()
+      entranceTween = null
       return
     }
 
@@ -28,12 +32,21 @@ watch(
       return
     }
 
+    const cards = Array.from(overlayRef.value.querySelectorAll<HTMLElement>('[data-scatter-card]'))
     gsap.fromTo(
       overlayRef.value,
       { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: 'power2.out' },
+      { opacity: 1, duration: 0.2, ease: 'power2.out' },
     )
+
+    if (cards.length === 0) {
+      return
+    }
+
+    entranceTween?.kill()
+    entranceTween = staggerIn(cards, { stagger: 0.08 })
   },
+  { immediate: true },
 )
 
 function scatterCardStyle(card: DrawnCard, index: number): Record<string, string> {
@@ -59,48 +72,70 @@ function getCardImageSrc(card: DrawnCard): string {
     : `/api/photos/${card.photo.id}/thumbnail`
 }
 
-function raiseCard(event: MouseEvent): void {
-  const target = event.currentTarget as HTMLElement | null
-  if (!target) {
-    return
-  }
+function handleMouseMove(event: MouseEvent, cardEl: HTMLElement): void {
+  const rect = cardEl.getBoundingClientRect()
+  const centerX = rect.left + rect.width / 2
+  const centerY = rect.top + rect.height / 2
 
-  gsap.to(target, {
-    y: -26,
-    scale: 1.24,
-    rotate: 0,
+  const deltaX = (event.clientX - centerX) / (rect.width / 2)
+  const deltaY = (event.clientY - centerY) / (rect.height / 2)
+
+  const clampedX = Math.max(-1, Math.min(1, deltaX))
+  const clampedY = Math.max(-1, Math.min(1, deltaY))
+
+  gsap.to(cardEl, {
+    rotateY: clampedX * 5,
+    rotateX: -clampedY * 5,
+    scale: 1.08,
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
     duration: 0.2,
     ease: 'power2.out',
   })
 }
 
-function settleCard(event: MouseEvent, rotation: number): void {
-  const target = event.currentTarget as HTMLElement | null
-  if (!target) {
-    return
-  }
-
-  gsap.to(target, {
-    y: 0,
+function handleMouseLeave(cardEl: HTMLElement): void {
+  gsap.to(cardEl, {
+    rotateY: 0,
+    rotateX: 0,
     scale: 1,
-    rotate: rotation,
-    duration: 0.2,
+    boxShadow: '',
+    duration: 0.3,
     ease: 'power2.out',
   })
 }
 
-function handleCardEnter(card: DrawnCard, event: MouseEvent): void {
-  markOriginalLoaded(card.photo.id)
-  raiseCard(event)
+function getCardFaceElement(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof HTMLElement)) {
+    return null
+  }
+
+  return target.querySelector<HTMLElement>('[data-scatter-card-face]')
 }
 
-function handleCardTap(card: DrawnCard, event: MouseEvent): void {
+function handleCardEnter(card: DrawnCard): void {
   markOriginalLoaded(card.photo.id)
-  raiseCard(event)
 }
 
-function handleCardLeave(card: DrawnCard, event: MouseEvent): void {
-  settleCard(event, card.scatterRotation)
+function handleCardMove(event: MouseEvent): void {
+  const cardFace = getCardFaceElement(event.currentTarget)
+  if (!cardFace) {
+    return
+  }
+
+  handleMouseMove(event, cardFace)
+}
+
+function handleCardTap(card: DrawnCard): void {
+  markOriginalLoaded(card.photo.id)
+}
+
+function handleCardLeave(event: MouseEvent): void {
+  const cardFace = getCardFaceElement(event.currentTarget)
+  if (!cardFace) {
+    return
+  }
+
+  handleMouseLeave(cardFace)
 }
 
 function handleBackdropClick(event: MouseEvent): void {
@@ -115,12 +150,12 @@ function handleBackdropClick(event: MouseEvent): void {
     v-show="open"
     ref="overlayRef"
     data-draw-scatter
-    class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm transition-opacity"
+    class="fixed inset-0 z-40 bg-black/75 backdrop-blur-ts-sm transition-opacity"
     @click="handleBackdropClick"
   >
     <button
       type="button"
-      class="absolute right-4 top-4 rounded border border-ts-accent/60 bg-ts-panel px-4 py-2 text-sm font-semibold text-ts-accent hover:bg-ts-accent hover:text-black"
+      class="absolute right-4 top-4 z-10 rounded border border-ts-accent/60 bg-ts-panel px-4 py-2 text-sm font-semibold text-ts-accent hover:bg-ts-accent hover:text-black"
       @click.stop="emit('collect')"
     >
       {{ $t('draw.collect') }}
@@ -131,18 +166,25 @@ function handleBackdropClick(event: MouseEvent): void {
         v-for="(card, index) in cards"
         :key="card.photo.id"
         type="button"
-        class="absolute h-44 w-32 overflow-hidden rounded-xl border border-white/20 bg-ts-panel shadow-xl"
+        data-scatter-card
+        class="absolute h-44 w-32 [perspective:900px]"
         :style="scatterCardStyle(card, index)"
-        @mouseenter="handleCardEnter(card, $event)"
-        @mouseleave="handleCardLeave(card, $event)"
-        @click.stop="handleCardTap(card, $event)"
+        @mouseenter="handleCardEnter(card)"
+        @mousemove="handleCardMove"
+        @mouseleave="handleCardLeave"
+        @click.stop="handleCardTap(card)"
       >
-        <img
-          :src="getCardImageSrc(card)"
-          :alt="card.photo.filename"
-          class="h-full w-full object-cover"
-          draggable="false"
+        <div
+          data-scatter-card-face
+          class="h-full w-full overflow-hidden rounded-xl border border-white/20 bg-ts-panel shadow-xl [transform-style:preserve-3d]"
         >
+          <img
+            :src="getCardImageSrc(card)"
+            :alt="card.photo.filename"
+            class="h-full w-full object-cover"
+            draggable="false"
+          >
+        </div>
       </button>
     </div>
   </div>

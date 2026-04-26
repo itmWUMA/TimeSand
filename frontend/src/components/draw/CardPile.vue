@@ -23,7 +23,7 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
   <button
     type="button"
     data-draw-pile
-    class="relative flex h-32 w-56 touch-manipulation items-end justify-center rounded-2xl border border-white/10 bg-ts-panel/80 px-3 pb-3 transition hover:border-ts-accent/50 hover:bg-ts-panelSoft"
+    class="relative flex h-32 w-56 touch-manipulation items-end justify-center overflow-visible rounded-2xl border border-white/10 bg-ts-panel/80 px-3 pb-3 transition hover:border-ts-accent/50 hover:bg-ts-panelSoft"
     :disabled="cards.length === 0"
     @click="emit('openScatter')"
   >
@@ -31,7 +31,8 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
       <span
         v-for="(card, index) in cards"
         :key="card.photo.id"
-        class="pointer-events-none absolute left-1/2 top-1/2 h-24 w-16 rounded-lg border border-white/15 bg-black/50 shadow-lg"
+        data-draw-pile-card
+        class="pointer-events-none absolute left-1/2 top-1/2 h-24 w-16 rounded-lg border border-white/15 bg-black/50 shadow-lg transition-transform duration-300"
         :style="cardStyle(card, index)"
       >
         <img

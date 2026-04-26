@@ -1,11 +1,18 @@
 <script setup lang="ts">
-defineProps<{
+import type { gsap } from 'gsap'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { glowBreath } from '../../composables/motion/transitions'
+
+const props = defineProps<{
   disabled?: boolean
 }>()
 
 const emit = defineEmits<{
   draw: []
 }>()
+
+const deckRef = ref<HTMLElement | null>(null)
+let breathTween: gsap.core.Tween | null = null
 
 const layers = [4, 3, 2, 1]
 
@@ -16,10 +23,43 @@ function deckLayerStyle(layer: number): Record<string, string> {
     zIndex: String(10 - layer),
   }
 }
+
+onMounted(() => {
+  if (!deckRef.value) {
+    return
+  }
+
+  breathTween = glowBreath(deckRef.value)
+  if (props.disabled) {
+    breathTween.pause()
+  }
+})
+
+onUnmounted(() => {
+  breathTween?.kill()
+  breathTween = null
+})
+
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (!breathTween) {
+      return
+    }
+
+    if (disabled) {
+      breathTween.pause()
+      return
+    }
+
+    breathTween.resume()
+  },
+)
 </script>
 
 <template>
   <button
+    ref="deckRef"
     type="button"
     data-draw-deck
     class="group relative h-64 w-44 touch-manipulation rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-accent"
