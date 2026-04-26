@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import TsEmptyState from '../../components/TsEmptyState.vue'
+import TsEmptyState from '../TsEmptyState.vue'
 
 const { routerPush, fadeIn } = vi.hoisted(() => ({
   routerPush: vi.fn(),

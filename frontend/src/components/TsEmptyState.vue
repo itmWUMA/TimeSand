@@ -19,11 +19,7 @@ const router = useRouter()
 const containerRef = ref<HTMLElement | null>(null)
 
 function handleAction(): void {
-  if (!props.actionTo) {
-    emit('action')
-    return
-  }
-  void router.push(props.actionTo)
+  void router.push(props.actionTo!)
   emit('action')
 }
 

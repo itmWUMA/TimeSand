@@ -232,9 +232,7 @@ onMounted(async () => {
       </p>
     </header>
 
-    <div>
-      <MusicUploader :uploading="uploading" @upload="handleUpload" />
-    </div>
+    <MusicUploader :uploading="uploading" @upload="handleUpload" />
 
     <p v-if="errorMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
       {{ errorMessage }}
