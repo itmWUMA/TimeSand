@@ -163,6 +163,13 @@ const en: MessageSchema = {
     play: 'Play',
     next: 'Next',
     interval: 'Interval',
+    transition: {
+      label: 'Transition',
+      crossfade: 'Crossfade',
+      kenBurns: 'Ken Burns',
+      fadeThroughBlack: 'Fade through black',
+      zoomReveal: 'Zoom reveal',
+    },
   },
   settings: {
     title: 'Settings',

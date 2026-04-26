@@ -161,6 +161,13 @@ export default {
     play: '播放',
     next: '下一张',
     interval: '间隔',
+    transition: {
+      label: '转场',
+      crossfade: '淡入淡出',
+      kenBurns: 'Ken Burns',
+      fadeThroughBlack: '黑场过渡',
+      zoomReveal: '缩放揭示',
+    },
   },
   settings: {
     title: '设置',

@@ -91,6 +91,7 @@ export function useCardDraw() {
   const isScatterOpen = ref(false)
   const errorMessage = ref<string | null>(null)
   const lastWeightReason = ref<string | null>(null)
+  const hiddenPileCardId = ref<number | null>(null)
 
   const activeCard = computed(() => drawStore.activeCard)
   const pileCards = computed(() =>
@@ -100,8 +101,6 @@ export function useCardDraw() {
   )
   const drawnCards = computed(() => drawStore.drawnCards)
   const hasDrawnCards = computed(() => drawStore.drawnCards.length > 0)
-
-  const hiddenPileCardId = ref<number | null>(null)
 
   let ceremonyTimeline: gsap.core.Timeline | null = null
   let ceremonyGhost: HTMLElement | null = null

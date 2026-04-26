@@ -27,6 +27,7 @@ describe('useSlideshow', () => {
 
   beforeEach(() => {
     vi.useFakeTimers()
+    localStorage.clear()
   })
 
   afterEach(() => {
@@ -104,5 +105,39 @@ describe('useSlideshow', () => {
 
     vi.advanceTimersByTime(1)
     expect(slideshow.currentIndex.value).toBe(1)
+  })
+
+  it('defaults transition mode to kenBurns', () => {
+    const slideshow = mountComposable([buildPhoto(1), buildPhoto(2)])
+
+    expect(slideshow.transitionMode.value).toBe('kenBurns')
+  })
+
+  it('reads transition mode from localStorage when value is valid', () => {
+    localStorage.setItem('ts-slideshow-transition', 'zoomReveal')
+
+    const slideshow = mountComposable([buildPhoto(1), buildPhoto(2)])
+
+    expect(slideshow.transitionMode.value).toBe('zoomReveal')
+  })
+
+  it('cycles transition mode in fixed order and persists value', () => {
+    const slideshow = mountComposable([buildPhoto(1), buildPhoto(2)])
+
+    slideshow.cycleTransitionMode()
+    expect(slideshow.transitionMode.value).toBe('crossfade')
+    expect(localStorage.getItem('ts-slideshow-transition')).toBe('crossfade')
+
+    slideshow.cycleTransitionMode()
+    expect(slideshow.transitionMode.value).toBe('fadeThroughBlack')
+    expect(localStorage.getItem('ts-slideshow-transition')).toBe('fadeThroughBlack')
+
+    slideshow.cycleTransitionMode()
+    expect(slideshow.transitionMode.value).toBe('zoomReveal')
+    expect(localStorage.getItem('ts-slideshow-transition')).toBe('zoomReveal')
+
+    slideshow.cycleTransitionMode()
+    expect(slideshow.transitionMode.value).toBe('kenBurns')
+    expect(localStorage.getItem('ts-slideshow-transition')).toBe('kenBurns')
   })
 })
