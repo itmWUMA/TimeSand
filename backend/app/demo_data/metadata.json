@@ -1,0 +1,15 @@
+{
+  "photos": [
+    { "filename": "demo-01.jpg", "taken_at_years_ago": 3, "taken_at_today": true },
+    { "filename": "demo-02.jpg", "taken_at_years_ago": 1, "taken_at_today": true },
+    { "filename": "demo-03.jpg", "taken_at_years_ago": 2, "taken_at_today": false },
+    { "filename": "demo-04.jpg", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo-05.jpg", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo-06.jpg", "taken_at_years_ago": 4, "taken_at_today": false },
+    { "filename": "demo-07.jpg", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo-08.jpg", "taken_at_years_ago": null, "taken_at_today": false }
+  ],
+  "music": [
+    { "filename": "demo-ambient.mp3", "title": "Rainbow", "artist": "TimeSand Demo" }
+  ]
+}

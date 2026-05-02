@@ -63,3 +63,10 @@ npm-debug.log*
 
 # Obsidian
 docs/.obsidian
+
+# Demo
+demo/
+
+# Demo data assets (binary files, not distributed)
+backend/app/demo_data/*.jpg
+backend/app/demo_data/*.mp3
