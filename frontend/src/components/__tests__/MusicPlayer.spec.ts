@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { __resetMusicPlayerForTests } from '../../composables/useMusicPlayer'
 import { usePlayerStore } from '../../stores/player'
 import { mountWithI18n } from '../../test-utils'
@@ -37,6 +38,7 @@ describe('musicPlayer', () => {
     __resetMusicPlayerForTests()
     vi.clearAllMocks()
     vi.stubGlobal('Audio', FakeAudio)
+    localStorage.clear()
   })
 
   it('renders track title and control buttons', () => {
@@ -72,6 +74,7 @@ describe('musicPlayer', () => {
     expect(wrapper.find('[data-testid="music-player-prev"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="music-player-play-pause"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="music-player-next"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="music-player-expand-toggle"]').exists()).toBe(true)
   })
 
   it('shows empty state when playlist has no tracks', () => {
@@ -84,6 +87,48 @@ describe('musicPlayer', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('No music - upload tracks to get started')
+    expect(wrapper.text()).toContain('No music loaded')
+    expect(wrapper.find('[data-testid="music-player-expand-toggle"]').exists()).toBe(false)
+  })
+
+  it('reads expand state from localStorage and writes updates', async () => {
+    localStorage.setItem('ts-player-expanded', 'true')
+
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const store = usePlayerStore()
+    store.loadPlaylist({
+      playlistId: 1,
+      playlistName: 'Default Playlist',
+      tracks: [
+        {
+          id: 1,
+          title: 'Quiet Sea',
+          artist: 'TimeSand',
+          filename: 'quiet-sea.mp3',
+          file_path: 'quiet-sea.mp3',
+          file_size: 1024,
+          duration: 110,
+          mime_type: 'audio/mpeg',
+          uploaded_at: '2026-04-10T09:00:00Z',
+        },
+      ],
+    })
+
+    const wrapper = mountWithI18n(MusicPlayer, {
+      global: {
+        plugins: [pinia],
+      },
+    })
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="music-player"]').attributes('data-expanded')).toBe('true')
+
+    await wrapper.find('[data-testid="music-player-expand-toggle"]').trigger('click')
+    await nextTick()
+
+    expect(localStorage.getItem('ts-player-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="music-player"]').attributes('data-expanded')).toBe('false')
   })
 })
