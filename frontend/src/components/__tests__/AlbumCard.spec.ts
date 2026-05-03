@@ -10,7 +10,7 @@ function createAlbum(overrides: Partial<Album> = {}): Album {
     name: 'Vacation 2023',
     description: 'Summer trip',
     cover_photo_id: 8,
-    cover_photo: '/api/photos/8/thumbnail',
+    cover_photo: '/api/photos/8/thumbnail?v=thumb.jpg',
     photo_count: 42,
     created_at: '2026-04-06T12:00:00Z',
     updated_at: '2026-04-06T12:00:00Z',
@@ -40,7 +40,7 @@ describe('albumCard', () => {
 
     const image = wrapper.find('img[alt="Vacation 2023"]')
     expect(image.exists()).toBe(true)
-    expect(image.attributes('src')).toBe('/api/photos/8/thumbnail')
+    expect(image.attributes('src')).toBe('/api/photos/8/thumbnail?v=thumb.jpg')
   })
 
   it('hides description when album description is null', () => {

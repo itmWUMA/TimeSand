@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { DrawnCard } from '../../stores/draw'
 
+import { buildThumbnailUrl } from '../../utils/photoUrl'
+
 defineProps<{
   cards: DrawnCard[]
 }>()
@@ -16,11 +18,6 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
     }deg)`,
     zIndex: String(index + 1),
   }
-}
-
-function buildThumbnailSrc(card: DrawnCard): string {
-  const version = encodeURIComponent(card.photo.thumbnail_path)
-  return `/api/photos/${card.photo.id}/thumbnail?v=${version}`
 }
 </script>
 
@@ -41,7 +38,7 @@ function buildThumbnailSrc(card: DrawnCard): string {
         :style="cardStyle(card, index)"
       >
         <img
-          :src="buildThumbnailSrc(card)"
+          :src="buildThumbnailUrl(card.photo)"
           :alt="card.photo.filename"
           class="h-full w-full rounded-lg object-cover"
           draggable="false"
