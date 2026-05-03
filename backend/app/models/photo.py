@@ -22,3 +22,4 @@ class Photo(SQLModel, table=True):
     longitude: float | None = None
     uploaded_at: datetime = Field(default_factory=utc_now)
     mime_type: str
+    is_demo: bool = False

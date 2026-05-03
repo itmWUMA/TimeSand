@@ -19,6 +19,7 @@ class Music(SQLModel, table=True):
     duration: float | None = None
     mime_type: str
     uploaded_at: datetime = Field(default_factory=utc_now)
+    is_demo: bool = False
 
 
 class Playlist(SQLModel, table=True):
