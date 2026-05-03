@@ -9,6 +9,10 @@ from pathlib import Path
 class Settings:
     data_dir: Path = field(default_factory=lambda: Path(os.getenv("DATA_DIR", "../data")).resolve())
     cors_origins: list[str] = field(default_factory=list)
+    enable_demo_seed: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_DEMO_SEED", "true").lower()
+        not in {"0", "false", "no", "off"}
+    )
 
     def __post_init__(self) -> None:
         cors_value = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")

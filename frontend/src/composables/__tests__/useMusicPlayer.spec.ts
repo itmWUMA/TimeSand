@@ -28,6 +28,25 @@ const fakeTrack = {
   uploaded_at: '2026-04-10T09:00:00Z',
 }
 
+function createPlaylistPayload(id: number, name: string, tracks = [fakeTrack]) {
+  return {
+    id,
+    name,
+    is_default: id === 1,
+    track_count: tracks.length,
+    created_at: '2026-04-10T00:00:00Z',
+    tracks,
+  }
+}
+
+function createDeferred<T>() {
+  let resolve: (value: T) => void = () => {}
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver
+  })
+  return { promise, resolve }
+}
+
 class FakeAudio extends EventTarget {
   src = ''
   currentTime = 0
@@ -122,5 +141,83 @@ describe('useMusicPlayer', () => {
     expect(playlistApi.getPlaylist).toHaveBeenCalledWith(7)
     expect(store.playlistId).toBe(7)
     expect(store.currentTrack?.id).toBe(10)
+  })
+
+  it('setPlaylist() loads selected playlist', async () => {
+    vi.mocked(playlistApi.getPlaylist).mockResolvedValue(
+      createPlaylistPayload(22, 'TimeSand Demo'),
+    )
+
+    const player = useMusicPlayer()
+    await player.setPlaylist(22)
+
+    const store = usePlayerStore()
+    expect(playlistApi.getPlaylist).toHaveBeenCalledWith(22)
+    expect(store.playlistId).toBe(22)
+    expect(store.currentTrack?.id).toBe(10)
+  })
+
+  it('setPlaylist(null) falls back to default playlist', async () => {
+    vi.mocked(playlistApi.listPlaylists).mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          name: 'Default Playlist',
+          is_default: true,
+          track_count: 1,
+          created_at: '2026-04-10T00:00:00Z',
+          tracks: [],
+        },
+        {
+          id: 22,
+          name: 'TimeSand Demo',
+          is_default: false,
+          track_count: 1,
+          created_at: '2026-04-10T00:00:00Z',
+          tracks: [],
+        },
+      ],
+    })
+    vi.mocked(playlistApi.getPlaylist).mockResolvedValue(
+      createPlaylistPayload(1, 'Default Playlist'),
+    )
+
+    const player = useMusicPlayer()
+    await player.setPlaylist(null)
+
+    const store = usePlayerStore()
+    expect(playlistApi.listPlaylists).toHaveBeenCalled()
+    expect(playlistApi.getPlaylist).toHaveBeenCalledWith(1)
+    expect(store.playlistId).toBe(1)
+  })
+
+  it('setPlaylist keeps the latest selection when requests race', async () => {
+    const first = createDeferred<ReturnType<typeof createPlaylistPayload>>()
+    const second = createDeferred<ReturnType<typeof createPlaylistPayload>>()
+
+    vi.mocked(playlistApi.getPlaylist).mockImplementation(async (playlistId: number) => {
+      if (playlistId === 1) {
+        return first.promise
+      }
+      if (playlistId === 2) {
+        return second.promise
+      }
+
+      throw new Error(`Unexpected playlist id: ${playlistId}`)
+    })
+
+    const player = useMusicPlayer()
+    const firstRequest = player.setPlaylist(1)
+    const secondRequest = player.setPlaylist(2)
+
+    second.resolve(createPlaylistPayload(2, 'Latest Playlist'))
+    await secondRequest
+
+    const store = usePlayerStore()
+    expect(store.playlistId).toBe(2)
+
+    first.resolve(createPlaylistPayload(1, 'Stale Playlist'))
+    await firstRequest
+    expect(store.playlistId).toBe(2)
   })
 })

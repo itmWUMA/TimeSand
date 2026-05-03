@@ -66,10 +66,20 @@ function markOriginalLoaded(photoId: number): void {
   loadedOriginalCardIds.value = new Set(loadedOriginalCardIds.value).add(photoId)
 }
 
+function buildFileSrc(card: DrawnCard): string {
+  const version = encodeURIComponent(card.photo.file_path)
+  return `/api/photos/${card.photo.id}/file?v=${version}`
+}
+
+function buildThumbnailSrc(card: DrawnCard): string {
+  const version = encodeURIComponent(card.photo.thumbnail_path)
+  return `/api/photos/${card.photo.id}/thumbnail?v=${version}`
+}
+
 function getCardImageSrc(card: DrawnCard): string {
   return loadedOriginalCardIds.value.has(card.photo.id)
-    ? `/api/photos/${card.photo.id}/file`
-    : `/api/photos/${card.photo.id}/thumbnail`
+    ? buildFileSrc(card)
+    : buildThumbnailSrc(card)
 }
 
 function handleMouseMove(event: MouseEvent, cardEl: HTMLElement): void {

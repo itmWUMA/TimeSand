@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 
 from app.api.albums import router as albums_router
+from app.api.demo import router as demo_router
 from app.api.music import router as music_router
 from app.api.playlists import router as playlists_router
 from app.api.draw import router as draw_router
@@ -21,6 +22,7 @@ from app.core import database as database_module
 from app.core.config import settings
 from app.core.database import create_db_and_tables
 from app.models.music import Playlist
+from app.services.demo_service import seed_demo_data
 from app.services.photo_service import ensure_storage_directories
 
 
@@ -62,6 +64,9 @@ async def lifespan(_: FastAPI):
     create_db_and_tables()
     ensure_storage_directories()
     ensure_default_playlist()
+    if settings.enable_demo_seed:
+        with Session(database_module.engine) as session:
+            seed_demo_data(session)
     yield
 
 
@@ -118,6 +123,7 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     app.include_router(tags_router)
     app.include_router(music_router)
     app.include_router(playlists_router)
+    app.include_router(demo_router)
     app.include_router(draw_router)
     app.include_router(slideshow_router)
     app.include_router(settings_router)

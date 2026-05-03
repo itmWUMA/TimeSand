@@ -151,8 +151,12 @@ function ensureListeners(): void {
   listenersAttached = true
 }
 
-async function loadPlaylistById(playlistId: number): Promise<void> {
+async function loadPlaylistById(playlistId: number, requestId?: number): Promise<void> {
   if (!boundStore) {
+    return
+  }
+
+  if (requestId != null && requestId !== contextRequestId) {
     return
   }
 
@@ -163,6 +167,10 @@ async function loadPlaylistById(playlistId: number): Promise<void> {
   const shouldResume = boundStore.isPlaying
   try {
     const playlist = await getPlaylist(playlistId)
+    if (!boundStore || (requestId != null && requestId !== contextRequestId)) {
+      return
+    }
+
     boundStore.loadPlaylist({
       playlistId: playlist.id,
       playlistName: playlist.name,
@@ -175,13 +183,21 @@ async function loadPlaylistById(playlistId: number): Promise<void> {
   }
 }
 
-async function loadDefaultPlaylist(): Promise<void> {
+async function loadDefaultPlaylist(requestId?: number): Promise<void> {
   if (!boundStore) {
+    return
+  }
+
+  if (requestId != null && requestId !== contextRequestId) {
     return
   }
 
   try {
     const payload = await listPlaylists()
+    if (!boundStore || (requestId != null && requestId !== contextRequestId)) {
+      return
+    }
+
     const fallback = payload.items.find(item => item.is_default) ?? payload.items[0]
 
     if (!fallback) {
@@ -190,7 +206,7 @@ async function loadDefaultPlaylist(): Promise<void> {
       return
     }
 
-    await loadPlaylistById(fallback.id)
+    await loadPlaylistById(fallback.id, requestId)
   }
   catch (error) {
     console.error('Failed to load default playlist:', error)
@@ -221,7 +237,7 @@ export function useMusicPlayer() {
 
         const playlistId = parseAlbumPlaylistId(album)
         if (playlistId != null) {
-          await loadPlaylistById(playlistId)
+          await loadPlaylistById(playlistId, currentRequestId)
           return
         }
       }
@@ -233,7 +249,18 @@ export function useMusicPlayer() {
       return
     }
 
-    await loadDefaultPlaylist()
+    await loadDefaultPlaylist(currentRequestId)
+  }
+
+  async function setPlaylist(playlistId: number | null): Promise<void> {
+    const currentRequestId = ++contextRequestId
+
+    if (typeof playlistId === 'number' && playlistId > 0) {
+      await loadPlaylistById(playlistId, currentRequestId)
+      return
+    }
+
+    await loadDefaultPlaylist(currentRequestId)
   }
 
   async function play(): Promise<void> {
@@ -313,6 +340,7 @@ export function useMusicPlayer() {
     ...refs,
     progressPercent,
     setContext,
+    setPlaylist,
     play,
     pause,
     togglePlayPause,

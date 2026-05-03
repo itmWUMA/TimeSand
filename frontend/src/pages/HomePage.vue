@@ -6,6 +6,7 @@ import CardDeck from '../components/draw/CardDeck.vue'
 import CardPile from '../components/draw/CardPile.vue'
 import CardScatter from '../components/draw/CardScatter.vue'
 import DrawnCard from '../components/draw/DrawnCard.vue'
+import OnboardingOverlay from '../components/OnboardingOverlay.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
 import { particleDrift } from '../composables/motion/sequences'
 import { useCardDraw } from '../composables/useCardDraw'
@@ -368,6 +369,7 @@ watch(
     </div>
 
     <CardScatter :open="isScatterOpen" :cards="drawnCards" @collect="collectScatter" />
+    <OnboardingOverlay />
   </section>
 </template>
 

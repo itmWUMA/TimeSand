@@ -67,10 +67,10 @@ describe('cardScatter', () => {
     expect(staggerInSpy).toHaveBeenCalledWith(expect.any(Array), {
       stagger: 0.08,
     })
-    expect(cardImage.attributes('src')).toBe('/api/photos/8/thumbnail')
+    expect(cardImage.attributes('src')).toBe('/api/photos/8/thumbnail?v=memory_thumb.jpg')
 
     await cardButton.trigger('mouseenter')
-    expect(cardImage.attributes('src')).toBe('/api/photos/8/file')
+    expect(cardImage.attributes('src')).toBe('/api/photos/8/file?v=memory.jpg')
 
     Object.defineProperty(cardFace.element, 'getBoundingClientRect', {
       configurable: true,

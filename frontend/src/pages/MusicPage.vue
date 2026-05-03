@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import MusicUploader from '../components/MusicUploader.vue'
 import PlaylistEditor from '../components/PlaylistEditor.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
+import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { deleteMusic, listMusic, uploadMusic } from '../services/music'
 import { addTrackToPlaylist, createPlaylist, deletePlaylist, getPlaylist, listPlaylists, removeTrackFromPlaylist, updatePlaylist } from '../services/playlist'
 
@@ -13,6 +14,7 @@ const tracks = ref<Music[]>([])
 const playlists = ref<Playlist[]>([])
 const selectedPlaylist = ref<Playlist | null>(null)
 const selectedPlaylistId = ref<number | null>(null)
+const { playlistId, setPlaylist } = useMusicPlayer()
 
 const loadingTracks = ref(false)
 const uploading = ref(false)
@@ -63,7 +65,10 @@ async function loadPlaylists(): Promise<void> {
 
   const hasSelected = payload.items.some(item => item.id === selectedPlaylistId.value)
   if (!hasSelected) {
-    selectedPlaylistId.value = payload.items[0].id
+    const hasPlayerPlaylist = payload.items.some(item => item.id === playlistId.value)
+    selectedPlaylistId.value = hasPlayerPlaylist
+      ? playlistId.value
+      : payload.items[0].id
   }
 }
 
@@ -198,10 +203,11 @@ async function removeMusic(musicId: number): Promise<void> {
   }
 }
 
-watch(selectedPlaylistId, async () => {
+watch(selectedPlaylistId, async (nextPlaylistId) => {
   errorMessage.value = null
   try {
     await loadSelectedPlaylist()
+    await setPlaylist(nextPlaylistId)
   }
   catch {
     selectedPlaylist.value = null

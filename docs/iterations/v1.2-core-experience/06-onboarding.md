@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.2"
-status: pending
+status: done
 branch: "feat/onboarding"
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - core-experience
   - onboarding
