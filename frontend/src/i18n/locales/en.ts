@@ -86,6 +86,7 @@ const en: MessageSchema = {
     allPhotos: 'All photos',
     drawNext: 'Draw Next',
     drawing: 'Drawing...',
+    drawFailed: 'Draw failed',
     reshuffle: 'Reshuffle',
     swipeHint: 'Mobile: swipe left to draw, swipe right to undo.',
     tapToDraw: 'Tap To Draw',

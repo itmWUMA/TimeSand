@@ -66,7 +66,7 @@ function onUpdateOpen(value: boolean): void {
     </div>
 
     <ToastClose
-      aria-label="Close toast"
+      :aria-label="$t('common.close')"
       class="absolute right-2 top-2 rounded-ts-sm p-1 text-ts-muted transition duration-fast hover:bg-white/10 hover:text-ts-text"
     >
       x
