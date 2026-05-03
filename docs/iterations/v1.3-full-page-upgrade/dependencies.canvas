@@ -1,0 +1,23 @@
+{
+	"nodes":[
+		{"id":"g001","type":"group","x":-30,"y":-30,"width":1620,"height":140,"label":"Phase 1 — Parallel (no deps)","color":"4"},
+		{"id":"t01","type":"text","x":0,"y":0,"width":260,"height":80,"text":"## Task 1\nCleanup Pass\n`feat/cleanup`","color":"4"},
+		{"id":"t02","type":"text","x":330,"y":0,"width":260,"height":80,"text":"## Task 2\nNav Highlight Fix\n`feat/nav-highlight`","color":"4"},
+		{"id":"t03","type":"text","x":660,"y":0,"width":260,"height":80,"text":"## Task 3\nAlbum Card Enhance\n`feat/album-card-enhance`","color":"4"},
+		{"id":"t04","type":"text","x":990,"y":0,"width":260,"height":80,"text":"## Task 4\nPhoto Skeleton\n`feat/photo-skeleton`","color":"4"},
+		{"id":"t05","type":"text","x":1320,"y":0,"width":260,"height":80,"text":"## Task 5\nRoute Transitions\n`feat/route-transitions`","color":"4"},
+		{"id":"g002","type":"group","x":-30,"y":180,"width":640,"height":140,"label":"Phase 2 — Parallel","color":"3"},
+		{"id":"t06","type":"text","x":0,"y":210,"width":260,"height":80,"text":"## Task 6\nMusic Player Rebuild\n`feat/music-player-rebuild`","color":"3"},
+		{"id":"t07","type":"text","x":330,"y":210,"width":260,"height":80,"text":"## Task 7\nDraw Settings API\n`feat/draw-settings-api`","color":"3"},
+		{"id":"g003","type":"group","x":-30,"y":390,"width":640,"height":140,"label":"Phase 3 — Parallel","color":"1"},
+		{"id":"t08","type":"text","x":0,"y":420,"width":260,"height":80,"text":"## Task 8\nSettings Page\n`feat/settings-page`","color":"1"},
+		{"id":"t09","type":"text","x":330,"y":420,"width":260,"height":80,"text":"## Task 9\nPhoto Lightbox\n`feat/photo-lightbox`","color":"1"}
+	],
+	"edges":[
+		{"id":"e01","fromNode":"t01","fromSide":"bottom","toNode":"t06","toSide":"top","toEnd":"arrow","label":"cleanup"},
+		{"id":"e02","fromNode":"t01","fromSide":"bottom","toNode":"t07","toSide":"top","toEnd":"arrow","label":"cleanup"},
+		{"id":"e03","fromNode":"t06","fromSide":"bottom","toNode":"t08","toSide":"top","toEnd":"arrow","label":"player"},
+		{"id":"e04","fromNode":"t07","fromSide":"bottom","toNode":"t08","toSide":"top","toEnd":"arrow","label":"draw API"},
+		{"id":"e05","fromNode":"t04","fromSide":"bottom","toNode":"t09","toSide":"top","toEnd":"arrow","label":"grid items"}
+	]
+}
