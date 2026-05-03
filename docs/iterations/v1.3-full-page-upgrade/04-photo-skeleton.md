@@ -2,9 +2,9 @@
 type: task
 iteration: "1.3"
 status: pending
-branch: "feat/photo-skeleton"
+branch: feat/photo-skeleton
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - full-page-upgrade
   - photo-grid

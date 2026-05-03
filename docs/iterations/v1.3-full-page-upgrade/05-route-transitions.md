@@ -2,9 +2,9 @@
 type: task
 iteration: "1.3"
 status: pending
-branch: "feat/route-transitions"
+branch: feat/route-transitions
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - full-page-upgrade
   - animation

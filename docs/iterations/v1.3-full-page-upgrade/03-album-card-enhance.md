@@ -2,9 +2,9 @@
 type: task
 iteration: "1.3"
 status: pending
-branch: "feat/album-card-enhance"
+branch: feat/album-card-enhance
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - full-page-upgrade
   - album
