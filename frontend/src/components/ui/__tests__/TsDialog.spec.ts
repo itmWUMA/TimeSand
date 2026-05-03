@@ -1,8 +1,8 @@
-import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
 import { scaleIn } from '../../../composables/motion'
+import { mountWithI18n } from '../../../test-utils'
 import TsDialog from '../TsDialog.vue'
 
 vi.mock('../../../composables/motion', () => ({
@@ -20,7 +20,7 @@ describe('tsDialog', () => {
   })
 
   it('does not render content when closed', () => {
-    const wrapper = mount(TsDialog, {
+    const wrapper = mountWithI18n(TsDialog, {
       props: { open: false },
       slots: { default: 'Dialog content' },
       attachTo: document.body,
@@ -31,7 +31,7 @@ describe('tsDialog', () => {
   })
 
   it('renders content when open', async () => {
-    const wrapper = mount(TsDialog, {
+    const wrapper = mountWithI18n(TsDialog, {
       props: { open: true },
       slots: { default: 'Dialog content' },
       attachTo: document.body,
@@ -43,7 +43,7 @@ describe('tsDialog', () => {
   })
 
   it('renders title when provided', async () => {
-    const wrapper = mount(TsDialog, {
+    const wrapper = mountWithI18n(TsDialog, {
       props: { open: true, title: 'Confirm' },
       slots: { default: 'Body' },
       attachTo: document.body,
@@ -55,7 +55,7 @@ describe('tsDialog', () => {
   })
 
   it('renders description when provided', async () => {
-    const wrapper = mount(TsDialog, {
+    const wrapper = mountWithI18n(TsDialog, {
       props: { open: true, description: 'Are you sure?' },
       slots: { default: 'Body' },
       attachTo: document.body,
@@ -67,7 +67,7 @@ describe('tsDialog', () => {
   })
 
   it('runs scaleIn motion when dialog opens', async () => {
-    const wrapper = mount(TsDialog, {
+    const wrapper = mountWithI18n(TsDialog, {
       props: { open: false },
       slots: { default: 'Dialog content' },
       attachTo: document.body,
