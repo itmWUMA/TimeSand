@@ -1,18 +1,13 @@
 <script setup lang="ts">
 import type { Photo } from '../types/photo'
+import PhotoGridItem from './PhotoGridItem.vue'
 
 defineProps<{
   photos: Photo[]
 }>()
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString()
-}
+const emit = defineEmits<{
+  click: [photo: Photo]
+}>()
 </script>
 
 <template>
@@ -31,27 +26,12 @@ function formatDate(value: string): string {
     </p>
 
     <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
-      <article
+      <PhotoGridItem
         v-for="photo in photos"
         :key="photo.id"
-        data-testid="photo-grid-item"
-        class="overflow-hidden rounded-xl border border-white/10 bg-ts-panelSoft"
-      >
-        <img
-          :src="`/api/photos/${photo.id}/thumbnail`"
-          :alt="photo.filename"
-          class="aspect-square h-full w-full object-cover"
-          loading="lazy"
-        >
-        <div class="space-y-1 px-3 py-2">
-          <p class="truncate text-sm text-ts-text">
-            {{ photo.filename }}
-          </p>
-          <p class="text-xs text-ts-muted">
-            {{ formatDate(photo.uploaded_at) }}
-          </p>
-        </div>
-      </article>
+        :photo="photo"
+        @click="emit('click', $event)"
+      />
     </div>
   </section>
 </template>

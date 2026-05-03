@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { gsap } from 'gsap'
 import { computed, nextTick, ref } from 'vue'
 
+import i18n from '../i18n'
 import { drawPhoto, resetDrawSession } from '../services/draw'
 import { useDrawStore } from '../stores/draw'
 import { EASING } from './motion/presets'
@@ -291,10 +292,10 @@ export function useCardDraw() {
       clearGhost()
 
       if (isAxiosError<{ detail?: string }>(error)) {
-        errorMessage.value = error.response?.data?.detail ?? 'Draw failed'
+        errorMessage.value = error.response?.data?.detail ?? i18n.global.t('draw.drawFailed')
       }
       else {
-        errorMessage.value = 'Draw failed'
+        errorMessage.value = i18n.global.t('draw.drawFailed')
       }
 
       isDrawing.value = false

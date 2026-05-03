@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -104,11 +105,12 @@ def serialize_album(session: Session, album: Album) -> AlbumResponse:
     playlist_id = session.exec(
         select(AlbumPlaylist.playlist_id).where(AlbumPlaylist.album_id == (album.id or 0))
     ).first()
-    cover_photo = (
-        f"/api/photos/{resolved_cover_photo_id}/thumbnail"
-        if resolved_cover_photo_id is not None
-        else None
-    )
+    cover_photo = None
+    if resolved_cover_photo_id is not None:
+        cover = session.get(Photo, resolved_cover_photo_id)
+        if cover is not None:
+            version = quote(cover.thumbnail_path, safe="")
+            cover_photo = f"/api/photos/{resolved_cover_photo_id}/thumbnail?v={version}"
     photo_count = get_album_photo_count(session, album.id or 0)
 
     return AlbumResponse(

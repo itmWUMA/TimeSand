@@ -48,10 +48,10 @@ function onUpdateOpen(value: boolean): void {
         <div ref="surfaceRef" class="p-6">
           <div class="mb-4 flex items-center justify-between">
             <DialogTitle :class="props.title ? 'text-lg font-semibold text-ts-text' : 'sr-only'">
-              {{ props.title ?? 'Dialog' }}
+              {{ props.title ?? '' }}
             </DialogTitle>
             <DialogClose
-              aria-label="Close dialog"
+              :aria-label="$t('common.close')"
               class="rounded-ts-sm p-1 text-ts-muted transition duration-fast hover:bg-white/10 hover:text-ts-text"
             >
               x
@@ -59,7 +59,7 @@ function onUpdateOpen(value: boolean): void {
           </div>
 
           <DialogDescription :class="props.description ? 'mb-4 text-sm text-ts-muted' : 'sr-only'">
-            {{ props.description ?? 'Dialog' }}
+            {{ props.description ?? '' }}
           </DialogDescription>
 
           <slot />

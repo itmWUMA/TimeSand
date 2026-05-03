@@ -20,6 +20,7 @@ import {
   listTags,
   removeTagFromPhoto,
 } from '../services/tag'
+import { buildThumbnailUrl } from '../utils/photoUrl'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -349,7 +350,7 @@ onMounted(async () => {
             class="space-y-3 rounded-xl border border-white/10 bg-ts-panelSoft p-3"
           >
             <img
-              :src="`/api/photos/${photo.id}/thumbnail`"
+              :src="buildThumbnailUrl(photo)"
               :alt="photo.filename"
               class="aspect-video w-full rounded-lg object-cover"
               loading="lazy"
