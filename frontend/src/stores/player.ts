@@ -112,5 +112,10 @@ export const usePlayerStore = defineStore('player', {
     setRepeatMode(value: RepeatMode): void {
       this.repeatMode = value
     },
+    cycleRepeatMode(): void {
+      const modes: RepeatMode[] = ['all', 'one', 'none']
+      const currentIndex = modes.indexOf(this.repeatMode)
+      this.repeatMode = modes[(currentIndex + 1) % modes.length] ?? 'all'
+    },
   },
 })

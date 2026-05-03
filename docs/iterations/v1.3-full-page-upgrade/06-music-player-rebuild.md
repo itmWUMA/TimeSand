@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.3"
-status: pending
+status: done
 branch: "feat/music-player-rebuild"
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - full-page-upgrade
   - music-player
