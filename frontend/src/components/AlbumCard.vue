@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import type { Album } from '../types/album'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { formatRelativeTime } from '../utils/formatRelativeTime'
 
-defineProps<{
+const props = defineProps<{
   album: Album
 }>()
+
+const { locale } = useI18n()
+const relativeUpdatedTime = computed(() => formatRelativeTime(props.album.updated_at, locale.value))
 </script>
 
 <template>
@@ -28,8 +34,14 @@ defineProps<{
       <p class="truncate text-base font-semibold text-ts-text">
         {{ album.name }}
       </p>
+      <p
+        v-if="album.description"
+        class="truncate text-sm text-ts-muted"
+      >
+        {{ album.description }}
+      </p>
       <p class="text-sm text-ts-muted">
-        {{ $t('common.photos', { count: album.photo_count }) }}
+        {{ $t('common.photos', { count: album.photo_count }) }} · {{ relativeUpdatedTime }}
       </p>
     </div>
   </article>
