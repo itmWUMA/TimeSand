@@ -48,7 +48,7 @@ describe('photoGrid', () => {
 
     const firstImage = wrapper.find('img[alt="one.jpg"]')
     expect(firstImage.exists()).toBe(true)
-    expect(firstImage.attributes('src')).toBe('/api/photos/1/thumbnail')
+    expect(firstImage.attributes('src')).toBe('/api/photos/1/thumbnail?v=one_thumb.jpg')
   })
 
   it('forwards photo item click events', async () => {

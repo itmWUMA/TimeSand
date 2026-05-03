@@ -1,8 +1,8 @@
-import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, nextTick } from 'vue'
 
 import { slideUp } from '../../../composables/motion'
+import { mountWithI18n } from '../../../test-utils'
 import TsToast from '../TsToast.vue'
 import TsToastProvider from '../TsToastProvider.vue'
 
@@ -43,7 +43,7 @@ describe('tsToast', () => {
   })
 
   it('renders title and description when open', async () => {
-    const wrapper = mount(ToastHost, {
+    const wrapper = mountWithI18n(ToastHost, {
       props: { open: true },
       attachTo: document.body,
     })
@@ -56,7 +56,7 @@ describe('tsToast', () => {
   })
 
   it('runs slideUp motion when toast opens', async () => {
-    const wrapper = mount(ToastHost, {
+    const wrapper = mountWithI18n(ToastHost, {
       props: { open: false },
       attachTo: document.body,
     })
