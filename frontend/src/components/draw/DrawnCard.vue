@@ -22,6 +22,11 @@ const takenAtLabel = computed(() => {
 
   return date.toLocaleDateString()
 })
+
+function buildPhotoFileSrc(card: DrawnCard): string {
+  const version = encodeURIComponent(card.photo.file_path)
+  return `/api/photos/${card.photo.id}/file?v=${version}`
+}
 </script>
 
 <template>
@@ -58,7 +63,7 @@ const takenAtLabel = computed(() => {
           class="absolute inset-0 overflow-hidden rounded-2xl border border-white/15 bg-ts-panel [backface-visibility:hidden] [transform:rotateY(180deg)]"
         >
           <img
-            :src="`/api/photos/${card.photo.id}/file`"
+            :src="buildPhotoFileSrc(card)"
             :alt="card.photo.filename"
             class="h-full w-full object-cover"
             draggable="false"

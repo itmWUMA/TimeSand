@@ -17,6 +17,11 @@ from app.services.photo_service import InvalidPhotoUploadError
 router = APIRouter(prefix="/api/photos", tags=["photos"])
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 UPLOAD_CHUNK_SIZE = 1024 * 1024
+PHOTO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0"
+}
 
 
 class UploadPhotosResponse(BaseModel):
@@ -167,7 +172,12 @@ def get_photo_file(photo_id: int, session: Session = Depends(get_session)) -> Fi
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Photo file not found")
 
-    return FileResponse(path=file_path, media_type=photo.mime_type, filename=photo.filename)
+    return FileResponse(
+        path=file_path,
+        media_type=photo.mime_type,
+        filename=photo.filename,
+        headers=PHOTO_CACHE_HEADERS
+    )
 
 
 @router.get("/{photo_id}/thumbnail")
@@ -178,4 +188,9 @@ def get_photo_thumbnail(photo_id: int, session: Session = Depends(get_session)) 
     if not thumbnail_path.exists():
         raise HTTPException(status_code=404, detail="Photo thumbnail not found")
 
-    return FileResponse(path=thumbnail_path, media_type=photo.mime_type, filename=Path(photo.thumbnail_path).name)
+    return FileResponse(
+        path=thumbnail_path,
+        media_type=photo.mime_type,
+        filename=Path(photo.thumbnail_path).name,
+        headers=PHOTO_CACHE_HEADERS
+    )

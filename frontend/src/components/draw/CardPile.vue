@@ -17,6 +17,11 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
     zIndex: String(index + 1),
   }
 }
+
+function buildThumbnailSrc(card: DrawnCard): string {
+  const version = encodeURIComponent(card.photo.thumbnail_path)
+  return `/api/photos/${card.photo.id}/thumbnail?v=${version}`
+}
 </script>
 
 <template>
@@ -36,7 +41,7 @@ function cardStyle(card: DrawnCard, index: number): Record<string, string> {
         :style="cardStyle(card, index)"
       >
         <img
-          :src="`/api/photos/${card.photo.id}/thumbnail`"
+          :src="buildThumbnailSrc(card)"
           :alt="card.photo.filename"
           class="h-full w-full rounded-lg object-cover"
           draggable="false"
