@@ -278,6 +278,12 @@ def test_get_file_and_thumbnail(client: TestClient) -> None:
     assert thumbnail_response.status_code == 200
     assert file_response.headers["content-type"] == "image/jpeg"
     assert thumbnail_response.headers["content-type"] == "image/jpeg"
+    assert file_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
+    assert thumbnail_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
+    assert file_response.headers["pragma"] == "no-cache"
+    assert thumbnail_response.headers["pragma"] == "no-cache"
+    assert file_response.headers["expires"] == "0"
+    assert thumbnail_response.headers["expires"] == "0"
     assert len(file_response.content) > 0
     assert len(thumbnail_response.content) > 0
 

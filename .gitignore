@@ -63,3 +63,6 @@ npm-debug.log*
 
 # Obsidian
 docs/.obsidian
+
+# Demo
+demo/

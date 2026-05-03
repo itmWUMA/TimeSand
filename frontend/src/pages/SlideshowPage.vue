@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import MusicPlayerMini from '../components/MusicPlayerMini.vue'
 import SlideshowPlayer from '../components/SlideshowPlayer.vue'
+import TsEmptyState from '../components/TsEmptyState.vue'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { useSlideshow } from '../composables/useSlideshow'
 import { listSlideshowPhotos } from '../services/slideshow'
@@ -51,11 +52,13 @@ const {
   isPlaying,
   intervalSeconds,
   intervalOptions,
+  transitionMode,
   controlsVisible,
   next,
   prev,
   togglePlayPause,
   setIntervalSeconds,
+  cycleTransitionMode,
   reportActivity,
 } = useSlideshow(photos)
 
@@ -167,20 +170,13 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <div
-      v-else-if="photos.length === 0"
-      class="flex h-full flex-col items-center justify-center gap-4 px-6 text-center"
-    >
-      <p class="text-sm text-white/70">
-        {{ albumId ? $t('slideshow.noPhotosAlbum') : $t('slideshow.noPhotosDefault') }}
-      </p>
-      <button
-        type="button"
-        class="rounded border border-white/35 px-4 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
-        @click="exitSlideshow"
-      >
-        {{ $t('slideshow.goBack') }}
-      </button>
+    <div v-else-if="photos.length === 0" class="flex h-full items-center justify-center px-6">
+      <TsEmptyState
+        :title="$t('empty.slideshow.title')"
+        :description="$t('empty.slideshow.description')"
+        :action-label="$t('empty.slideshow.action')"
+        action-to="/upload"
+      />
     </div>
 
     <SlideshowPlayer
@@ -190,17 +186,23 @@ onUnmounted(() => {
       :is-playing="isPlaying"
       :interval-seconds="intervalSeconds"
       :interval-options="intervalOptions"
+      :transition-mode="transitionMode"
       :controls-visible="controlsVisible"
       @next="next"
       @prev="prev"
       @toggle-play="togglePlayPause"
       @set-interval="setIntervalSeconds"
+      @cycle-transition="cycleTransitionMode"
       @exit="exitSlideshow"
       @activity="reportActivity"
     />
 
-    <div class="pointer-events-none absolute inset-x-0 bottom-4 z-[60] flex justify-center px-4">
-      <div class="pointer-events-auto">
+    <div
+      v-if="photos.length > 0 && !loading && !errorMessage"
+      class="pointer-events-none absolute bottom-4 right-4 z-[60] px-4 transition-all duration-300"
+      :class="controlsVisible ? 'translate-y-1 opacity-40' : 'translate-y-0 opacity-100'"
+    >
+      <div class="pointer-events-auto w-[min(24rem,calc(100vw-2rem))]">
         <MusicPlayerMini />
       </div>
     </div>

@@ -1,0 +1,15 @@
+{
+  "photos": [
+    { "filename": "demo01.png", "taken_at_years_ago": 3, "taken_at_today": true },
+    { "filename": "demo02.png", "taken_at_years_ago": 1, "taken_at_today": true },
+    { "filename": "demo03.png", "taken_at_years_ago": 2, "taken_at_today": false },
+    { "filename": "demo04.png", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo05.png", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo06.HEIC", "taken_at_years_ago": 4, "taken_at_today": false },
+    { "filename": "demo07.HEIC", "taken_at_years_ago": null, "taken_at_today": false },
+    { "filename": "demo08.HEIC", "taken_at_years_ago": null, "taken_at_today": false }
+  ],
+  "music": [
+    { "filename": "demo_music.mp3", "title": "Gentle Drift", "artist": "TimeSand Demo" }
+  ]
+}

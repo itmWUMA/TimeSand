@@ -101,6 +101,19 @@ const en: MessageSchema = {
       yearsAgoNearby: 'Around this time {n} years ago',
     },
   },
+  onboarding: {
+    step1Title: 'Welcome to TimeSand',
+    step1Content: 'Your private time hourglass. Draw memory cards to rediscover forgotten moments.',
+    step2Title: 'Draw a Memory',
+    step2Content: 'Click the card deck to draw a random photo and relive that instant.',
+    step3Title: 'Immersive Playback',
+    step3Content: 'Open slideshow mode with music for a focused, cinematic memory journey.',
+    step4Title: 'Begin Your Journey',
+    step4Content: 'Upload your own photos and music, then let TimeSand guide your rediscovery.',
+    next: 'Next',
+    skip: 'Skip',
+    done: 'Begin',
+  },
   music: {
     title: 'Music & Playlists',
     description: 'Upload tracks, organize playlists, and drag to reorder playback sequence.',
@@ -163,6 +176,13 @@ const en: MessageSchema = {
     play: 'Play',
     next: 'Next',
     interval: 'Interval',
+    transition: {
+      label: 'Transition',
+      crossfade: 'Crossfade',
+      kenBurns: 'Ken Burns',
+      fadeThroughBlack: 'Fade through black',
+      zoomReveal: 'Zoom reveal',
+    },
   },
   settings: {
     title: 'Settings',
