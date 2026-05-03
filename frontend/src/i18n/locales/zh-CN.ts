@@ -84,6 +84,7 @@ export default {
     allPhotos: '全部照片',
     drawNext: '抽下一张',
     drawing: '抽取中...',
+    drawFailed: '抽卡失败。',
     reshuffle: '重新洗牌',
     swipeHint: '手机端：左滑抽卡，右滑撤销。',
     tapToDraw: '点击抽卡',
