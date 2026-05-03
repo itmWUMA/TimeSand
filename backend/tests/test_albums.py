@@ -145,4 +145,4 @@ def test_set_album_cover_photo(client: TestClient) -> None:
     assert detail_response.status_code == 200
     payload = detail_response.json()
     assert payload["cover_photo_id"] == photo["id"]
-    assert payload["cover_photo"] == f"/api/photos/{photo['id']}/thumbnail"
+    assert payload["cover_photo"].startswith(f"/api/photos/{photo['id']}/thumbnail?v=")

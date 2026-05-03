@@ -4,6 +4,7 @@ import type { DrawnCard } from '../../stores/draw'
 import { gsap } from 'gsap'
 import { nextTick, ref, watch } from 'vue'
 import { staggerIn } from '../../composables/motion/sequences'
+import { buildFileUrl, buildThumbnailUrl } from '../../utils/photoUrl'
 
 const props = defineProps<{
   open: boolean
@@ -66,20 +67,10 @@ function markOriginalLoaded(photoId: number): void {
   loadedOriginalCardIds.value = new Set(loadedOriginalCardIds.value).add(photoId)
 }
 
-function buildFileSrc(card: DrawnCard): string {
-  const version = encodeURIComponent(card.photo.file_path)
-  return `/api/photos/${card.photo.id}/file?v=${version}`
-}
-
-function buildThumbnailSrc(card: DrawnCard): string {
-  const version = encodeURIComponent(card.photo.thumbnail_path)
-  return `/api/photos/${card.photo.id}/thumbnail?v=${version}`
-}
-
 function getCardImageSrc(card: DrawnCard): string {
   return loadedOriginalCardIds.value.has(card.photo.id)
-    ? buildFileSrc(card)
-    : buildThumbnailSrc(card)
+    ? buildFileUrl(card.photo)
+    : buildThumbnailUrl(card.photo)
 }
 
 function handleMouseMove(event: MouseEvent, cardEl: HTMLElement): void {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Photo } from '../types/photo'
 import { ref } from 'vue'
+import { buildThumbnailUrl } from '../utils/photoUrl'
 
 const props = defineProps<{
   photo: Photo
@@ -35,7 +36,7 @@ function formatDate(value: string): string {
         class="absolute inset-0 animate-pulse bg-ts-panel"
       />
       <img
-        :src="`/api/photos/${props.photo.id}/thumbnail`"
+        :src="buildThumbnailUrl(props.photo)"
         :alt="props.photo.filename"
         loading="lazy"
         class="h-full w-full object-cover transition-opacity duration-300"
