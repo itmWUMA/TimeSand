@@ -1,33 +1,62 @@
 import type { Album } from '../../types/album'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../test-utils'
 import AlbumCard from '../AlbumCard.vue'
 
-const album: Album = {
-  id: 1,
-  name: 'Vacation 2023',
-  description: 'Summer trip',
-  cover_photo_id: 8,
-  cover_photo: '/api/photos/8/thumbnail',
-  photo_count: 42,
-  created_at: '2026-04-06T12:00:00Z',
-  updated_at: '2026-04-06T12:00:00Z',
+function createAlbum(overrides: Partial<Album> = {}): Album {
+  return {
+    id: 1,
+    name: 'Vacation 2023',
+    description: 'Summer trip',
+    cover_photo_id: 8,
+    cover_photo: '/api/photos/8/thumbnail',
+    photo_count: 42,
+    created_at: '2026-04-06T12:00:00Z',
+    updated_at: '2026-04-06T12:00:00Z',
+    ...overrides,
+  }
 }
 
 describe('albumCard', () => {
-  it('renders album name, photo count, and cover image', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('renders album name, description, photo count, relative update time, and cover image', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
     const wrapper = mountWithI18n(AlbumCard, {
       props: {
-        album,
+        album: createAlbum(),
       },
     })
 
     expect(wrapper.text()).toContain('Vacation 2023')
+    expect(wrapper.text()).toContain('Summer trip')
     expect(wrapper.text()).toContain('42 photos')
+    expect(wrapper.text()).toContain('3 days ago')
 
     const image = wrapper.find('img[alt="Vacation 2023"]')
     expect(image.exists()).toBe(true)
     expect(image.attributes('src')).toBe('/api/photos/8/thumbnail')
+  })
+
+  it('hides description when album description is null', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    const wrapper = mountWithI18n(AlbumCard, {
+      props: {
+        album: createAlbum({
+          description: null,
+        }),
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('Summer trip')
+    expect(wrapper.text()).toContain('42 photos')
+    expect(wrapper.text()).toContain('3 days ago')
   })
 })
