@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.3"
-status: pending
+status: done
 branch: "feat/cleanup"
 pr:
-completed:
+completed: 2026-05-03
 tags:
   - full-page-upgrade
   - cleanup
@@ -36,12 +36,12 @@ tags:
 
 ## Acceptance Criteria
 
-- [ ] No `console.log` or `console.debug` calls in production code (test files excluded)
-- [ ] No stale TODO/FIXME/HACK comments that reference completed work
-- [ ] No hardcoded user-visible text outside of i18n system
-- [ ] No debug-only UI elements visible in any page
-- [ ] `bun run lint:fix && bun run type-check` passes
-- [ ] `uv run ruff check .` passes
+- [x] No `console.log` or `console.debug` calls in production code (test files excluded)
+- [x] No stale TODO/FIXME/HACK comments that reference completed work
+- [x] No hardcoded user-visible text outside of i18n system
+- [x] No debug-only UI elements visible in any page
+- [x] `bun run lint:fix && bun run type-check` passes
+- [x] `uv run ruff check .` passes
 
 ## Tests
 
