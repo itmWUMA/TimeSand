@@ -18,8 +18,22 @@ const navItems = [
   { path: '/settings', labelKey: 'nav.settings' },
 ] as const
 
+const TRAILING_SLASHES_REGEX = /\/+$/
+
+function normalizePath(path: string): string {
+  if (path === '/')
+    return path
+
+  return path.replace(TRAILING_SLASHES_REGEX, '')
+}
+
 function linkClass(path: string): string {
-  const isActive = route.path === path || (path === '/albums' && route.path.startsWith('/albums/'))
+  const normalizedCurrentPath = normalizePath(route.path)
+  const normalizedTargetPath = normalizePath(path)
+  const isActive = normalizedTargetPath === '/'
+    ? normalizedCurrentPath === '/'
+    : normalizedCurrentPath === normalizedTargetPath
+      || normalizedCurrentPath.startsWith(`${normalizedTargetPath}/`)
 
   if (isActive) {
     return 'bg-ts-accent text-black shadow-glow'
