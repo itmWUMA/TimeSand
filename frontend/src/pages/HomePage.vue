@@ -545,13 +545,13 @@ watch(
               class="text-ts-accent transition-opacity duration-150"
               :style="{ opacity: drawIndicatorOpacity }"
             >
-              抽卡 →
+              {{ $t('draw.gestureDrawHint') }}
             </span>
             <span
               class="text-ts-accent transition-opacity duration-150"
               :style="{ opacity: undoIndicatorOpacity }"
             >
-              → 撤销
+              {{ $t('draw.gestureUndoHint') }}
             </span>
           </div>
           <DrawnCard

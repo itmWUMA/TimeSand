@@ -110,6 +110,8 @@ export default {
     drawFailed: '抽卡失败。',
     reshuffle: '重新洗牌',
     swipeHint: '手机端：左滑抽卡，右滑撤销。',
+    gestureDrawHint: '抽卡 →',
+    gestureUndoHint: '→ 撤销',
     tapToDraw: '点击抽卡',
     tapToScatter: '点击散开',
     collect: '收集',

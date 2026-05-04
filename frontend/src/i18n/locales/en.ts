@@ -112,6 +112,8 @@ const en: MessageSchema = {
     drawFailed: 'Draw failed',
     reshuffle: 'Reshuffle',
     swipeHint: 'Mobile: swipe left to draw, swipe right to undo.',
+    gestureDrawHint: 'Draw →',
+    gestureUndoHint: '→ Undo',
     tapToDraw: 'Tap To Draw',
     tapToScatter: 'Tap To Scatter',
     collect: 'Collect',
