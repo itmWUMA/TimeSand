@@ -87,7 +87,7 @@ const locationLabel = computed(() => {
 
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
 })
-const formatLabel = computed(() => currentPhoto.value?.mime_type ?? t('lightbox.unknown'))
+const formatLabel = computed(() => currentPhoto.value?.mime_type || t('lightbox.unknown'))
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
@@ -157,8 +157,9 @@ function computeImageTargetRect(photo: Photo, containerRect: DOMRect): DOMRect {
 
   const vh = window.innerHeight
   const vw = window.innerWidth
-  const maxW = Math.min(containerRect.width, vw * 0.85, vw - 416)
-  const maxH = Math.min(containerRect.height, vh * 0.85)
+  const sidebarOffset = vw >= 1024 ? 416 : 0
+  const maxW = Math.max(Math.min(containerRect.width, vw * 0.85, vw - sidebarOffset), 1)
+  const maxH = Math.max(Math.min(containerRect.height, vh * 0.85), 1)
   const scale = Math.min(maxW / pw, maxH / ph, 1)
   const w = pw * scale
   const h = ph * scale
@@ -380,14 +381,18 @@ function onKeydown(event: KeyboardEvent): void {
   }
 
   if (event.key === 'ArrowLeft') {
-    event.preventDefault()
-    showPrev()
+    if (canPrev.value) {
+      event.preventDefault()
+      showPrev()
+    }
     return
   }
 
   if (event.key === 'ArrowRight') {
-    event.preventDefault()
-    showNext()
+    if (canNext.value) {
+      event.preventDefault()
+      showNext()
+    }
   }
 }
 
@@ -457,6 +462,7 @@ onUnmounted(() => {
       class="fixed inset-0 z-[60]"
       aria-modal="true"
       role="dialog"
+      :aria-label="$t('lightbox.metadata')"
     >
       <div
         ref="backdropRef"
