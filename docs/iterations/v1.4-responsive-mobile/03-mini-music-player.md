@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.4"
-status: pending
+status: done
 branch: "feat/mini-music-player"
 pr:
-completed:
+completed: 2026-05-04
 tags:
   - v1.4
   - responsive
@@ -73,16 +73,16 @@ Layout (vertical stack):
 
 ## Acceptance Criteria
 
-- [ ] On mobile, music player shows as a compact mini bar by default
-- [ ] Mini bar displays: song title, play/pause button, thin progress indicator
-- [ ] Tapping mini bar (outside play/pause) expands to full control panel
-- [ ] Expanded panel shows: progress bar with timestamps, prev/play/next buttons (44px+), repeat toggle
-- [ ] Collapse button returns to mini mode
-- [ ] Play/pause works correctly in both mini and expanded modes
-- [ ] Desktop player layout unchanged
-- [ ] Expand/collapse animations are smooth
-- [ ] iOS safe area bottom padding applied
-- [ ] All control buttons meet 44×44px minimum touch target
+- [x] On mobile, music player shows as a compact mini bar by default
+- [x] Mini bar displays: song title, play/pause button, thin progress indicator
+- [x] Tapping mini bar (outside play/pause) expands to full control panel
+- [x] Expanded panel shows: progress bar with timestamps, prev/play/next buttons (44px+), repeat toggle
+- [x] Collapse button returns to mini mode
+- [x] Play/pause works correctly in both mini and expanded modes
+- [x] Desktop player layout unchanged
+- [x] Expand/collapse animations are smooth
+- [x] iOS safe area bottom padding applied
+- [x] All control buttons meet 44×44px minimum touch target
 
 ## Tests
 
