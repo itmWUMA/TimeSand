@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.4"
-status: pending
+status: done
 branch: "feat/touch-target-audit"
 pr:
-completed:
+completed: 2026-05-04
 tags:
   - v1.4
   - responsive
@@ -73,15 +73,15 @@ Check all `<input>` and `<select>` elements on audited pages. If `font-size` < 1
 
 ## Acceptance Criteria
 
-- [ ] All interactive elements on albums page meet 44×44px touch target on mobile
-- [ ] All interactive elements on album detail page meet 44×44px touch target on mobile
-- [ ] Lightbox close and navigation controls meet 44×44px touch target
-- [ ] Slideshow controls meet 44×44px touch target
-- [ ] Adjacent destructive actions have ≥12px spacing
-- [ ] Form inputs are ≥44px height and ≥16px font size on mobile
-- [ ] TsButton and TsIconButton base components enforce minimum touch targets on mobile
-- [ ] Desktop styling unchanged — all modifications are mobile-scoped
-- [ ] Visual audit pass in Chrome DevTools mobile emulation (390×844) confirms no cramped/overlapping controls
+- [x] All interactive elements on albums page meet 44×44px touch target on mobile
+- [x] All interactive elements on album detail page meet 44×44px touch target on mobile
+- [x] Lightbox close and navigation controls meet 44×44px touch target
+- [x] Slideshow controls meet 44×44px touch target
+- [x] Adjacent destructive actions have ≥12px spacing
+- [x] Form inputs are ≥44px height and ≥16px font size on mobile
+- [x] TsButton and TsIconButton base components enforce minimum touch targets on mobile
+- [x] Desktop styling unchanged — all modifications are mobile-scoped
+- [x] Visual audit pass in Chrome DevTools mobile emulation (390×844) confirms no cramped/overlapping controls
 
 ## Tests
 

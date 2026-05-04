@@ -167,7 +167,7 @@ onUnmounted(() => {
       </p>
       <button
         type="button"
-        class="rounded border border-white/35 px-4 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
+        class="slideshow-page-action rounded border border-white/35 px-4 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
         @click="exitSlideshow"
       >
         {{ $t('slideshow.goBack') }}
@@ -212,3 +212,12 @@ onUnmounted(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .slideshow-page-action {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>
