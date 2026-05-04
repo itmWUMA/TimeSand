@@ -1,5 +1,5 @@
 import type { Photo } from '../../types/photo'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../test-utils'
 import PhotoGridItem from '../PhotoGridItem.vue'
 
@@ -19,22 +19,38 @@ const photo: Photo = {
 }
 
 describe('photoGridItem', () => {
-  it('emits click with photo payload', async () => {
+  it('emits photo click payload with index and origin rect', async () => {
     const wrapper = mountWithI18n(PhotoGridItem, {
       props: {
         photo,
+        index: 0,
       },
     })
 
-    await wrapper.find('[data-testid="photo-grid-item"]').trigger('click')
+    const item = wrapper.get('[data-testid="photo-grid-item"]')
+    vi.spyOn(item.element, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(12, 24, 140, 90),
+    )
 
-    expect(wrapper.emitted('click')).toEqual([[photo]])
+    await item.trigger('click')
+
+    const payload = wrapper.emitted('photoClick')?.[0]?.[0] as {
+      photo: Photo
+      index: number
+      rect: DOMRect
+    }
+
+    expect(payload.photo).toEqual(photo)
+    expect(payload.index).toBe(0)
+    expect(payload.rect.x).toBe(12)
+    expect(payload.rect.y).toBe(24)
   })
 
   it('shows skeleton before image load and fades image in after load', async () => {
     const wrapper = mountWithI18n(PhotoGridItem, {
       props: {
         photo,
+        index: 0,
       },
     })
 

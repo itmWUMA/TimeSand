@@ -1,6 +1,6 @@
 import type { DrawnCard } from '../../../stores/draw'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../../test-utils'
 import DrawnCardComponent from '../DrawnCard.vue'
 
@@ -38,5 +38,28 @@ describe('drawnCard', () => {
 
     const image = wrapper.get('img')
     expect(image.attributes('src')).toBe('/api/photos/8/file?v=memory.jpg')
+  })
+
+  it('emits photo click payload with origin rect', async () => {
+    const wrapper = mountWithI18n(DrawnCardComponent, {
+      props: {
+        card,
+        center: true,
+      },
+    })
+
+    const root = wrapper.get('article')
+    vi.spyOn(root.element, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(10, 16, 180, 260),
+    )
+
+    await wrapper.get('.cursor-zoom-in').trigger('click')
+
+    const payload = wrapper.emitted('photoClick')?.[0]?.[0] as {
+      photo: DrawnCard['photo']
+      rect: DOMRect
+    }
+    expect(payload.photo.id).toBe(card.photo.id)
+    expect(payload.rect.width).toBe(180)
   })
 })

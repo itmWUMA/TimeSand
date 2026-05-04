@@ -318,6 +318,10 @@ export function useMusicPlayer() {
     audio.volume = store.volume
   }
 
+  function cycleRepeatMode(): void {
+    store.cycleRepeatMode()
+  }
+
   function formatTime(value: number): string {
     if (!Number.isFinite(value) || value < 0) {
       return '0:00'
@@ -348,6 +352,7 @@ export function useMusicPlayer() {
     prev,
     seekTo,
     setVolume,
+    cycleRepeatMode,
     formatTime,
   }
 }

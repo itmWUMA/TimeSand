@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PhotoGrid from '../components/PhotoGrid.vue'
 import PhotoUploader from '../components/PhotoUploader.vue'
+import TsLightbox from '../components/TsLightbox.vue'
 import { listPhotos, uploadPhotos } from '../services/photo'
 
 const { t } = useI18n()
@@ -12,6 +13,9 @@ const photos = ref<Photo[]>([])
 const uploading = ref(false)
 const progress = ref(0)
 const errorMessage = ref<string | null>(null)
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+const lightboxOrigin = ref<DOMRect | null>(null)
 
 async function loadPhotos(): Promise<void> {
   const payload = await listPhotos(1, 60)
@@ -42,6 +46,12 @@ async function handleUpload(files: File[]): Promise<void> {
   }
 }
 
+function onPhotoClick(payload: { index: number, rect: DOMRect }): void {
+  lightboxIndex.value = payload.index
+  lightboxOrigin.value = payload.rect
+  lightboxOpen.value = true
+}
+
 onMounted(async () => {
   try {
     await loadPhotos()
@@ -69,6 +79,13 @@ onMounted(async () => {
       {{ errorMessage }}
     </p>
 
-    <PhotoGrid :photos="photos" />
+    <PhotoGrid :photos="photos" @photo-click="onPhotoClick" />
+    <TsLightbox
+      v-model:open="lightboxOpen"
+      :photos="photos"
+      :initial-index="lightboxIndex"
+      :origin-rect="lightboxOrigin"
+      origin-kind="grid"
+    />
   </section>
 </template>

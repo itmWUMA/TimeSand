@@ -94,4 +94,19 @@ describe('playerStore', () => {
     expect(store.trackIndex).toBe(1)
     expect(store.currentTrack?.id).toBe(2)
   })
+
+  it('cycleRepeatMode rotates all -> one -> none -> all', () => {
+    const store = usePlayerStore()
+
+    expect(store.repeatMode).toBe('all')
+
+    store.cycleRepeatMode()
+    expect(store.repeatMode).toBe('one')
+
+    store.cycleRepeatMode()
+    expect(store.repeatMode).toBe('none')
+
+    store.cycleRepeatMode()
+    expect(store.repeatMode).toBe('all')
+  })
 })

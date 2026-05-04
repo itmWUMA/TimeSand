@@ -5,6 +5,7 @@ import { computed, nextTick, ref } from 'vue'
 import i18n from '../i18n'
 import { drawPhoto, resetDrawSession } from '../services/draw'
 import { useDrawStore } from '../stores/draw'
+import { useSettingsStore } from '../stores/settings'
 import { EASING } from './motion/presets'
 import { useSoundEffects } from './useSoundEffects'
 
@@ -16,6 +17,7 @@ const CARD_INNER_SELECTOR = '[data-card-inner]'
 const PILE_SELECTOR = '[data-draw-pile]'
 
 const MEMORY_TEXT_SELECTOR = '[data-memory-text]'
+const DEFAULT_DRAW_ANIMATION_SPEED = 1
 
 function queryElement(selector: string): HTMLElement | null {
   if (typeof document === 'undefined') {
@@ -23,6 +25,20 @@ function queryElement(selector: string): HTMLElement | null {
   }
 
   return document.querySelector<HTMLElement>(selector)
+}
+
+function normalizeDrawAnimationSpeed(value: unknown): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_DRAW_ANIMATION_SPEED
+  }
+
+  return parsed
+}
+
+export function scaleCeremonyDuration(baseDuration: number, speedMultiplier: number): number {
+  const speed = normalizeDrawAnimationSpeed(speedMultiplier)
+  return baseDuration * speed
 }
 
 function prefersReducedMotion(): boolean {
@@ -85,6 +101,7 @@ function cloneCenterCardAsGhost(source: HTMLElement | null): HTMLElement | null 
 
 export function useCardDraw() {
   const drawStore = useDrawStore()
+  const settingsStore = useSettingsStore()
   const sfx = useSoundEffects()
 
   const ceremonyState = ref<CeremonyState>('IDLE')
@@ -137,6 +154,8 @@ export function useCardDraw() {
       const payload = await drawPhoto({
         album_id: drawStore.albumId,
         exclude_ids: [...drawStore.excludeIds],
+        weight_mode: settingsStore.drawWeightMode,
+        nearby_days: settingsStore.drawNearbyDays,
       })
 
       const hadPreviousCard = !!drawStore.activeCard
@@ -167,6 +186,9 @@ export function useCardDraw() {
       const cardInner = queryElement(CARD_INNER_SELECTOR)
       const memoryText = queryElement(MEMORY_TEXT_SELECTOR)
       const settleMarker = { progress: 0 }
+      const speed = normalizeDrawAnimationSpeed(settingsStore.drawAnimSpeed)
+      const dur = (baseDuration: number): number => scaleCeremonyDuration(baseDuration, speed)
+      const at = (position: number): number => dur(position)
 
       if (centerCard) {
         gsap.set(centerCard, { y: 80, opacity: 0, scale: 0.7 })
@@ -195,17 +217,17 @@ export function useCardDraw() {
         ceremonyTimeline.to(deck, {
           scale: 0.94,
           y: -4,
-          duration: 0.1,
+          duration: dur(0.1),
           yoyo: true,
           repeat: 1,
           ease: 'power1.out',
-        }, 0)
+        }, at(0))
       }
 
       ceremonyTimeline.call(() => {
         ceremonyState.value = 'EMERGING'
         sfx.play('whoosh')
-      }, [], 0.3)
+      }, [], at(0.3))
 
       if (ceremonyGhost && pile) {
         const delta = computeDelta(ceremonyGhost, pile)
@@ -215,15 +237,15 @@ export function useCardDraw() {
           scale: 0.55,
           rotate: 8,
           opacity: 0.72,
-          duration: 0.35,
+          duration: dur(0.35),
           ease: 'power2.inOut',
-        }, 0.3)
+        }, at(0.3))
         ceremonyTimeline.to(ceremonyGhost, {
           opacity: 0,
-          duration: 0.25,
+          duration: dur(0.25),
           ease: 'power2.in',
           onComplete: () => clearGhost(),
-        }, 0.65)
+        }, at(0.65))
       }
 
       if (centerCard) {
@@ -231,37 +253,37 @@ export function useCardDraw() {
           y: 0,
           opacity: 1,
           scale: 1,
-          duration: 0.5,
+          duration: dur(0.5),
           ease: EASING.enter,
-        }, 0.3)
+        }, at(0.3))
       }
 
       ceremonyTimeline.call(() => {
         ceremonyState.value = 'REVEALING'
-      }, [], 0.8)
+      }, [], at(0.8))
 
       if (cardInner) {
         ceremonyTimeline.to(cardInner, {
           rotateY: 180,
-          duration: 0.6,
+          duration: dur(0.6),
           ease: 'power2.inOut',
-        }, 0.8)
+        }, at(0.8))
       }
 
       ceremonyTimeline.call(() => {
         sfx.play('flip')
-      }, [], 1.05)
+      }, [], at(1.05))
 
       if (centerCard) {
         ceremonyTimeline.fromTo(centerCard, {
           scale: 1,
         }, {
           scale: 1.15,
-          duration: 0.15,
+          duration: dur(0.15),
           yoyo: true,
           repeat: 1,
           ease: 'power2.out',
-        }, 1.4)
+        }, at(1.4))
       }
 
       ceremonyTimeline.call(() => {
@@ -270,22 +292,22 @@ export function useCardDraw() {
         if (payload.weight_reason) {
           sfx.play('memory')
         }
-      }, [], 1.4)
+      }, [], at(1.4))
 
       if (memoryText && payload.weight_reason) {
         ceremonyTimeline.to(memoryText, {
           opacity: 1,
           y: 0,
-          duration: 0.4,
+          duration: dur(0.4),
           ease: EASING.enter,
-        }, 1.8)
+        }, at(1.8))
       }
 
       ceremonyTimeline.to(settleMarker, {
         progress: 1,
-        duration: 0.4,
+        duration: dur(0.4),
         ease: 'none',
-      }, 1.8)
+      }, at(1.8))
     }
     catch (error) {
       ceremonyState.value = 'IDLE'
@@ -358,6 +380,8 @@ export function useCardDraw() {
     const reducedMotion = prefersReducedMotion()
     const centerCard = queryElement(CENTER_CARD_SELECTOR)
     const pile = queryElement(PILE_SELECTOR)
+    const speed = normalizeDrawAnimationSpeed(settingsStore.drawAnimSpeed)
+    const dur = (baseDuration: number): number => scaleCeremonyDuration(baseDuration, speed)
 
     if (reducedMotion) {
       clearGhost()
@@ -394,7 +418,7 @@ export function useCardDraw() {
         y: 0,
         opacity: 1,
         scale: 1,
-        duration: 0.4,
+        duration: dur(0.4),
         ease: 'power2.out',
       }, 0)
       hasUndoAnimation = true
@@ -408,7 +432,7 @@ export function useCardDraw() {
         scale: 0.55,
         rotate: 8,
         opacity: 0.5,
-        duration: 0.4,
+        duration: dur(0.4),
         ease: 'power2.inOut',
       }, 0)
       hasUndoAnimation = true

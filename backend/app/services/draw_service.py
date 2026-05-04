@@ -2,18 +2,24 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 import random
+from typing import Literal
 
 from sqlmodel import Session, select
 
 from app.models.album import PhotoAlbum
 from app.models.photo import Photo
 
-EXACT_MATCH_WEIGHT = 3.0
-NEAR_ONE_DAY_WEIGHT = 2.0
-NEAR_THREE_DAYS_WEIGHT = 1.5
 BASE_WEIGHT = 1.0
 REFERENCE_LEAP_YEAR = 2000
 REFERENCE_YEAR_DAYS = 366
+DrawWeightMode = Literal["off", "light", "standard", "strong"]
+
+WEIGHT_PRESETS: dict[DrawWeightMode, dict[str, float]] = {
+    "off": {"exact": 1.0, "near_one": 1.0, "near_far": 1.0},
+    "light": {"exact": 1.8, "near_one": 1.4, "near_far": 1.2},
+    "standard": {"exact": 3.0, "near_one": 2.0, "near_far": 1.5},
+    "strong": {"exact": 5.0, "near_one": 3.0, "near_far": 2.0},
+}
 
 
 class NoAvailablePhotosError(ValueError):
@@ -24,8 +30,13 @@ def calculate_draw_weight(
     taken_at: datetime | None,
     *,
     today: date | None = None,
+    weight_mode: DrawWeightMode = "standard",
+    nearby_days: int = 3,
 ) -> tuple[float, str | None]:
     if taken_at is None:
+        return BASE_WEIGHT, None
+
+    if nearby_days < 1:
         return BASE_WEIGHT, None
 
     now = today or datetime.now(timezone.utc).date()
@@ -35,13 +46,14 @@ def calculate_draw_weight(
     if years_ago <= 0:
         return BASE_WEIGHT, None
 
+    weights = WEIGHT_PRESETS[weight_mode]
     day_distance = circular_month_day_distance(taken_date, now)
     if day_distance == 0:
-        return EXACT_MATCH_WEIGHT, f"{years_ago}_years_ago_today"
-    if day_distance == 1:
-        return NEAR_ONE_DAY_WEIGHT, f"{years_ago}_years_ago_nearby"
-    if 2 <= day_distance <= 3:
-        return NEAR_THREE_DAYS_WEIGHT, f"{years_ago}_years_ago_nearby"
+        return weights["exact"], f"{years_ago}_years_ago_today"
+    if day_distance == 1 and nearby_days > 1:
+        return weights["near_one"], f"{years_ago}_years_ago_nearby"
+    if 2 <= day_distance <= nearby_days and nearby_days > 1:
+        return weights["near_far"], f"{years_ago}_years_ago_nearby"
 
     return BASE_WEIGHT, None
 
@@ -85,9 +97,19 @@ def choose_weighted_photo(
     candidates: list[Photo],
     *,
     today: date | None = None,
+    weight_mode: DrawWeightMode = "standard",
+    nearby_days: int = 3,
 ) -> tuple[Photo, str | None]:
     weighted_candidates = [
-        (photo, *calculate_draw_weight(photo.taken_at, today=today))
+        (
+            photo,
+            *calculate_draw_weight(
+                photo.taken_at,
+                today=today,
+                weight_mode=weight_mode,
+                nearby_days=nearby_days,
+            ),
+        )
         for photo in candidates
     ]
 
@@ -107,6 +129,8 @@ def draw_photo(
     album_id: int | None = None,
     exclude_ids: list[int] | None = None,
     today: date | None = None,
+    weight_mode: DrawWeightMode = "standard",
+    nearby_days: int = 3,
 ) -> tuple[Photo, str | None]:
     candidates = query_draw_pool(
         session,
@@ -116,7 +140,12 @@ def draw_photo(
     if not candidates:
         raise NoAvailablePhotosError
 
-    return choose_weighted_photo(candidates, today=today)
+    return choose_weighted_photo(
+        candidates,
+        today=today,
+        weight_mode=weight_mode,
+        nearby_days=nearby_days,
+    )
 
 
 def count_available_photos(session: Session) -> int:

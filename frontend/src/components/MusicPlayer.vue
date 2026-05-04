@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
+
+const EXPAND_STORAGE_KEY = 'ts-player-expanded'
+const MAIN_PADDING_VARIABLE = '--ts-player-main-padding'
+const COLLAPSED_PADDING = '5rem'
+const EXPANDED_PADDING = '10rem'
 
 const { t } = useI18n()
 
@@ -14,17 +19,65 @@ const {
   playlistName,
   progressPercent,
   volume,
+  repeatMode,
   togglePlayPause,
   next,
   prev,
   seekTo,
   setVolume,
+  cycleRepeatMode,
   formatTime,
 } = useMusicPlayer()
 
+const isExpanded = ref(false)
+const hasTracks = computed(() => tracks.value.length > 0)
+const canControl = computed(() => hasTracks.value && currentTrack.value != null)
 const volumePercent = computed(() => Math.round(volume.value * 100))
+const progressMax = computed(() => (duration.value > 0 ? duration.value : 0))
+const expandedState = computed(() => (isExpanded.value && hasTracks.value ? 'true' : 'false'))
+const repeatButtonClass = computed(() => (repeatMode.value === 'none' ? 'text-ts-muted' : 'text-ts-accent'))
+const repeatLabel = computed(() => {
+  if (repeatMode.value === 'one') {
+    return t('player.repeatOne')
+  }
 
-const canControl = computed(() => tracks.value.length > 0 && currentTrack.value != null)
+  if (repeatMode.value === 'none') {
+    return t('player.repeatNone')
+  }
+
+  return t('player.repeatAll')
+})
+
+function syncMainPadding(): void {
+  const padding = isExpanded.value && hasTracks.value ? EXPANDED_PADDING : COLLAPSED_PADDING
+  document.documentElement.style.setProperty(MAIN_PADDING_VARIABLE, padding)
+}
+
+function readStoredExpanded(): boolean {
+  try {
+    return localStorage.getItem(EXPAND_STORAGE_KEY) === 'true'
+  }
+  catch {
+    return false
+  }
+}
+
+function writeStoredExpanded(value: boolean): void {
+  try {
+    localStorage.setItem(EXPAND_STORAGE_KEY, value ? 'true' : 'false')
+  }
+  catch {
+  }
+}
+
+function toggleExpanded(): void {
+  if (!hasTracks.value) {
+    return
+  }
+
+  isExpanded.value = !isExpanded.value
+  writeStoredExpanded(isExpanded.value)
+}
 
 function onSeek(event: Event): void {
   const target = event.target as HTMLInputElement
@@ -33,97 +86,386 @@ function onSeek(event: Event): void {
 
 function onVolumeChange(event: Event): void {
   const target = event.target as HTMLInputElement
-  const nextValue = Number(target.value)
-  setVolume(nextValue / 100)
+  setVolume(Number(target.value) / 100)
 }
+
+onMounted(() => {
+  isExpanded.value = readStoredExpanded()
+  syncMainPadding()
+})
+
+watch([isExpanded, hasTracks], syncMainPadding)
+
+onBeforeUnmount(() => {
+  document.documentElement.style.removeProperty(MAIN_PADDING_VARIABLE)
+})
 </script>
 
 <template>
   <section
     data-testid="music-player"
-    class="border-t border-white/10 bg-ts-panel/95 px-4 py-3 text-ts-text shadow-[0_-8px_24px_rgba(0,0,0,0.35)] backdrop-blur md:px-6"
+    :data-expanded="expandedState"
+    class="border-t border-white/10 bg-ts-panel/95 px-4 py-2.5 text-ts-text shadow-[0_-8px_24px_rgba(0,0,0,0.35)] backdrop-blur md:px-6"
   >
-    <p
-      v-if="tracks.length === 0"
-      class="text-sm text-ts-muted"
-    >
-      {{ $t('player.noMusic') }}
-    </p>
+    <div class="space-y-2.5">
+      <div class="flex items-center gap-3">
+        <p
+          data-testid="music-player-track-title"
+          class="min-w-0 flex-1 truncate text-sm"
+          :class="canControl ? 'font-semibold text-ts-accent' : 'text-ts-muted'"
+        >
+          {{ canControl ? currentTrack?.title : $t('player.noMusicLoaded') }}
+        </p>
 
-    <div v-else class="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1.2fr)_minmax(8rem,0.4fr)] md:items-center">
-      <div class="min-w-0">
-        <p data-testid="music-player-track-title" class="truncate text-sm font-semibold text-ts-accent">
-          {{ currentTrack?.title ?? $t('player.noTrack') }}
-        </p>
-        <p class="truncate text-xs text-ts-muted">
-          {{ currentTrack?.artist || $t('player.unknownArtist') }}
-          <span v-if="playlistName" class="ml-2 text-[11px] uppercase tracking-wider text-ts-muted/80">
-            {{ playlistName }}
-          </span>
-        </p>
+        <button
+          v-if="hasTracks"
+          data-testid="music-player-expand-toggle"
+          type="button"
+          class="rounded p-1.5 text-ts-muted transition hover:bg-white/10 hover:text-ts-text"
+          :aria-label="isExpanded ? $t('player.collapse') : $t('player.expand')"
+          @click="toggleExpanded"
+        >
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline
+              v-if="isExpanded"
+              points="6,15 12,9 18,15"
+            />
+            <polyline
+              v-else
+              points="6,9 12,15 18,9"
+            />
+          </svg>
+        </button>
       </div>
 
-      <div class="flex items-center gap-2">
+      <input
+        data-testid="music-player-progress"
+        type="range"
+        min="0"
+        :max="progressMax"
+        step="0.1"
+        :value="currentTime"
+        class="h-1 w-full cursor-pointer appearance-none rounded bg-white/15 accent-ts-accent"
+        :style="{ backgroundSize: `${progressPercent}% 100%` }"
+        :disabled="!canControl"
+        @input="onSeek"
+      >
+
+      <div class="flex items-center gap-1">
         <button
           data-testid="music-player-prev"
           type="button"
-          class="rounded border border-white/20 px-3 py-1.5 text-xs text-ts-text transition hover:border-white/40 hover:bg-white/10 disabled:opacity-40"
+          class="rounded p-2 text-ts-muted transition hover:bg-white/10 hover:text-ts-text disabled:opacity-40"
           :disabled="!canControl"
+          :aria-label="$t('player.prev')"
           @click="prev"
         >
-          {{ $t('player.prev') }}
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="11,7 5,12 11,17" />
+            <polygon points="19,7 13,12 19,17" />
+          </svg>
         </button>
         <button
           data-testid="music-player-play-pause"
           type="button"
-          class="rounded border border-ts-accent/70 px-4 py-1.5 text-xs font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:opacity-40"
+          class="rounded p-2 text-ts-accent transition hover:bg-ts-accent/15 disabled:opacity-40"
           :disabled="!canControl"
+          :aria-label="isPlaying ? $t('player.pause') : $t('player.play')"
           @click="togglePlayPause"
         >
-          {{ isPlaying ? $t('player.pause') : $t('player.play') }}
+          <svg
+            v-if="isPlaying"
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="6" y="5" width="4" height="14" />
+            <rect x="14" y="5" width="4" height="14" />
+          </svg>
+          <svg
+            v-else
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
         </button>
         <button
           data-testid="music-player-next"
           type="button"
-          class="rounded border border-white/20 px-3 py-1.5 text-xs text-ts-text transition hover:border-white/40 hover:bg-white/10 disabled:opacity-40"
+          class="rounded p-2 text-ts-muted transition hover:bg-white/10 hover:text-ts-text disabled:opacity-40"
           :disabled="!canControl"
+          :aria-label="$t('player.next')"
           @click="next"
         >
-          {{ $t('player.next') }}
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="5,7 11,12 5,17" />
+            <polygon points="13,7 19,12 13,17" />
+          </svg>
+        </button>
+        <button
+          data-testid="music-player-repeat"
+          type="button"
+          class="rounded p-2 transition hover:bg-white/10 disabled:opacity-40"
+          :class="repeatButtonClass"
+          :disabled="!canControl"
+          :aria-label="repeatLabel"
+          @click="cycleRepeatMode"
+        >
+          <svg
+            class="h-5 w-5"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m17 2 4 4-4 4" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <path d="m7 22-4-4 4-4" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            <text
+              v-if="repeatMode === 'one'"
+              x="15.5"
+              y="11"
+              font-size="7"
+              fill="currentColor"
+              stroke="none"
+            >
+              1
+            </text>
+          </svg>
         </button>
       </div>
+    </div>
 
-      <div class="space-y-1.5">
-        <input
-          data-testid="music-player-progress"
-          type="range"
-          min="0"
-          :max="duration > 0 ? duration : 0"
-          step="0.1"
-          :value="currentTime"
-          class="h-1.5 w-full cursor-pointer accent-ts-accent"
-          :style="{ backgroundSize: `${progressPercent}% 100%` }"
-          :disabled="!canControl"
-          @input="onSeek"
-        >
-        <p class="text-right text-[11px] text-ts-muted">
-          {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
-        </p>
+    <div
+      v-if="hasTracks"
+      class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+      :class="isExpanded && hasTracks ? 'max-h-80 opacity-100 pt-3' : 'pointer-events-none max-h-0 opacity-0'"
+      :aria-hidden="!isExpanded"
+    >
+      <div class="rounded-lg border border-white/10 bg-black/20 p-3">
+        <div class="mb-2 flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="truncate text-base font-semibold text-ts-text">
+              {{ currentTrack?.title ?? $t('player.noTrack') }}
+            </p>
+            <p class="truncate text-xs text-ts-muted">
+              {{ currentTrack?.artist || $t('player.unknownArtist') }}
+              <span v-if="playlistName" class="mx-1">-</span>
+              <span v-if="playlistName">{{ playlistName }}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded p-1.5 text-ts-muted transition hover:bg-white/10 hover:text-ts-text"
+            :aria-label="$t('player.collapse')"
+            @click="toggleExpanded"
+          >
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="6,15 12,9 18,15" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-1.5">
+          <input
+            data-testid="music-player-expanded-progress"
+            type="range"
+            min="0"
+            :max="progressMax"
+            step="0.1"
+            :value="currentTime"
+            class="h-2 w-full cursor-pointer appearance-none rounded bg-white/15 accent-ts-accent"
+            :style="{ backgroundSize: `${progressPercent}% 100%` }"
+            :disabled="!canControl"
+            @input="onSeek"
+          >
+          <p class="text-right text-xs text-ts-muted">
+            {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+          </p>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            class="rounded p-2 text-ts-muted transition hover:bg-white/10 hover:text-ts-text disabled:opacity-40"
+            :disabled="!canControl"
+            :aria-label="$t('player.prev')"
+            @click="prev"
+          >
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="11,7 5,12 11,17" />
+              <polygon points="19,7 13,12 19,17" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="rounded p-2 text-ts-accent transition hover:bg-ts-accent/15 disabled:opacity-40"
+            :disabled="!canControl"
+            :aria-label="isPlaying ? $t('player.pause') : $t('player.play')"
+            @click="togglePlayPause"
+          >
+            <svg
+              v-if="isPlaying"
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="6" y="5" width="4" height="14" />
+              <rect x="14" y="5" width="4" height="14" />
+            </svg>
+            <svg
+              v-else
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="rounded p-2 text-ts-muted transition hover:bg-white/10 hover:text-ts-text disabled:opacity-40"
+            :disabled="!canControl"
+            :aria-label="$t('player.next')"
+            @click="next"
+          >
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="5,7 11,12 5,17" />
+              <polygon points="13,7 19,12 13,17" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="rounded p-2 transition hover:bg-white/10 disabled:opacity-40"
+            :class="repeatButtonClass"
+            :disabled="!canControl"
+            :aria-label="repeatLabel"
+            @click="cycleRepeatMode"
+          >
+            <svg
+              class="h-6 w-6"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m17 2 4 4-4 4" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <path d="m7 22-4-4 4-4" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+              <text
+                v-if="repeatMode === 'one'"
+                x="15.5"
+                y="11"
+                font-size="7"
+                fill="currentColor"
+                stroke="none"
+              >
+                1
+              </text>
+            </svg>
+          </button>
+
+          <label class="ml-auto flex min-w-36 items-center gap-2 text-xs text-ts-muted">
+            <svg
+              class="h-5 w-5"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon points="11,5 6,9 3,9 3,15 6,15 11,19" />
+              <path d="M15 9a5 5 0 0 1 0 6" />
+              <path d="M18.5 6.5a9 9 0 0 1 0 11" />
+            </svg>
+            <span>{{ t('player.volume') }}</span>
+            <input
+              data-testid="music-player-volume"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              :value="volumePercent"
+              class="h-2 w-full cursor-pointer appearance-none rounded bg-white/15 accent-ts-accent"
+              :disabled="!canControl"
+              @input="onVolumeChange"
+            >
+          </label>
+        </div>
       </div>
-
-      <label class="flex items-center gap-2 text-xs text-ts-muted">
-        <span>{{ t('player.volume') }}</span>
-        <input
-          data-testid="music-player-volume"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          :value="volumePercent"
-          class="h-1.5 w-full cursor-pointer accent-ts-accent"
-          @input="onVolumeChange"
-        >
-      </label>
     </div>
   </section>
 </template>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session
 
 from app.core.database import get_session
@@ -15,6 +15,15 @@ router = APIRouter(prefix="/api/draw", tags=["draw"])
 class DrawRequest(BaseModel):
     album_id: int | None = Field(default=None, ge=1)
     exclude_ids: list[int] = Field(default_factory=list)
+    weight_mode: str = Field(default="standard")
+    nearby_days: int = Field(default=3, ge=1, le=7)
+
+    @field_validator("weight_mode")
+    @classmethod
+    def validate_weight_mode(cls, value: str) -> str:
+        if value not in draw_service.WEIGHT_PRESETS:
+            raise ValueError(f"weight_mode must be one of: {', '.join(draw_service.WEIGHT_PRESETS)}")
+        return value
 
 
 class DrawResponse(BaseModel):
@@ -37,6 +46,8 @@ def draw_card(
             session,
             album_id=request.album_id,
             exclude_ids=request.exclude_ids,
+            weight_mode=request.weight_mode,
+            nearby_days=request.nearby_days,
         )
     except NoAvailablePhotosError as exc:
         raise HTTPException(status_code=404, detail="No more photos available to draw") from exc

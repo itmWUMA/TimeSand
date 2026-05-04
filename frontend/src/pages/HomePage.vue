@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Album } from '../types/album'
+import type { Photo } from '../types/photo'
 
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import CardDeck from '../components/draw/CardDeck.vue'
@@ -8,6 +9,7 @@ import CardScatter from '../components/draw/CardScatter.vue'
 import DrawnCard from '../components/draw/DrawnCard.vue'
 import OnboardingOverlay from '../components/OnboardingOverlay.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
+import TsLightbox from '../components/TsLightbox.vue'
 import { particleDrift } from '../composables/motion/sequences'
 import { useCardDraw } from '../composables/useCardDraw'
 import { useMemoryText } from '../composables/useMemoryText'
@@ -15,6 +17,7 @@ import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { listAlbums } from '../services/album'
 import { listPhotos } from '../services/photo'
 import { useDrawStore } from '../stores/draw'
+import { useSettingsStore } from '../stores/settings'
 
 interface ParticleSeed {
   left: string
@@ -24,12 +27,17 @@ interface ParticleSeed {
 }
 
 const drawStore = useDrawStore()
-const { setContext } = useMusicPlayer()
+const settingsStore = useSettingsStore()
+const { playlistId, setContext, tracks } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
 const ceremonyContainerRef = ref<HTMLElement | null>(null)
 const photoTotal = ref(0)
 const hasPhotoStats = ref(false)
+const lightboxOpen = ref(false)
+const lightboxPhotos = ref<Photo[]>([])
+const lightboxIndex = ref(0)
+const lightboxOrigin = ref<DOMRect | null>(null)
 
 let particleTimeline: ReturnType<typeof particleDrift> | null = null
 
@@ -139,6 +147,13 @@ function handleTouchStart(event: TouchEvent): void {
   touchStartX.value = event.changedTouches[0]?.clientX ?? null
 }
 
+function onCardPhotoClick(payload: { photo: Photo, rect: DOMRect }): void {
+  lightboxPhotos.value = [payload.photo]
+  lightboxIndex.value = 0
+  lightboxOrigin.value = payload.rect
+  lightboxOpen.value = true
+}
+
 async function handleTouchEnd(event: TouchEvent): Promise<void> {
   const startX = touchStartX.value
   const endX = event.changedTouches[0]?.clientX ?? null
@@ -167,7 +182,22 @@ async function syncPlayerContext(): Promise<void> {
     return
   }
 
+  if (playlistId.value != null && tracks.value.length > 0) {
+    return
+  }
+
   await setContext('default')
+}
+
+function applyDefaultAlbumSelection(): void {
+  const defaultAlbumId = settingsStore.drawDefaultAlbumId
+  if (defaultAlbumId == null) {
+    drawStore.setAlbumFilter(null)
+    return
+  }
+
+  const hasDefaultAlbum = albums.value.some(album => album.id === defaultAlbumId)
+  drawStore.setAlbumFilter(hasDefaultAlbum ? defaultAlbumId : null)
 }
 
 onMounted(async () => {
@@ -178,6 +208,8 @@ onMounted(async () => {
   catch {
     albums.value = []
   }
+
+  applyDefaultAlbumSelection()
 
   await Promise.all([
     syncPlayerContext(),
@@ -336,7 +368,12 @@ watch(
           @touchstart.passive="handleTouchStart"
           @touchend.passive="handleTouchEnd"
         >
-          <DrawnCard :key="activeCard.photo.id" :card="activeCard" center />
+          <DrawnCard
+            :key="activeCard.photo.id"
+            :card="activeCard"
+            center
+            @photo-click="onCardPhotoClick"
+          />
         </div>
       </div>
 
@@ -369,6 +406,13 @@ watch(
     </div>
 
     <CardScatter :open="isScatterOpen" :cards="drawnCards" @collect="collectScatter" />
+    <TsLightbox
+      v-model:open="lightboxOpen"
+      :photos="lightboxPhotos"
+      :initial-index="lightboxIndex"
+      :origin-rect="lightboxOrigin"
+      origin-kind="card"
+    />
     <OnboardingOverlay />
   </section>
 </template>
