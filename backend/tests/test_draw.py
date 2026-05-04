@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 import re
 
 from fastapi.testclient import TestClient
+import pytest
 from sqlmodel import Session
 
 from app.models.album import Album, PhotoAlbum
@@ -124,6 +125,87 @@ def test_calculate_draw_weight_for_time_matches() -> None:
     assert (one_day_weight, one_day_reason) == (2.0, "2_years_ago_nearby")
     assert (three_days_weight, three_days_reason) == (1.5, "5_years_ago_nearby")
     assert (base_weight, base_reason) == (1.0, None)
+
+
+@pytest.mark.parametrize(
+    ("weight_mode", "expected_exact", "expected_near_one", "expected_near_far"),
+    [
+        ("off", 1.0, 1.0, 1.0),
+        ("light", 1.8, 1.4, 1.2),
+        ("standard", 3.0, 2.0, 1.5),
+        ("strong", 5.0, 3.0, 2.0),
+    ],
+)
+def test_calculate_draw_weight_with_weight_mode_presets(
+    weight_mode: str,
+    expected_exact: float,
+    expected_near_one: float,
+    expected_near_far: float,
+) -> None:
+    today = date(2026, 4, 12)
+
+    exact_weight, exact_reason = draw_service.calculate_draw_weight(
+        datetime(2023, 4, 12, tzinfo=timezone.utc),
+        today=today,
+        weight_mode=weight_mode,
+    )
+    near_one_weight, near_one_reason = draw_service.calculate_draw_weight(
+        datetime(2024, 4, 11, tzinfo=timezone.utc),
+        today=today,
+        weight_mode=weight_mode,
+    )
+    near_far_weight, near_far_reason = draw_service.calculate_draw_weight(
+        datetime(2021, 4, 15, tzinfo=timezone.utc),
+        today=today,
+        weight_mode=weight_mode,
+    )
+
+    assert (exact_weight, exact_reason) == (expected_exact, "3_years_ago_today")
+    assert (near_one_weight, near_one_reason) == (expected_near_one, "2_years_ago_nearby")
+    assert (near_far_weight, near_far_reason) == (expected_near_far, "5_years_ago_nearby")
+
+
+def test_calculate_draw_weight_with_nearby_days_one_only_matches_exact() -> None:
+    today = date(2026, 4, 12)
+
+    exact_weight, exact_reason = draw_service.calculate_draw_weight(
+        datetime(2023, 4, 12, tzinfo=timezone.utc),
+        today=today,
+        nearby_days=1,
+    )
+    one_day_weight, one_day_reason = draw_service.calculate_draw_weight(
+        datetime(2024, 4, 11, tzinfo=timezone.utc),
+        today=today,
+        nearby_days=1,
+    )
+
+    assert (exact_weight, exact_reason) == (3.0, "3_years_ago_today")
+    assert (one_day_weight, one_day_reason) == (1.0, None)
+
+
+def test_calculate_draw_weight_with_nearby_days_seven_matches_far_days() -> None:
+    today = date(2026, 4, 12)
+
+    five_days_weight, five_days_reason = draw_service.calculate_draw_weight(
+        datetime(2021, 4, 17, tzinfo=timezone.utc),
+        today=today,
+        nearby_days=7,
+    )
+
+    assert (five_days_weight, five_days_reason) == (1.5, "5_years_ago_nearby")
+
+
+def test_draw_rejects_invalid_weight_mode(client: TestClient) -> None:
+    response = client.post("/api/draw", json={"weight_mode": "invalid"})
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("nearby_days", [0, 8])
+def test_draw_rejects_out_of_range_nearby_days(client: TestClient, nearby_days: int) -> None:
+    response = client.post("/api/draw", json={"nearby_days": nearby_days})
+
+    assert response.status_code == 422
 
 
 def test_draw_weight_reason_format(client: TestClient, session: Session, monkeypatch) -> None:
