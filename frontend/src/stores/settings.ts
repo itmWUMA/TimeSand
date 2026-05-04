@@ -1,6 +1,6 @@
 import type { DrawWeightMode } from '../types/draw'
 import { defineStore } from 'pinia'
-import { DRAW_WEIGHT_MODES } from '../types/draw'
+import { DEFAULT_DRAW_NEARBY_DAYS, DEFAULT_DRAW_WEIGHT_MODE, DRAW_WEIGHT_MODES } from '../types/draw'
 
 export const SLIDESHOW_INTERVAL_OPTIONS = [3, 5, 8, 10, 15] as const
 export const DEFAULT_SLIDESHOW_INTERVAL = 5
@@ -35,7 +35,7 @@ function normalizeWeightMode(value: unknown): DrawWeightMode {
     return value as DrawWeightMode
   }
 
-  return 'standard'
+  return DEFAULT_DRAW_WEIGHT_MODE
 }
 
 function normalizeNearbyDays(value: unknown): DrawNearbyDays {
@@ -44,7 +44,7 @@ function normalizeNearbyDays(value: unknown): DrawNearbyDays {
     return parsed as DrawNearbyDays
   }
 
-  return 3
+  return DEFAULT_DRAW_NEARBY_DAYS as DrawNearbyDays
 }
 
 function normalizeDrawAnimationSpeed(value: unknown): DrawAnimationSpeed {

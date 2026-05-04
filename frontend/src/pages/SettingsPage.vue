@@ -158,6 +158,7 @@ async function loadAlbums(): Promise<void> {
   }
   catch {
     albums.value = []
+    settingsStore.setDrawDefaultAlbumId(null)
   }
   finally {
     loadingAlbums.value = false
