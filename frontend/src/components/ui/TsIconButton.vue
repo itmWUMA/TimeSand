@@ -37,7 +37,7 @@ function onClick(event: MouseEvent): void {
 <template>
   <button
     type="button"
-    class="inline-flex items-center justify-center transition duration-fast disabled:cursor-not-allowed disabled:opacity-50"
+    class="ts-icon-button inline-flex items-center justify-center transition duration-fast disabled:cursor-not-allowed disabled:opacity-50"
     :class="[variantClasses[props.variant], sizeClasses[props.size]]"
     :disabled="props.disabled"
     :aria-label="props.label"
@@ -47,3 +47,12 @@ function onClick(event: MouseEvent): void {
     <slot />
   </button>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .ts-icon-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>

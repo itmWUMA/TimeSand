@@ -242,7 +242,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="album-detail-page space-y-6">
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
         {{ album?.name ?? $t('album.detail') }}
@@ -253,7 +253,7 @@ onMounted(async () => {
       <RouterLink
         v-if="album"
         :to="{ path: '/slideshow', query: { album_id: String(album.id) } }"
-        class="inline-flex rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
+        class="album-action-button inline-flex rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
       >
         {{ $t('album.startSlideshow') }}
       </RouterLink>
@@ -278,14 +278,14 @@ onMounted(async () => {
             <input
               v-model="editName"
               type="text"
-              class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+              class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
             >
           </label>
           <label class="space-y-1 text-sm text-ts-muted">
             {{ $t('album.coverPhoto') }}
             <select
               v-model.number="selectedCoverPhotoId"
-              class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+              class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
             >
               <option :value="0">{{ $t('common.none') }}</option>
               <option v-for="photo in albumPhotos" :key="photo.id" :value="photo.id">
@@ -300,14 +300,14 @@ onMounted(async () => {
           <textarea
             v-model="editDescription"
             rows="2"
-            class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+            class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
           />
         </label>
 
         <button
           type="button"
           :disabled="savingAlbum"
-          class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+          class="album-action-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
           @click="saveAlbum"
         >
           {{ savingAlbum ? $t('common.saving') : $t('common.save') }}
@@ -321,7 +321,7 @@ onMounted(async () => {
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
           <select
             v-model.number="selectedPhotoToAdd"
-            class="w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent md:max-w-md"
+            class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent md:max-w-md"
           >
             <option :value="0">
               {{ $t('album.selectPhoto') }}
@@ -333,7 +333,7 @@ onMounted(async () => {
           <button
             type="button"
             :disabled="selectedPhotoToAdd === 0 || updatingPhotos"
-            class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+            class="album-action-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
             @click="addSelectedPhoto"
           >
             {{ $t('album.addToAlbum') }}
@@ -366,7 +366,7 @@ onMounted(async () => {
           >
             <button
               type="button"
-              class="block w-full cursor-zoom-in rounded-lg"
+              class="album-photo-open-button block w-full cursor-zoom-in rounded-lg"
               :aria-label="$t('lightbox.openPhoto', { filename: photo.filename })"
               @click="onAlbumPhotoClick(index, $event)"
             >
@@ -378,13 +378,13 @@ onMounted(async () => {
               >
             </button>
 
-            <div class="flex items-center justify-between gap-2">
+            <div class="album-photo-row flex items-center justify-between gap-2">
               <p class="truncate text-sm text-ts-text">
                 {{ photo.filename }}
               </p>
               <button
                 type="button"
-                class="rounded border border-red-400/40 px-2 py-1 text-xs text-red-200 hover:bg-red-500/20"
+                class="album-photo-remove-button rounded border border-red-400/40 px-2 py-1 text-xs text-red-200 hover:bg-red-500/20"
                 @click="removePhoto(photo.id)"
               >
                 {{ $t('common.remove') }}
@@ -392,6 +392,7 @@ onMounted(async () => {
             </div>
 
             <TagManager
+              class="album-tag-manager"
               :tags="photoTags[photo.id] ?? []"
               :available-tags="availableTags"
               @add-tag="(tagId) => addTagToPhoto(photo.id, Number(tagId))"
@@ -412,3 +413,41 @@ onMounted(async () => {
     </template>
   </section>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .album-form-control,
+  .album-action-button,
+  .album-photo-open-button,
+  .album-photo-remove-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .album-form-control {
+    font-size: 16px;
+  }
+
+  .album-photo-row {
+    gap: 12px;
+  }
+
+  .album-tag-manager :deep(input),
+  .album-tag-manager :deep(button) {
+    min-height: 44px;
+  }
+
+  .album-tag-manager :deep(input) {
+    font-size: 16px;
+  }
+
+  .album-tag-manager :deep([data-testid='add-tag-button']) {
+    min-width: 44px;
+  }
+
+  .album-tag-manager :deep([data-testid^='remove-tag-']) {
+    min-width: 44px;
+    margin-left: 8px;
+  }
+}
+</style>
