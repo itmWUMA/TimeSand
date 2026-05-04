@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import MobileDrawer from '../components/MobileDrawer.vue'
 import MusicPlayer from '../components/MusicPlayer.vue'
 
 const route = useRoute()
 const { locale, t } = useI18n()
 const mobileOpen = ref(false)
+const isMobileViewport = ref(true)
 const isFullscreenRoute = computed(() => route.name === 'slideshow')
+let mobileViewportQuery: MediaQueryList | null = null
 
 const navItems = [
   { path: '/', labelKey: 'nav.cardDraw' },
@@ -49,8 +52,35 @@ function toggleLocale(): void {
   document.documentElement.lang = next
 }
 
+function handleMobileViewportChange(event: MediaQueryListEvent): void {
+  isMobileViewport.value = !event.matches
+  if (event.matches)
+    mobileOpen.value = false
+}
+
 onMounted(() => {
   document.documentElement.lang = locale.value
+
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
+    return
+
+  mobileViewportQuery = window.matchMedia('(min-width: 768px)')
+  handleMobileViewportChange({ matches: mobileViewportQuery.matches } as MediaQueryListEvent)
+
+  if (typeof mobileViewportQuery.addEventListener === 'function')
+    mobileViewportQuery.addEventListener('change', handleMobileViewportChange)
+  else
+    mobileViewportQuery.addListener(handleMobileViewportChange)
+})
+
+onBeforeUnmount(() => {
+  if (!mobileViewportQuery)
+    return
+
+  if (typeof mobileViewportQuery.removeEventListener === 'function')
+    mobileViewportQuery.removeEventListener('change', handleMobileViewportChange)
+  else
+    mobileViewportQuery.removeListener(handleMobileViewportChange)
 })
 </script>
 
@@ -103,27 +133,14 @@ onMounted(() => {
               {{ mobileOpen ? $t('common.close') : $t('common.menu') }}
             </button>
           </div>
-          <nav v-if="mobileOpen" class="mt-3 space-y-1">
-            <RouterLink
-              v-for="item in navItems"
-              :key="`mobile-${item.path}`"
-              :to="item.path"
-              class="block rounded-lg px-3 py-2 text-sm"
-              :class="linkClass(item.path)"
-              @click="mobileOpen = false"
-            >
-              {{ t(item.labelKey) }}
-            </RouterLink>
-            <button
-              type="button"
-              class="mt-2 flex w-full items-center gap-2 rounded-lg border-t border-white/10 px-3 py-2 pt-3 text-sm text-ts-muted transition hover:bg-white/10 hover:text-ts-text"
-              @click="toggleLocale"
-            >
-              <span class="text-base">🌐</span>
-              <span>{{ locale === 'zh-CN' ? '\u4E2D\u6587 / EN' : 'EN / \u4E2D\u6587' }}</span>
-            </button>
-          </nav>
         </header>
+        <MobileDrawer
+          v-if="isMobileViewport"
+          v-model:open="mobileOpen"
+          :nav-items="navItems"
+          :link-class="linkClass"
+          @toggle-locale="toggleLocale"
+        />
 
         <main
           class="flex-1 px-4 py-6 md:px-8 md:py-8"
