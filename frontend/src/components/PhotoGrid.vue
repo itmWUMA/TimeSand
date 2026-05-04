@@ -6,7 +6,11 @@ defineProps<{
   photos: Photo[]
 }>()
 const emit = defineEmits<{
-  click: [photo: Photo]
+  photoClick: [payload: {
+    photo: Photo
+    index: number
+    rect: DOMRect
+  }]
 }>()
 </script>
 
@@ -27,10 +31,11 @@ const emit = defineEmits<{
 
     <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
       <PhotoGridItem
-        v-for="photo in photos"
+        v-for="(photo, index) in photos"
         :key="photo.id"
         :photo="photo"
-        @click="emit('click', $event)"
+        :index="index"
+        @photo-click="emit('photoClick', $event)"
       />
     </div>
   </section>
