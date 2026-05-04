@@ -29,6 +29,7 @@ const { t } = useI18n()
 const rootRef = ref<HTMLElement | null>(null)
 const backdropRef = ref<HTMLElement | null>(null)
 const imageSurfaceRef = ref<HTMLElement | null>(null)
+const imageRef = ref<HTMLImageElement | null>(null)
 const isRendered = ref(false)
 const contentVisible = ref(false)
 const currentIndex = ref(0)
@@ -147,6 +148,25 @@ function getOriginRadius(kind: OriginKind): string {
   return kind === 'card' ? '24px' : 'var(--ts-radius-lg)'
 }
 
+function computeImageTargetRect(photo: Photo, containerRect: DOMRect): DOMRect {
+  const pw = photo.width
+  const ph = photo.height
+  if (pw <= 0 || ph <= 0) {
+    return containerRect
+  }
+
+  const vh = window.innerHeight
+  const vw = window.innerWidth
+  const maxW = Math.min(containerRect.width, vw * 0.85, vw - 416)
+  const maxH = Math.min(containerRect.height, vh * 0.85)
+  const scale = Math.min(maxW / pw, maxH / ph, 1)
+  const w = pw * scale
+  const h = ph * scale
+  const x = containerRect.left + (containerRect.width - w) / 2
+  const y = containerRect.top + (containerRect.height - h) / 2
+  return new DOMRect(x, y, w, h)
+}
+
 function createClone(rect: DOMRect, imageUrl: string, radius: string): HTMLDivElement {
   const clone = document.createElement('div')
   clone.setAttribute('data-lightbox-clone', 'true')
@@ -163,6 +183,8 @@ function createClone(rect: DOMRect, imageUrl: string, radius: string): HTMLDivEl
     boxShadow: '0 24px 60px rgba(0, 0, 0, 0.55)',
     zIndex: '61',
     pointerEvents: 'none',
+    willChange: 'transform, border-radius, filter',
+    transformOrigin: '0 0',
   })
   document.body.appendChild(clone)
   cloneElement = clone
@@ -188,13 +210,38 @@ function runOpenAnimation(): void {
     return
   }
 
-  const targetRect = surface.getBoundingClientRect()
-  if (targetRect.width <= 0 || targetRect.height <= 0) {
+  const containerRect = surface.getBoundingClientRect()
+  if (containerRect.width <= 0 || containerRect.height <= 0) {
     showInstantly()
     return
   }
 
-  const clone = createClone(originRect, buildThumbnailUrl(photo), getOriginRadius(activeOriginKind))
+  const targetRect = computeImageTargetRect(photo, containerRect)
+
+  const clone = createClone(targetRect, buildThumbnailUrl(photo), '4px')
+  clone.style.filter = 'blur(2px)'
+
+  const scaleX = originRect.width / targetRect.width
+  const scaleY = originRect.height / targetRect.height
+  const dx = originRect.left - targetRect.left
+  const dy = originRect.top - targetRect.top
+
+  gsapApi.set(clone, {
+    transform: `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`,
+    borderRadius: getOriginRadius(activeOriginKind),
+  })
+
+  const fullSrc = buildFileUrl(photo)
+  const preloader = new Image()
+  let preloaded = false
+  preloader.onload = () => {
+    preloaded = true
+    if (cloneElement === clone) {
+      clone.style.backgroundImage = `url("${fullSrc}")`
+      gsapApi.to(clone, { filter: 'blur(0px)', duration: 0.18, ease: 'power1.out' })
+    }
+  }
+  preloader.src = fullSrc
 
   gsapApi.set(backdrop, { opacity: 0 })
   contentVisible.value = false
@@ -210,13 +257,14 @@ function runOpenAnimation(): void {
 
   openTimeline.to(backdrop, { opacity: 1, duration: 0.24 }, 0)
   openTimeline.to(clone, {
-    left: targetRect.left,
-    top: targetRect.top,
-    width: targetRect.width,
-    height: targetRect.height,
-    borderRadius: 4,
+    transform: 'translate(0px, 0px) scale(1, 1)',
+    borderRadius: '4px',
     duration,
   }, 0)
+
+  if (!preloaded) {
+    openTimeline.to(clone, { filter: 'blur(0px)', duration: 0.15, ease: 'power1.out' })
+  }
 
   if (activeOriginKind === 'card') {
     openTimeline.to(clone, {
@@ -241,16 +289,16 @@ function finalizeClose(emitModelUpdate: boolean): void {
 
 function runCloseAnimation(emitModelUpdate: boolean): void {
   const backdrop = backdropRef.value
-  const surface = imageSurfaceRef.value
+  const image = imageRef.value
   const photo = currentPhoto.value
   const originRect = activeOriginRect
 
-  if (!backdrop || !surface || !photo || !originRect || prefersReducedMotion.value) {
+  if (!backdrop || !image || !photo || !originRect || prefersReducedMotion.value) {
     finalizeClose(emitModelUpdate)
     return
   }
 
-  const startRect = surface.getBoundingClientRect()
+  const startRect = image.getBoundingClientRect()
   if (startRect.width <= 0 || startRect.height <= 0) {
     finalizeClose(emitModelUpdate)
     return
@@ -259,6 +307,11 @@ function runCloseAnimation(emitModelUpdate: boolean): void {
   const clone = createClone(startRect, buildFileUrl(photo), '4px')
   contentVisible.value = false
 
+  const scaleX = originRect.width / startRect.width
+  const scaleY = originRect.height / startRect.height
+  const dx = originRect.left - startRect.left
+  const dy = originRect.top - startRect.top
+
   const duration = activeOriginKind === 'card' ? 0.4 : 0.35
   closeTimeline = gsapApi.timeline({
     defaults: { ease: 'power2.inOut' },
@@ -266,10 +319,7 @@ function runCloseAnimation(emitModelUpdate: boolean): void {
   })
 
   closeTimeline.to(clone, {
-    left: originRect.left,
-    top: originRect.top,
-    width: originRect.width,
-    height: originRect.height,
+    transform: `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`,
     borderRadius: getOriginRadius(activeOriginKind),
     duration,
   }, 0)
@@ -444,6 +494,7 @@ onUnmounted(() => {
           <div ref="imageSurfaceRef" class="flex h-full w-full items-center justify-center">
             <img
               v-if="currentPhoto"
+              ref="imageRef"
               data-testid="lightbox-image"
               :src="buildFileUrl(currentPhoto)"
               :alt="currentPhoto.filename"
