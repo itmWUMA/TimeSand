@@ -15,7 +15,7 @@ import { useSettingsStore } from '../stores/settings'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { setContext } = useMusicPlayer()
+const { playlistId, setContext, tracks } = useMusicPlayer()
 const settingsStore = useSettingsStore()
 
 const photos = ref<Photo[]>([])
@@ -83,6 +83,10 @@ async function loadPhotos(): Promise<void> {
 async function syncPlayerContext(nextAlbumId: number | undefined): Promise<void> {
   if (nextAlbumId != null) {
     await setContext('album', nextAlbumId)
+    return
+  }
+
+  if (playlistId.value != null && tracks.value.length > 0) {
     return
   }
 

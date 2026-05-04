@@ -26,7 +26,7 @@ interface ParticleSeed {
 
 const drawStore = useDrawStore()
 const settingsStore = useSettingsStore()
-const { setContext } = useMusicPlayer()
+const { playlistId, setContext, tracks } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
 const ceremonyContainerRef = ref<HTMLElement | null>(null)
@@ -166,6 +166,10 @@ async function handleTouchEnd(event: TouchEvent): Promise<void> {
 async function syncPlayerContext(): Promise<void> {
   if (drawStore.albumId != null) {
     await setContext('album', drawStore.albumId)
+    return
+  }
+
+  if (playlistId.value != null && tracks.value.length > 0) {
     return
   }
 
