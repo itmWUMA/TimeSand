@@ -15,6 +15,7 @@ import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { listAlbums } from '../services/album'
 import { listPhotos } from '../services/photo'
 import { useDrawStore } from '../stores/draw'
+import { useSettingsStore } from '../stores/settings'
 
 interface ParticleSeed {
   left: string
@@ -24,6 +25,7 @@ interface ParticleSeed {
 }
 
 const drawStore = useDrawStore()
+const settingsStore = useSettingsStore()
 const { setContext } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
@@ -170,6 +172,17 @@ async function syncPlayerContext(): Promise<void> {
   await setContext('default')
 }
 
+function applyDefaultAlbumSelection(): void {
+  const defaultAlbumId = settingsStore.drawDefaultAlbumId
+  if (defaultAlbumId == null) {
+    drawStore.setAlbumFilter(null)
+    return
+  }
+
+  const hasDefaultAlbum = albums.value.some(album => album.id === defaultAlbumId)
+  drawStore.setAlbumFilter(hasDefaultAlbum ? defaultAlbumId : null)
+}
+
 onMounted(async () => {
   try {
     const payload = await listAlbums()
@@ -178,6 +191,8 @@ onMounted(async () => {
   catch {
     albums.value = []
   }
+
+  applyDefaultAlbumSelection()
 
   await Promise.all([
     syncPlayerContext(),
