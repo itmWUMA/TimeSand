@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.4"
-status: pending
+status: done
 branch: "feat/side-drawer-nav"
 pr:
-completed:
+completed: 2026-05-04
 tags:
   - v1.4
   - responsive
@@ -65,15 +65,15 @@ Build from the project's existing overlay pattern (`TsDialog` as reference). Rad
 
 ## Acceptance Criteria
 
-- [ ] Tapping "菜单" opens a drawer sliding in from the left with backdrop
-- [ ] Tapping backdrop closes the drawer
-- [ ] Tapping a navigation item navigates to that page and closes the drawer
-- [ ] Active route is visually highlighted in the drawer
-- [ ] Locale toggle works inside the drawer
-- [ ] Drawer only appears on mobile; desktop sidebar is unchanged
-- [ ] Slide-in/out animations are smooth (no frame drops on mid-range phone emulation)
-- [ ] All drawer menu items have ≥44px touch target height
-- [ ] iOS safe area padding applied to drawer panel
+- [x] Tapping "菜单" opens a drawer sliding in from the left with backdrop
+- [x] Tapping backdrop closes the drawer
+- [x] Tapping a navigation item navigates to that page and closes the drawer
+- [x] Active route is visually highlighted in the drawer
+- [x] Locale toggle works inside the drawer
+- [x] Drawer only appears on mobile; desktop sidebar is unchanged
+- [x] Slide-in/out animations are smooth (no frame drops on mid-range phone emulation)
+- [x] All drawer menu items have ≥44px touch target height
+- [x] iOS safe area padding applied to drawer panel
 
 ## Tests
 
