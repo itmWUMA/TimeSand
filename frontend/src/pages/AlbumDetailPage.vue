@@ -6,6 +6,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import TagManager from '../components/TagManager.vue'
+import TsLightbox from '../components/TsLightbox.vue'
 import {
   addPhotosToAlbum,
   getAlbum,
@@ -40,6 +41,9 @@ const editName = ref('')
 const editDescription = ref('')
 const selectedCoverPhotoId = ref(0)
 const selectedPhotoToAdd = ref(0)
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+const lightboxOrigin = ref<DOMRect | null>(null)
 
 const albumId = computed(() => Number(route.params.id))
 
@@ -221,6 +225,17 @@ async function createAndAddTag(photoId: number, tagName: string): Promise<void> 
   }
 }
 
+function onAlbumPhotoClick(index: number, event: MouseEvent): void {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) {
+    return
+  }
+
+  lightboxIndex.value = index
+  lightboxOrigin.value = target.getBoundingClientRect()
+  lightboxOpen.value = true
+}
+
 onMounted(async () => {
   await loadAlbumData()
 })
@@ -345,16 +360,23 @@ onMounted(async () => {
 
         <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           <article
-            v-for="photo in albumPhotos"
+            v-for="(photo, index) in albumPhotos"
             :key="photo.id"
             class="space-y-3 rounded-xl border border-white/10 bg-ts-panelSoft p-3"
           >
-            <img
-              :src="buildThumbnailUrl(photo)"
-              :alt="photo.filename"
-              class="aspect-video w-full rounded-lg object-cover"
-              loading="lazy"
+            <button
+              type="button"
+              class="block w-full cursor-zoom-in rounded-lg"
+              :aria-label="$t('lightbox.openPhoto', { filename: photo.filename })"
+              @click="onAlbumPhotoClick(index, $event)"
             >
+              <img
+                :src="buildThumbnailUrl(photo)"
+                :alt="photo.filename"
+                class="aspect-video w-full rounded-lg object-cover"
+                loading="lazy"
+              >
+            </button>
 
             <div class="flex items-center justify-between gap-2">
               <p class="truncate text-sm text-ts-text">
@@ -379,6 +401,14 @@ onMounted(async () => {
           </article>
         </div>
       </section>
+
+      <TsLightbox
+        v-model:open="lightboxOpen"
+        :photos="albumPhotos"
+        :initial-index="lightboxIndex"
+        :origin-rect="lightboxOrigin"
+        origin-kind="grid"
+      />
     </template>
   </section>
 </template>

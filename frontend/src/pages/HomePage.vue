@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Album } from '../types/album'
+import type { Photo } from '../types/photo'
 
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import CardDeck from '../components/draw/CardDeck.vue'
@@ -8,6 +9,7 @@ import CardScatter from '../components/draw/CardScatter.vue'
 import DrawnCard from '../components/draw/DrawnCard.vue'
 import OnboardingOverlay from '../components/OnboardingOverlay.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
+import TsLightbox from '../components/TsLightbox.vue'
 import { particleDrift } from '../composables/motion/sequences'
 import { useCardDraw } from '../composables/useCardDraw'
 import { useMemoryText } from '../composables/useMemoryText'
@@ -32,6 +34,10 @@ const touchStartX = ref<number | null>(null)
 const ceremonyContainerRef = ref<HTMLElement | null>(null)
 const photoTotal = ref(0)
 const hasPhotoStats = ref(false)
+const lightboxOpen = ref(false)
+const lightboxPhotos = ref<Photo[]>([])
+const lightboxIndex = ref(0)
+const lightboxOrigin = ref<DOMRect | null>(null)
 
 let particleTimeline: ReturnType<typeof particleDrift> | null = null
 
@@ -139,6 +145,13 @@ function onAlbumChange(event: Event): void {
 
 function handleTouchStart(event: TouchEvent): void {
   touchStartX.value = event.changedTouches[0]?.clientX ?? null
+}
+
+function onCardPhotoClick(payload: { photo: Photo, rect: DOMRect }): void {
+  lightboxPhotos.value = [payload.photo]
+  lightboxIndex.value = 0
+  lightboxOrigin.value = payload.rect
+  lightboxOpen.value = true
 }
 
 async function handleTouchEnd(event: TouchEvent): Promise<void> {
@@ -355,7 +368,12 @@ watch(
           @touchstart.passive="handleTouchStart"
           @touchend.passive="handleTouchEnd"
         >
-          <DrawnCard :key="activeCard.photo.id" :card="activeCard" center />
+          <DrawnCard
+            :key="activeCard.photo.id"
+            :card="activeCard"
+            center
+            @photo-click="onCardPhotoClick"
+          />
         </div>
       </div>
 
@@ -388,6 +406,13 @@ watch(
     </div>
 
     <CardScatter :open="isScatterOpen" :cards="drawnCards" @collect="collectScatter" />
+    <TsLightbox
+      v-model:open="lightboxOpen"
+      :photos="lightboxPhotos"
+      :initial-index="lightboxIndex"
+      :origin-rect="lightboxOrigin"
+      origin-kind="card"
+    />
     <OnboardingOverlay />
   </section>
 </template>

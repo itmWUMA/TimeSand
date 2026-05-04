@@ -51,7 +51,7 @@ describe('photoGrid', () => {
     expect(firstImage.attributes('src')).toBe('/api/photos/1/thumbnail?v=one_thumb.jpg')
   })
 
-  it('forwards photo item click events', async () => {
+  it('forwards photo item click events with index payload', async () => {
     const wrapper = mountWithI18n(PhotoGrid, {
       props: {
         photos,
@@ -60,6 +60,19 @@ describe('photoGrid', () => {
 
     await wrapper.findAll('[data-testid="photo-grid-item"]')[0].trigger('click')
 
-    expect(wrapper.emitted('click')).toEqual([[photos[0]]])
+    const payload = wrapper.emitted('photoClick')?.[0]?.[0] as {
+      photo: Photo
+      index: number
+      rect: DOMRect
+    }
+
+    expect(payload.photo).toEqual(photos[0])
+    expect(payload.index).toBe(0)
+    expect(payload.rect).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+      width: expect.any(Number),
+      height: expect.any(Number),
+    })
   })
 })

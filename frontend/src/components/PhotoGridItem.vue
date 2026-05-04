@@ -5,13 +5,19 @@ import { buildThumbnailUrl } from '../utils/photoUrl'
 
 const props = defineProps<{
   photo: Photo
+  index: number
 }>()
 
 const emit = defineEmits<{
-  click: [photo: Photo]
+  photoClick: [payload: {
+    photo: Photo
+    index: number
+    rect: DOMRect
+  }]
 }>()
 
 const loaded = ref(false)
+const rootRef = ref<HTMLElement | null>(null)
 
 function formatDate(value: string): string {
   const date = new Date(value)
@@ -21,13 +27,27 @@ function formatDate(value: string): string {
 
   return date.toLocaleString()
 }
+
+function onClick(): void {
+  const rect = rootRef.value?.getBoundingClientRect()
+  if (!rect) {
+    return
+  }
+
+  emit('photoClick', {
+    photo: props.photo,
+    index: props.index,
+    rect,
+  })
+}
 </script>
 
 <template>
   <article
+    ref="rootRef"
     data-testid="photo-grid-item"
     class="cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-ts-panelSoft"
-    @click="emit('click', props.photo)"
+    @click="onClick"
   >
     <div class="relative aspect-video">
       <div

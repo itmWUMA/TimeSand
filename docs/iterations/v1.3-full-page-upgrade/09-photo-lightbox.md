@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.3"
-status: pending
+status: done
 branch: "feat/photo-lightbox"
 pr:
-completed:
+completed: 2026-05-04
 tags:
   - full-page-upgrade
   - lightbox
@@ -156,20 +156,20 @@ function onPhotoClick({ index, rect }: { index: number, rect: DOMRect }) {
 
 ## Acceptance Criteria
 
-- [ ] Clicking a photo in PhotoGrid opens Lightbox with origin-expand animation
-- [ ] Clicking the revealed card in card draw opens Lightbox with card-expand animation
-- [ ] Lightbox displays full-resolution image centered
-- [ ] EXIF panel shows all available metadata fields
-- [ ] Left/Right arrow buttons navigate between photos
-- [ ] Keyboard Left/Right/Escape works
-- [ ] Close button and backdrop click close the Lightbox
-- [ ] Close animation reverses back to the origin position
-- [ ] Single-photo mode (card draw) hides navigation arrows
-- [ ] EXIF panel is responsive (right side on lg+, bottom on smaller)
-- [ ] Body scroll is locked when Lightbox is open
-- [ ] `prefers-reduced-motion`: skip entry/exit animation, show instantly
-- [ ] `bun run type-check && bun run lint:fix` passes
-- [ ] Visual verification via Chrome DevTools MCP
+- [x] Clicking a photo in PhotoGrid opens Lightbox with origin-expand animation
+- [x] Clicking the revealed card in card draw opens Lightbox with card-expand animation
+- [x] Lightbox displays full-resolution image centered
+- [x] EXIF panel shows all available metadata fields
+- [x] Left/Right arrow buttons navigate between photos
+- [x] Keyboard Left/Right/Escape works
+- [x] Close button and backdrop click close the Lightbox
+- [x] Close animation reverses back to the origin position
+- [x] Single-photo mode (card draw) hides navigation arrows
+- [x] EXIF panel is responsive (right side on lg+, bottom on smaller)
+- [x] Body scroll is locked when Lightbox is open
+- [x] `prefers-reduced-motion`: skip entry/exit animation, show instantly
+- [x] `bun run type-check && bun run lint:fix` passes
+- [x] Visual verification via Chrome DevTools MCP
 
 ## Tests
 
