@@ -533,18 +533,18 @@ onUnmounted(() => {
         <button
           data-testid="control-exit"
           type="button"
-          class="rounded border border-white/35 bg-black/35 px-3 py-1.5 text-sm text-white transition hover:border-white/70 hover:bg-black/60"
+          class="slideshow-control-button slideshow-exit-button rounded border border-white/35 bg-black/35 px-3 py-1.5 text-sm text-white transition hover:border-white/70 hover:bg-black/60"
           @click="$emit('exit')"
         >
           {{ $t('slideshow.exit') }}
         </button>
       </div>
 
-      <div class="mx-auto flex w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-xl border border-white/20 bg-black/45 px-3 py-3 backdrop-blur">
+      <div class="slideshow-controls mx-auto flex w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-xl border border-white/20 bg-black/45 px-3 py-3 backdrop-blur">
         <button
           data-testid="control-prev"
           type="button"
-          class="rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
+          class="slideshow-control-button rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('prev')"
         >
           {{ $t('slideshow.prev') }}
@@ -552,7 +552,7 @@ onUnmounted(() => {
         <button
           data-testid="control-play-pause"
           type="button"
-          class="rounded border border-white/35 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/70 hover:bg-white/10"
+          class="slideshow-control-button rounded border border-white/35 px-4 py-2 text-sm font-semibold text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('togglePlay')"
         >
           {{ isPlaying ? $t('slideshow.pause') : $t('slideshow.play') }}
@@ -560,7 +560,7 @@ onUnmounted(() => {
         <button
           data-testid="control-next"
           type="button"
-          class="rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
+          class="slideshow-control-button rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
           @click="$emit('next')"
         >
           {{ $t('slideshow.next') }}
@@ -568,17 +568,17 @@ onUnmounted(() => {
         <button
           data-testid="control-transition"
           type="button"
-          class="rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
+          class="slideshow-control-button rounded border border-white/35 px-3 py-2 text-sm text-white transition hover:border-white/70 hover:bg-white/10"
           @click="onCycleTransition"
         >
           {{ transitionLabel }}
         </button>
-        <label class="flex items-center gap-2 text-sm text-white/85">
+        <label class="slideshow-interval-group flex items-center gap-2 text-sm text-white/85">
           <span>{{ $t('slideshow.interval') }}</span>
           <select
             data-testid="control-interval"
             :value="intervalSeconds"
-            class="rounded border border-white/35 bg-black/50 px-2 py-1 text-sm text-white outline-none focus:border-white/70"
+            class="slideshow-interval-select rounded border border-white/35 bg-black/50 px-2 py-1 text-sm text-white outline-none focus:border-white/70"
             @change="onIntervalChange"
           >
             <option v-for="option in intervalOptions" :key="option" :value="option">
@@ -590,3 +590,26 @@ onUnmounted(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .slideshow-control-button,
+  .slideshow-interval-select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .slideshow-controls {
+    gap: 8px;
+  }
+
+  .slideshow-interval-group {
+    gap: 12px;
+  }
+
+  .slideshow-interval-select {
+    font-size: 16px;
+    padding-inline: 12px;
+  }
+}
+</style>

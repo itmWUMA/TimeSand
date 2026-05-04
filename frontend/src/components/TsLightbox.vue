@@ -474,7 +474,7 @@ onUnmounted(() => {
       <button
         type="button"
         data-testid="lightbox-close"
-        class="absolute right-3 top-3 z-20 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-sm text-white/70 transition hover:text-white sm:right-5 sm:top-5"
+        class="lightbox-control-button lightbox-close-button absolute right-3 top-3 z-20 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-sm text-white/70 transition hover:text-white sm:right-5 sm:top-5"
         :aria-label="$t('lightbox.close')"
         @click="requestClose"
       >
@@ -490,7 +490,7 @@ onUnmounted(() => {
             v-if="props.photos.length > 1 && canPrev"
             type="button"
             data-testid="lightbox-prev"
-            class="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 px-2.5 py-2 text-lg text-white/50 transition hover:text-white sm:left-4"
+            class="lightbox-control-button lightbox-nav-button lightbox-nav-prev absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 px-2.5 py-2 text-lg text-white/50 transition hover:text-white sm:left-4"
             :aria-label="$t('lightbox.prev')"
             @click="showPrev"
           >
@@ -513,7 +513,7 @@ onUnmounted(() => {
             v-if="props.photos.length > 1 && canNext"
             type="button"
             data-testid="lightbox-next"
-            class="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 px-2.5 py-2 text-lg text-white/50 transition hover:text-white sm:right-4"
+            class="lightbox-control-button lightbox-nav-button lightbox-nav-next absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/20 bg-black/35 px-2.5 py-2 text-lg text-white/50 transition hover:text-white sm:right-4"
             :aria-label="$t('lightbox.next')"
             @click="showNext"
           >
@@ -584,3 +584,29 @@ onUnmounted(() => {
     </section>
   </Teleport>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .lightbox-control-button {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .lightbox-close-button {
+    top: 12px;
+    right: 12px;
+  }
+
+  .lightbox-nav-prev {
+    left: 12px;
+  }
+
+  .lightbox-nav-next {
+    right: 12px;
+  }
+}
+</style>

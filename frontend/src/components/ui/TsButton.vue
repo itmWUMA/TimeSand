@@ -28,6 +28,12 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-base rounded-ts-md',
 }
 
+const mobileTouchClasses: Record<ButtonSize, string> = {
+  sm: 'ts-button--sm',
+  md: 'ts-button--md',
+  lg: 'ts-button--lg',
+}
+
 function onClick(event: MouseEvent): void {
   emit('click', event)
 }
@@ -36,11 +42,21 @@ function onClick(event: MouseEvent): void {
 <template>
   <button
     type="button"
-    class="inline-flex items-center justify-center font-semibold transition duration-fast disabled:cursor-not-allowed disabled:opacity-50"
-    :class="[variantClasses[props.variant], sizeClasses[props.size]]"
+    class="ts-button inline-flex items-center justify-center font-semibold transition duration-fast disabled:cursor-not-allowed disabled:opacity-50"
+    :class="[variantClasses[props.variant], sizeClasses[props.size], mobileTouchClasses[props.size]]"
     :disabled="props.disabled"
     @click="onClick"
   >
     <slot />
   </button>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .ts-button--sm,
+  .ts-button--md {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+</style>

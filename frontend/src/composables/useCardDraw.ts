@@ -11,10 +11,16 @@ import { useSoundEffects } from './useSoundEffects'
 
 type CeremonyState = 'IDLE' | 'DRAWING' | 'EMERGING' | 'REVEALING' | 'DISPLAYING'
 
+export interface GestureExitInfo {
+  exitX: number
+  exitRotation: number
+}
+
 const DECK_SELECTOR = '[data-draw-deck]'
 const CENTER_CARD_SELECTOR = '[data-draw-center-card]'
 const CARD_INNER_SELECTOR = '[data-card-inner]'
 const PILE_SELECTOR = '[data-draw-pile]'
+const GESTURE_WRAPPER_SELECTOR = '[data-gesture-wrapper]'
 
 const MEMORY_TEXT_SELECTOR = '[data-memory-text]'
 const DEFAULT_DRAW_ANIMATION_SPEED = 1
@@ -70,6 +76,20 @@ function removeGhost(ghost: HTMLElement | null): void {
   }
 
   ghost.remove()
+}
+
+function applyGestureExitToGhost(ghost: HTMLElement, gestureExit: GestureExitInfo): void {
+  const currentLeft = Number.parseFloat(ghost.style.left) || 0
+  ghost.style.left = `${currentLeft + gestureExit.exitX}px`
+  ghost.style.transform = `rotate(${gestureExit.exitRotation}deg)`
+  ghost.style.opacity = '0.7'
+}
+
+function restoreGestureWrapper(): void {
+  const wrapper = queryElement(GESTURE_WRAPPER_SELECTOR)
+  if (wrapper) {
+    gsap.set(wrapper, { opacity: 1 })
+  }
 }
 
 function cloneCenterCardAsGhost(source: HTMLElement | null): HTMLElement | null {
@@ -138,7 +158,7 @@ export function useCardDraw() {
     clearGhost()
   }
 
-  async function drawNextCard(): Promise<void> {
+  async function drawNextCard(gestureExit?: GestureExitInfo): Promise<void> {
     if (isDrawing.value) {
       return
     }
@@ -163,6 +183,9 @@ export function useCardDraw() {
       if (!reducedMotion && hadPreviousCard) {
         ceremonyGhost = cloneCenterCardAsGhost(queryElement(CENTER_CARD_SELECTOR))
         hiddenPileCardId.value = previousCardId
+        if (ceremonyGhost && gestureExit) {
+          applyGestureExitToGhost(ceremonyGhost, gestureExit)
+        }
       }
 
       drawStore.addDrawnCard({
@@ -192,6 +215,10 @@ export function useCardDraw() {
 
       if (centerCard) {
         gsap.set(centerCard, { y: 80, opacity: 0, scale: 0.7 })
+      }
+
+      if (gestureExit) {
+        restoreGestureWrapper()
       }
 
       if (cardInner) {
@@ -231,21 +258,44 @@ export function useCardDraw() {
 
       if (ceremonyGhost && pile) {
         const delta = computeDelta(ceremonyGhost, pile)
-        ceremonyTimeline.to(ceremonyGhost, {
-          x: delta.x * 0.72,
-          y: delta.y * 0.85,
-          scale: 0.55,
-          rotate: 8,
-          opacity: 0.72,
-          duration: dur(0.35),
-          ease: 'power2.inOut',
-        }, at(0.3))
-        ceremonyTimeline.to(ceremonyGhost, {
-          opacity: 0,
-          duration: dur(0.25),
-          ease: 'power2.in',
-          onComplete: () => clearGhost(),
-        }, at(0.65))
+        if (gestureExit) {
+          const ghostStartTime = at(0.05)
+          ceremonyTimeline.to(ceremonyGhost, {
+            x: delta.x * 0.72,
+            scale: 0.55,
+            rotate: 8,
+            duration: dur(0.35),
+            ease: 'power1.out',
+          }, ghostStartTime)
+          ceremonyTimeline.to(ceremonyGhost, {
+            y: delta.y * 0.85,
+            duration: dur(0.35),
+            ease: 'power2.in',
+          }, ghostStartTime)
+          ceremonyTimeline.to(ceremonyGhost, {
+            opacity: 0,
+            duration: dur(0.2),
+            ease: 'power2.in',
+            onComplete: () => clearGhost(),
+          }, at(0.3))
+        }
+        else {
+          ceremonyTimeline.to(ceremonyGhost, {
+            x: delta.x * 0.72,
+            y: delta.y * 0.85,
+            scale: 0.55,
+            rotate: 8,
+            opacity: 0.72,
+            duration: dur(0.35),
+            ease: 'power2.inOut',
+          }, at(0.3))
+          ceremonyTimeline.to(ceremonyGhost, {
+            opacity: 0,
+            duration: dur(0.25),
+            ease: 'power2.in',
+            onComplete: () => clearGhost(),
+          }, at(0.65))
+        }
       }
 
       if (centerCard) {
@@ -358,13 +408,16 @@ export function useCardDraw() {
     lastWeightReason.value = null
   }
 
-  async function undoLastCard(): Promise<void> {
+  async function undoLastCard(gestureExit?: GestureExitInfo): Promise<void> {
     if (isDrawing.value) {
       return
     }
 
     killCeremony()
     const outgoingGhost = cloneCenterCardAsGhost(queryElement(CENTER_CARD_SELECTOR))
+    if (outgoingGhost && gestureExit) {
+      applyGestureExitToGhost(outgoingGhost, gestureExit)
+    }
 
     const removed = drawStore.undoLastDraw()
     if (!removed) {
@@ -377,9 +430,12 @@ export function useCardDraw() {
 
     await nextTick()
 
+    if (gestureExit) {
+      restoreGestureWrapper()
+    }
+
     const reducedMotion = prefersReducedMotion()
     const centerCard = queryElement(CENTER_CARD_SELECTOR)
-    const pile = queryElement(PILE_SELECTOR)
     const speed = normalizeDrawAnimationSpeed(settingsStore.drawAnimSpeed)
     const dur = (baseDuration: number): number => scaleCeremonyDuration(baseDuration, speed)
 
@@ -424,17 +480,27 @@ export function useCardDraw() {
       hasUndoAnimation = true
     }
 
-    if (ceremonyGhost && pile) {
-      const delta = computeDelta(ceremonyGhost, pile)
-      ceremonyTimeline.to(ceremonyGhost, {
-        x: delta.x * 0.72,
-        y: delta.y * 0.85,
-        scale: 0.55,
-        rotate: 8,
-        opacity: 0.5,
-        duration: dur(0.4),
-        ease: 'power2.inOut',
-      }, 0)
+    if (ceremonyGhost) {
+      if (gestureExit) {
+        ceremonyTimeline.to(ceremonyGhost, {
+          x: gestureExit.exitX * 2,
+          rotation: gestureExit.exitRotation * 1.5,
+          opacity: 0,
+          scale: 0.85,
+          duration: dur(0.35),
+          ease: 'power2.in',
+          onComplete: () => clearGhost(),
+        }, 0)
+      }
+      else {
+        ceremonyTimeline.to(ceremonyGhost, {
+          opacity: 0,
+          scale: 0.9,
+          duration: dur(0.3),
+          ease: 'power2.in',
+          onComplete: () => clearGhost(),
+        }, 0)
+      }
       hasUndoAnimation = true
     }
 

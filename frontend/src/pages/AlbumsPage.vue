@@ -75,25 +75,25 @@ onMounted(async () => {
     </header>
 
     <form
-      class="grid gap-3 rounded-xl border border-white/10 bg-ts-panel p-4 md:grid-cols-[1fr,2fr,auto]"
+      class="album-create-form grid gap-3 rounded-xl border border-white/10 bg-ts-panel p-4 md:grid-cols-[1fr,2fr,auto]"
       @submit.prevent="handleCreateAlbum"
     >
       <input
         v-model="newName"
         type="text"
         :placeholder="$t('album.namePlaceholder')"
-        class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+        class="album-create-input rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
       >
       <input
         v-model="newDescription"
         type="text"
         :placeholder="$t('album.descPlaceholder')"
-        class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+        class="album-create-input rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
       >
       <button
         type="submit"
         :disabled="creating"
-        class="rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+        class="album-create-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
       >
         {{ creating ? $t('common.creating') : $t('common.create') }}
       </button>
@@ -117,10 +117,24 @@ onMounted(async () => {
         v-for="album in albums"
         :key="album.id"
         :to="`/albums/${album.id}`"
-        class="block"
+        class="album-card-link block"
       >
         <AlbumCard :album="album" />
       </RouterLink>
     </div>
   </section>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .album-create-input,
+  .album-create-button,
+  .album-card-link {
+    min-height: 44px;
+  }
+
+  .album-create-input {
+    font-size: 16px;
+  }
+}
+</style>
