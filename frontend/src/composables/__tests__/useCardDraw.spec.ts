@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDrawStore } from '../../stores/draw'
-import { useCardDraw } from '../useCardDraw'
+import { scaleCeremonyDuration, useCardDraw } from '../useCardDraw'
 
 interface TimelineCallRecord {
   position: number | string | undefined
@@ -124,6 +124,13 @@ describe('useCardDraw', () => {
     document.body.innerHTML = ''
   })
 
+  it('scales ceremony duration with draw animation speed', () => {
+    expect(scaleCeremonyDuration(0.6, 1)).toBeCloseTo(0.6, 5)
+    expect(scaleCeremonyDuration(0.6, 0.6)).toBeCloseTo(0.36, 5)
+    expect(scaleCeremonyDuration(0.6, 1.5)).toBeCloseTo(0.9, 5)
+    expect(scaleCeremonyDuration(0.6, 0)).toBeCloseTo(0.6, 5)
+  })
+
   it('skips ceremony timeline and sounds when reduced motion is enabled', async () => {
     vi.mocked(drawApi.drawPhoto).mockResolvedValue(drawPayload)
     mockReducedMotion(true)
@@ -135,6 +142,8 @@ describe('useCardDraw', () => {
     expect(drawApi.drawPhoto).toHaveBeenCalledWith({
       album_id: null,
       exclude_ids: [],
+      weight_mode: 'standard',
+      nearby_days: 3,
     })
     expect(cardDraw.ceremonyState.value).toBe('DISPLAYING')
     expect(cardDraw.isDrawing.value).toBe(false)
@@ -169,6 +178,8 @@ describe('useCardDraw', () => {
     expect(drawApi.drawPhoto).toHaveBeenCalledWith({
       album_id: null,
       exclude_ids: [99],
+      weight_mode: 'standard',
+      nearby_days: 3,
     })
     expect(store.drawnCards).toHaveLength(2)
     expect(cardDraw.lastWeightReason.value).toBe('3_years_ago_today')
@@ -227,6 +238,8 @@ describe('useCardDraw', () => {
     expect(drawApi.drawPhoto).toHaveBeenCalledWith({
       album_id: null,
       exclude_ids: [99],
+      weight_mode: 'standard',
+      nearby_days: 3,
     })
     expect(vi.mocked(gsapApi.gsap.timeline)).not.toHaveBeenCalled()
     expect(store.activeCard?.photo.id).toBe(99)
