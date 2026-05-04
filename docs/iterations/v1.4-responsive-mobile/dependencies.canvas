@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"g001","type":"group","x":-30,"y":-30,"width":960,"height":140,"label":"Phase 1 — Parallel","color":"4"},
+		{"id":"t01","type":"text","x":0,"y":0,"width":260,"height":80,"text":"## Task 1\nSide Drawer Navigation\n`feat/side-drawer-nav`","color":"4"},
+		{"id":"t02","type":"text","x":330,"y":0,"width":260,"height":80,"text":"## Task 2\nCard Draw Gesture Feedback\n`feat/card-draw-gesture`","color":"4"},
+		{"id":"t03","type":"text","x":660,"y":0,"width":260,"height":80,"text":"## Task 3\nMini Music Player\n`feat/mini-music-player`","color":"4"},
+		{"id":"g002","type":"group","x":200,"y":180,"width":320,"height":140,"label":"Phase 2","color":"3"},
+		{"id":"t04","type":"text","x":230,"y":210,"width":260,"height":80,"text":"## Task 4\nTouch Target Audit\n`feat/touch-target-audit`","color":"3"}
+	],
+	"edges":[
+		{"id":"e01","fromNode":"t01","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow"},
+		{"id":"e02","fromNode":"t02","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow"},
+		{"id":"e03","fromNode":"t03","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow"}
+	]
+}
