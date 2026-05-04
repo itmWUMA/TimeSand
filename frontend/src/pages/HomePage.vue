@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { GestureExitInfo } from '../composables/useCardDraw'
 import type { Album } from '../types/album'
 import type { Photo } from '../types/photo'
 
+import { gsap } from 'gsap'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import CardDeck from '../components/draw/CardDeck.vue'
 import CardPile from '../components/draw/CardPile.vue'
@@ -26,11 +28,24 @@ interface ParticleSeed {
   opacity: string
 }
 
+interface GesturePreview {
+  deltaX: number
+  rotation: number
+  indicatorOpacity: number
+}
+
+const SWIPE_THRESHOLD = 42
+const SWIPE_ROTATION_FACTOR = 0.05
+
 const drawStore = useDrawStore()
 const settingsStore = useSettingsStore()
 const { playlistId, setContext, tracks } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
+const gestureDeltaX = ref(0)
+const gestureIndicatorOpacity = ref(0)
+const gestureDirection = ref<'left' | 'right' | null>(null)
+const activeCardGestureRef = ref<HTMLElement | null>(null)
 const ceremonyContainerRef = ref<HTMLElement | null>(null)
 const photoTotal = ref(0)
 const hasPhotoStats = ref(false)
@@ -40,6 +55,11 @@ const lightboxIndex = ref(0)
 const lightboxOrigin = ref<DOMRect | null>(null)
 
 let particleTimeline: ReturnType<typeof particleDrift> | null = null
+const gesturePreview: GesturePreview = {
+  deltaX: 0,
+  rotation: 0,
+  indicatorOpacity: 0,
+}
 
 const particleSeeds: ParticleSeed[] = [
   { left: '12%', top: '22%', size: '6px', opacity: '0.34' },
@@ -75,6 +95,14 @@ const selectedAlbumValue = computed(() =>
 )
 
 const noPhotos = computed(() => hasPhotoStats.value && photoTotal.value === 0)
+const deckGestureX = computed(() => gestureDeltaX.value * 0.2)
+const deckGestureRotation = computed(() => gestureDeltaX.value * 0.01)
+const drawIndicatorOpacity = computed(() =>
+  gestureDirection.value === 'left' ? gestureIndicatorOpacity.value : 0,
+)
+const undoIndicatorOpacity = computed(() =>
+  gestureDirection.value === 'right' ? gestureIndicatorOpacity.value : 0,
+)
 
 const ceremonyClass = computed<Record<string, boolean>>(() => {
   const state = ceremonyState.value
@@ -143,8 +171,129 @@ function onAlbumChange(event: Event): void {
   drawStore.setAlbumFilter(Number.isNaN(nextValue) ? null : nextValue)
 }
 
+function applyGestureTransform(deltaX: number, rotation: number): void {
+  const target = activeCardGestureRef.value
+  if (!target) {
+    return
+  }
+
+  gsap.set(target, {
+    x: deltaX,
+    rotation,
+  })
+}
+
+function syncGesturePreview(): void {
+  gestureDeltaX.value = gesturePreview.deltaX
+  gestureIndicatorOpacity.value = gesturePreview.indicatorOpacity
+  applyGestureTransform(gesturePreview.deltaX, gesturePreview.rotation)
+}
+
+function resetGesturePreview(): void {
+  touchStartX.value = null
+  gestureDirection.value = null
+  gesturePreview.deltaX = 0
+  gesturePreview.rotation = 0
+  gesturePreview.indicatorOpacity = 0
+  syncGesturePreview()
+
+  const target = activeCardGestureRef.value
+  if (!target) {
+    return
+  }
+
+  gsap.killTweensOf(target)
+  gsap.set(target, { opacity: 1 })
+}
+
+function updateGesturePreview(deltaX: number): void {
+  gesturePreview.deltaX = deltaX
+  gesturePreview.rotation = deltaX * SWIPE_ROTATION_FACTOR
+  gesturePreview.indicatorOpacity = Math.min(1, Math.abs(deltaX) / SWIPE_THRESHOLD)
+  gestureDirection.value = deltaX < 0 ? 'left' : deltaX > 0 ? 'right' : null
+  syncGesturePreview()
+}
+
+function animateGestureReset(): Promise<void> {
+  const shouldAnimate = Math.abs(gesturePreview.deltaX) > 0.5 || gesturePreview.indicatorOpacity > 0.01
+
+  if (!shouldAnimate) {
+    resetGesturePreview()
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    gsap.killTweensOf(gesturePreview)
+    gsap.to(gesturePreview, {
+      deltaX: 0,
+      rotation: 0,
+      indicatorOpacity: 0,
+      duration: 0.4,
+      ease: 'back.out(1.7)',
+      onUpdate: syncGesturePreview,
+      onComplete: () => {
+        gestureDirection.value = null
+        touchStartX.value = null
+        resolve()
+      },
+    })
+  })
+}
+
+function animateGestureCommit(direction: 'left' | 'right'): Promise<GestureExitInfo> {
+  const target = activeCardGestureRef.value
+  if (!target) {
+    return Promise.resolve({ exitX: 0, exitRotation: 0 })
+  }
+
+  const exitX = direction === 'left' ? -180 : 180
+  const exitRotation = exitX * SWIPE_ROTATION_FACTOR
+
+  return new Promise((resolve) => {
+    gsap.killTweensOf(target)
+    gsap.to(target, {
+      x: exitX,
+      rotation: exitRotation,
+      opacity: 0,
+      duration: 0.2,
+      ease: 'power2.in',
+      onComplete: () => {
+        gsap.set(target, { x: 0, rotation: 0 })
+        resolve({ exitX, exitRotation })
+      },
+    })
+  })
+}
+
 function handleTouchStart(event: TouchEvent): void {
+  if (isDrawing.value) {
+    return
+  }
+
   touchStartX.value = event.changedTouches[0]?.clientX ?? null
+  gsap.killTweensOf(gesturePreview)
+
+  const target = activeCardGestureRef.value
+  if (!target) {
+    return
+  }
+
+  gsap.killTweensOf(target)
+  gsap.set(target, { opacity: 1 })
+}
+
+function handleTouchMove(event: TouchEvent): void {
+  const startX = touchStartX.value
+  const currentX = event.touches[0]?.clientX ?? null
+  if (startX === null || currentX === null) {
+    return
+  }
+
+  updateGesturePreview(currentX - startX)
+}
+
+async function handleTouchCancel(): Promise<void> {
+  await animateGestureReset()
 }
 
 function onCardPhotoClick(payload: { photo: Photo, rect: DOMRect }): void {
@@ -157,23 +306,28 @@ function onCardPhotoClick(payload: { photo: Photo, rect: DOMRect }): void {
 async function handleTouchEnd(event: TouchEvent): Promise<void> {
   const startX = touchStartX.value
   const endX = event.changedTouches[0]?.clientX ?? null
-  touchStartX.value = null
 
   if (startX === null || endX === null) {
+    await animateGestureReset()
     return
   }
 
   const distance = endX - startX
-  if (Math.abs(distance) < 42) {
+  if (Math.abs(distance) < SWIPE_THRESHOLD) {
+    await animateGestureReset()
     return
   }
 
-  if (distance < 0) {
-    await drawNextCard()
+  const direction = distance < 0 ? 'left' : 'right'
+  const gestureExit = await animateGestureCommit(direction)
+  resetGesturePreview()
+
+  if (direction === 'left') {
+    await drawNextCard(gestureExit)
     return
   }
 
-  await undoLastCard()
+  await undoLastCard(gestureExit)
 }
 
 async function syncPlayerContext(): Promise<void> {
@@ -223,6 +377,8 @@ onMounted(async () => {
 onUnmounted(() => {
   killCeremony()
   stopParticleDrift()
+  resetGesturePreview()
+  gsap.killTweensOf(gesturePreview)
 })
 
 watch(
@@ -263,6 +419,13 @@ watch(
     startParticleDrift()
   },
 )
+
+watch(
+  () => activeCard.value?.photo.id ?? null,
+  () => {
+    resetGesturePreview()
+  },
+)
 </script>
 
 <template>
@@ -298,7 +461,7 @@ watch(
           type="button"
           class="rounded border border-ts-accent/70 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="isDrawing"
-          @click="drawNextCard"
+          @click="drawNextCard()"
         >
           {{ isDrawing ? $t('draw.drawing') : $t('draw.drawNext') }}
         </button>
@@ -359,15 +522,38 @@ watch(
 
       <div class="relative mx-auto h-[32rem] max-w-5xl">
         <div class="absolute inset-0 flex items-center justify-center">
-          <CardDeck :disabled="isDrawing" @draw="drawNextCard" />
+          <CardDeck
+            :disabled="isDrawing"
+            :gesture-x="deckGestureX"
+            :gesture-rotation="deckGestureRotation"
+            @draw="drawNextCard"
+          />
         </div>
 
         <div
           v-if="activeCard"
+          ref="activeCardGestureRef"
+          data-gesture-wrapper
           class="absolute inset-0 z-10 flex items-center justify-center"
           @touchstart.passive="handleTouchStart"
+          @touchmove.passive="handleTouchMove"
           @touchend.passive="handleTouchEnd"
+          @touchcancel.passive="handleTouchCancel"
         >
+          <div class="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em]">
+            <span
+              class="text-ts-accent transition-opacity duration-150"
+              :style="{ opacity: drawIndicatorOpacity }"
+            >
+              抽卡 →
+            </span>
+            <span
+              class="text-ts-accent transition-opacity duration-150"
+              :style="{ opacity: undoIndicatorOpacity }"
+            >
+              → 撤销
+            </span>
+          </div>
           <DrawnCard
             :key="activeCard.photo.id"
             :card="activeCard"

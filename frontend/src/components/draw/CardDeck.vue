@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { gsap } from 'gsap'
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { glowBreath } from '../../composables/motion/transitions'
 
 const props = defineProps<{
   disabled?: boolean
+  gestureX?: number
+  gestureRotation?: number
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +17,17 @@ const deckRef = ref<HTMLElement | null>(null)
 let breathTween: gsap.core.Tween | null = null
 
 const layers = [4, 3, 2, 1]
+const gestureStyle = computed<Record<string, string> | undefined>(() => {
+  const x = props.gestureX ?? 0
+  const rotation = props.gestureRotation ?? 0
+  if (Math.abs(x) < 0.01 && Math.abs(rotation) < 0.01) {
+    return undefined
+  }
+
+  return {
+    transform: `translateX(${x}px) rotate(${rotation}deg)`,
+  }
+})
 
 function deckLayerStyle(layer: number): Record<string, string> {
   return {
@@ -64,6 +77,7 @@ watch(
     data-draw-deck
     class="group relative h-64 w-44 touch-manipulation rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-accent"
     :disabled="disabled"
+    :style="gestureStyle"
     @click="emit('draw')"
   >
     <span

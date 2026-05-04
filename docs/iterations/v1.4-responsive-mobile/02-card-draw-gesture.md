@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.4"
-status: pending
+status: done
 branch: "feat/card-draw-gesture"
 pr:
-completed:
+completed: 2026-05-04
 tags:
   - v1.4
   - responsive
