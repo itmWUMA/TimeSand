@@ -1,0 +1,20 @@
+{
+	"nodes":[
+		{"id":"g001","type":"group","x":-30,"y":-30,"width":640,"height":140,"label":"Phase 1 — Parallel","color":"4"},
+		{"id":"t01","type":"text","x":0,"y":0,"width":260,"height":80,"text":"## Task 1\nStructured Logging\n`feat/structured-logging`","color":"4"},
+		{"id":"t06","type":"text","x":330,"y":0,"width":260,"height":80,"text":"## Task 6\nCI/CD Enhancement\n`feat/ci-cd`","color":"4"},
+		{"id":"g002","type":"group","x":-30,"y":180,"width":640,"height":140,"label":"Phase 2 — Parallel","color":"6"},
+		{"id":"t02","type":"text","x":0,"y":210,"width":260,"height":80,"text":"## Task 2\nAlembic Migration\n`feat/alembic-migration`","color":"6"},
+		{"id":"t04","type":"text","x":330,"y":210,"width":260,"height":80,"text":"## Task 4\nError Handling\n`feat/error-handling`","color":"6"},
+		{"id":"g003","type":"group","x":-30,"y":390,"width":640,"height":140,"label":"Phase 3 — Parallel","color":"3"},
+		{"id":"t03","type":"text","x":0,"y":420,"width":260,"height":80,"text":"## Task 3\nDB Indexes + Cache\n`feat/db-indexes`","color":"3"},
+		{"id":"t05","type":"text","x":330,"y":420,"width":260,"height":80,"text":"## Task 5\nBackup & Restore\n`feat/backup-restore`","color":"3"}
+	],
+	"edges":[
+		{"id":"e01","fromNode":"t01","fromSide":"bottom","toNode":"t02","toSide":"top","toEnd":"arrow"},
+		{"id":"e02","fromNode":"t01","fromSide":"bottom","toNode":"t04","toSide":"top","toEnd":"arrow"},
+		{"id":"e03","fromNode":"t02","fromSide":"bottom","toNode":"t03","toSide":"top","toEnd":"arrow"},
+		{"id":"e04","fromNode":"t02","fromSide":"bottom","toNode":"t05","toSide":"top","toEnd":"arrow"},
+		{"id":"e05","fromNode":"t04","fromSide":"bottom","toNode":"t05","toSide":"top","toEnd":"arrow"}
+	]
+}

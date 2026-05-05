@@ -159,15 +159,15 @@ v0.Y.Z
 
 **目标**: 建立可持续迭代的工程基础，保障数据安全。
 
-| 任务 | 描述 | 优先级 |
-|------|------|--------|
-| GitHub Actions CI | PR 自动运行 lint + type-check + pytest + Docker build | P0 |
-| 数据库迁移 | 引入 Alembic，支持版本间的 schema 升级 | P0 |
-| 备份与恢复 | 一键导出（数据库 + 照片 + 音乐）、一键恢复 | P0 |
-| Release 自动化 | tag → build Docker image → create GitHub Release | P1 |
-| 错误处理 | 前端全局 Toast 提示、后端统一错误响应格式 | P1 |
-| 性能基线验证 | 虚拟滚动（照片网格）、缩略图缓存策略、数据库索引优化 | P1 |
-| 日志规范 | 后端结构化日志，便于排查问题 | P2 |
+| 任务                | 描述                                                | 优先级 |
+| ----------------- | ------------------------------------------------- | --- |
+| GitHub Actions CI | PR 自动运行 lint + type-check + pytest + Docker build | P0  |
+| 数据库迁移             | 引入 Alembic，支持版本间的 schema 升级                       | P0  |
+| 备份与恢复             | 一键导出（数据库 + 照片 + 音乐）、一键恢复                          | P0  |
+| Release 自动化       | tag → build Docker image → create GitHub Release  | P1  |
+| 错误处理              | 前端全局 Toast 提示、后端统一错误响应格式                          | P1  |
+| 性能基线验证            | 虚拟滚动（照片网格）、缩略图缓存策略、数据库索引优化                        | P1  |
+| 日志规范              | 后端结构化日志，便于排查问题                                    | P2  |
 
 ---
 
