@@ -4,11 +4,15 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from app.core.logging import normalize_log_format, normalize_log_level
+
 
 @dataclass(slots=True)
 class Settings:
     data_dir: Path = field(default_factory=lambda: Path(os.getenv("DATA_DIR", "../data")).resolve())
     cors_origins: list[str] = field(default_factory=list)
+    log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
+    log_format: str = field(default_factory=lambda: os.getenv("LOG_FORMAT", "json"))
     enable_demo_seed: bool = field(
         default_factory=lambda: os.getenv("ENABLE_DEMO_SEED", "true").lower()
         not in {"0", "false", "no", "off"}
@@ -17,6 +21,8 @@ class Settings:
     def __post_init__(self) -> None:
         cors_value = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
         self.cors_origins = [origin.strip() for origin in cors_value.split(",") if origin.strip()]
+        self.log_level = normalize_log_level(self.log_level)
+        self.log_format = normalize_log_format(self.log_format)
 
     @property
     def database_path(self) -> Path:

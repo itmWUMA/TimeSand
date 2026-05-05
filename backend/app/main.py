@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -21,9 +22,13 @@ from app.api.tags import router as tags_router
 from app.core import database as database_module
 from app.core.config import settings
 from app.core.database import create_db_and_tables
+from app.core.logging import get_logger, setup_logging
 from app.models.music import Playlist
 from app.services.demo_service import seed_demo_data
 from app.services.photo_service import ensure_storage_directories
+
+
+logger = get_logger(__name__)
 
 
 def ensure_data_directories() -> None:
@@ -58,8 +63,25 @@ def resolve_frontend_dist() -> Path | None:
     return None
 
 
+def resolve_app_version() -> str:
+    try:
+        return version("timesand-backend")
+    except PackageNotFoundError:
+        return "unknown"
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    setup_logging(log_level=settings.log_level, log_format=settings.log_format)
+    logger.info(
+        "app_started",
+        version=resolve_app_version(),
+        data_dir=settings.data_dir.as_posix(),
+        log_level=settings.log_level,
+        log_format=settings.log_format,
+        demo_seed_enabled=settings.enable_demo_seed,
+        cors_origins_count=len(settings.cors_origins),
+    )
     ensure_data_directories()
     create_db_and_tables()
     ensure_storage_directories()
