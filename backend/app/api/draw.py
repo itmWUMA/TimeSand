@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session
 
 from app.core.database import get_session
+from app.core.logging import get_logger
 from app.models.photo import Photo
 from app.services import draw_service
 from app.services.draw_service import NoAvailablePhotosError
 
 router = APIRouter(prefix="/api/draw", tags=["draw"])
+logger = get_logger(__name__)
 
 
 class DrawRequest(BaseModel):
@@ -52,6 +54,15 @@ def draw_card(
     except NoAvailablePhotosError as exc:
         raise HTTPException(status_code=404, detail="No more photos available to draw") from exc
 
+    logger.info(
+        "card_drawn",
+        photo_id=photo.id,
+        album_id=request.album_id,
+        exclude_count=len(request.exclude_ids),
+        weight_mode=request.weight_mode,
+        nearby_days=request.nearby_days,
+        weight_reason=weight_reason,
+    )
     return DrawResponse(photo=photo, weight_reason=weight_reason)
 
 
