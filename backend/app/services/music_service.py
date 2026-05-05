@@ -6,6 +6,7 @@ from uuid import uuid4
 from mutagen import File as MutagenFile, MutagenError
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.models.music import Music
 
 ALLOWED_MIME_TYPES: dict[str, str] = {
@@ -22,6 +23,9 @@ ALLOWED_MIME_TYPES: dict[str, str] = {
 
 class InvalidMusicUploadError(ValueError):
     pass
+
+
+logger = get_logger(__name__)
 
 
 def music_directory() -> Path:
@@ -58,6 +62,14 @@ def create_music_from_upload(filename: str | None, mime_type: str | None, data: 
         raise
 
     fallback_name = Path(filename or storage_name).stem
+    logger.info(
+        "music_uploaded",
+        filename=filename or storage_name,
+        file_path=storage_name,
+        mime_type=normalized_mime_type,
+        file_size=len(data),
+        duration=duration,
+    )
     return Music(
         title=title or fallback_name,
         artist=artist,
