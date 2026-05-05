@@ -11,9 +11,11 @@ from PIL.ExifTags import GPSTAGS
 from pillow_heif import register_heif_opener
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.models.photo import Photo
 
 register_heif_opener()
+logger = get_logger(__name__)
 
 ALLOWED_MIME_TYPES: dict[str, str] = {
     "image/jpeg": ".jpg",
@@ -93,24 +95,27 @@ def resolve_upload_mime_type_and_suffix(
 
 
 def create_photo_from_upload(filename: str | None, mime_type: str | None, data: bytes) -> Photo:
-    normalized_mime_type, suffix = resolve_upload_mime_type_and_suffix(
-        filename=filename,
-        mime_type=mime_type
-    )
-
-    if not data:
-        raise InvalidPhotoUploadError("Empty upload")
-
-    ensure_storage_directories()
-
-    is_heic = normalized_mime_type in {
-        "image/heic",
-        "image/heif",
-        "image/heic-sequence",
-        "image/heif-sequence"
-    }
+    normalized_mime_type = ""
+    source_mime_type = (mime_type or "").lower()
 
     try:
+        normalized_mime_type, suffix = resolve_upload_mime_type_and_suffix(
+            filename=filename,
+            mime_type=mime_type
+        )
+
+        if not data:
+            raise InvalidPhotoUploadError("Empty upload")
+
+        ensure_storage_directories()
+
+        is_heic = normalized_mime_type in {
+            "image/heic",
+            "image/heif",
+            "image/heic-sequence",
+            "image/heif-sequence"
+        }
+
         with Image.open(BytesIO(data)) as image:
             image.load()
 
@@ -136,6 +141,12 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
                 data = converted_buffer.getvalue()
                 suffix = ".jpg"
                 normalized_mime_type = "image/jpeg"
+                logger.info(
+                    "heic_converted",
+                    filename=filename,
+                    source_mime_type=source_mime_type,
+                    output_mime_type=normalized_mime_type,
+                )
 
             storage_id = str(uuid4())
             original_name = f"{storage_id}{suffix}"
@@ -152,21 +163,47 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
                 thumbnail_path.unlink(missing_ok=True)
                 raise
 
-    except UnidentifiedImageError as exc:
-        raise InvalidPhotoUploadError("Invalid image file") from exc
+        logger.info(
+            "photo_uploaded",
+            filename=filename or original_name,
+            file_path=original_name,
+            thumbnail_path=thumbnail_name,
+            mime_type=normalized_mime_type,
+            file_size=len(data),
+            width=width,
+            height=height,
+        )
 
-    return Photo(
-        filename=filename or original_name,
-        file_path=original_name,
-        thumbnail_path=thumbnail_name,
-        file_size=len(data),
-        width=width,
-        height=height,
-        taken_at=taken_at,
-        latitude=latitude,
-        longitude=longitude,
-        mime_type=normalized_mime_type
-    )
+        return Photo(
+            filename=filename or original_name,
+            file_path=original_name,
+            thumbnail_path=thumbnail_name,
+            file_size=len(data),
+            width=width,
+            height=height,
+            taken_at=taken_at,
+            latitude=latitude,
+            longitude=longitude,
+            mime_type=normalized_mime_type
+        )
+    except UnidentifiedImageError as exc:
+        logger.error(
+            "photo_upload_failed",
+            filename=filename,
+            mime_type=source_mime_type,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        raise InvalidPhotoUploadError("Invalid image file") from exc
+    except Exception as exc:
+        logger.error(
+            "photo_upload_failed",
+            filename=filename,
+            mime_type=normalized_mime_type or source_mime_type,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        raise
 
 
 def save_thumbnail(image: Image.Image, path: Path, suffix: str) -> None:
@@ -178,6 +215,13 @@ def save_thumbnail(image: Image.Image, path: Path, suffix: str) -> None:
         thumbnail = thumbnail.convert("RGB")
 
     thumbnail.save(path, format=format_name)
+    logger.info(
+        "thumbnail_generated",
+        thumbnail_path=path.name,
+        width=thumbnail.width,
+        height=thumbnail.height,
+        image_format=format_name.lower(),
+    )
 
 
 def extract_exif_metadata(image: Image.Image) -> tuple[datetime | None, float | None, float | None]:

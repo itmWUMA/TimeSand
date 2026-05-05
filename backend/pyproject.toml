@@ -12,6 +12,7 @@ dependencies = [
   "pillow-heif>=0.18.0",
   "python-multipart>=0.0.9",
   "mutagen>=1.47.0",
+  "structlog>=25.4.0",
 ]
 
 [dependency-groups]

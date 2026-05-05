@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.5"
-status: pending
+status: done
 branch: "feat/structured-logging"
 pr:
-completed:
+completed: 2026-05-05
 tags:
   - v1.5
   - infrastructure
