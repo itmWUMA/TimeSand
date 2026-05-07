@@ -147,6 +147,47 @@ describe('musicPlayer', () => {
     expect(wrapper.find('[data-testid="music-player"]').attributes('data-expanded')).toBe('false')
   })
 
+  it('updates main padding variable from measured player height', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+
+    const store = usePlayerStore()
+    store.loadPlaylist({
+      playlistId: 1,
+      playlistName: 'Default Playlist',
+      tracks: [
+        {
+          id: 1,
+          title: 'Quiet Sea',
+          artist: 'TimeSand',
+          filename: 'quiet-sea.mp3',
+          file_path: 'quiet-sea.mp3',
+          file_size: 1024,
+          duration: 110,
+          mime_type: 'audio/mpeg',
+          uploaded_at: '2026-04-10T09:00:00Z',
+        },
+      ],
+    })
+
+    const wrapper = mountWithI18n(MusicPlayer, {
+      global: {
+        plugins: [pinia],
+      },
+    })
+    await nextTick()
+
+    const root = wrapper.get('[data-testid="music-player"]').element as HTMLElement
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 1200, 111),
+    )
+
+    await wrapper.find('[data-testid="music-player-expand-toggle"]').trigger('click')
+    await nextTick()
+
+    expect(document.documentElement.style.getPropertyValue('--ts-player-main-padding')).toBe('127px')
+  })
+
   it('renders mobile mini bar by default on small viewports', () => {
     stubViewport(true)
 
