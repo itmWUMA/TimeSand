@@ -7,9 +7,8 @@ import { useMusicPlayer } from '../composables/useMusicPlayer'
 const EXPAND_STORAGE_KEY = 'ts-player-expanded'
 const MAIN_PADDING_VARIABLE = '--ts-player-main-padding'
 const MOBILE_MEDIA_QUERY = '(max-width: 767px)'
-const COLLAPSED_PADDING = '5rem'
-const MOBILE_EXPANDED_PADDING = '14.5rem'
-const EXPANDED_PADDING = '10rem'
+const FALLBACK_MAIN_PADDING = '5rem'
+const MAIN_PADDING_EXTRA_PX = 16
 
 const { t } = useI18n()
 
@@ -35,6 +34,7 @@ const {
 const isExpanded = ref(false)
 const isMobileExpanded = ref(false)
 const isMobileViewport = ref(false)
+const playerRootRef = ref<HTMLElement | null>(null)
 const mobileExpandedRef = ref<HTMLElement | null>(null)
 const mobileExpandedInnerRef = ref<HTMLElement | null>(null)
 const hasTracks = computed(() => tracks.value.length > 0)
@@ -83,19 +83,34 @@ const mobileMiniSafeAreaStyle = computed(() => ({
 
 let mobileMediaQueryList: MediaQueryList | null = null
 let mobileMediaQueryListener: ((event: MediaQueryListEvent) => void) | null = null
+let playerResizeObserver: ResizeObserver | null = null
 let mobilePanelReady = false
 
 function syncMainPadding(): void {
-  const isPanelExpanded = isMobileViewport.value ? isMobileExpanded.value : isExpanded.value
-  const padding = isMobileViewport.value
-    ? isPanelExpanded && hasTracks.value
-      ? MOBILE_EXPANDED_PADDING
-      : COLLAPSED_PADDING
-    : isPanelExpanded && hasTracks.value
-      ? EXPANDED_PADDING
-      : COLLAPSED_PADDING
+  const playerHeight = playerRootRef.value?.getBoundingClientRect().height ?? 0
+  if (playerHeight <= 0) {
+    document.documentElement.style.setProperty(MAIN_PADDING_VARIABLE, FALLBACK_MAIN_PADDING)
+    return
+  }
 
-  document.documentElement.style.setProperty(MAIN_PADDING_VARIABLE, padding)
+  const paddingPx = Math.ceil(playerHeight + MAIN_PADDING_EXTRA_PX)
+  document.documentElement.style.setProperty(MAIN_PADDING_VARIABLE, `${paddingPx}px`)
+}
+
+function setupPlayerResizeObserver(): void {
+  if (typeof ResizeObserver === 'undefined') {
+    return
+  }
+
+  const playerRoot = playerRootRef.value
+  if (!playerRoot) {
+    return
+  }
+
+  playerResizeObserver = new ResizeObserver(() => {
+    syncMainPadding()
+  })
+  playerResizeObserver.observe(playerRoot)
 }
 
 function readStoredExpanded(): boolean {
@@ -266,9 +281,10 @@ function setupMobileMediaQuery(): void {
 onMounted(async () => {
   isExpanded.value = readStoredExpanded()
   setupMobileMediaQuery()
-  syncMainPadding()
   await nextTick()
   syncMobileExpandedVisibility()
+  setupPlayerResizeObserver()
+  syncMainPadding()
   mobilePanelReady = true
 })
 
@@ -296,6 +312,8 @@ watch(() => isMobileExpanded.value && hasTracks.value, (shouldExpand) => {
 
 onBeforeUnmount(() => {
   document.documentElement.style.removeProperty(MAIN_PADDING_VARIABLE)
+  playerResizeObserver?.disconnect()
+  playerResizeObserver = null
 
   if (mobileMediaQueryList && mobileMediaQueryListener) {
     if (typeof mobileMediaQueryList.removeEventListener === 'function') {
@@ -318,6 +336,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section
+    ref="playerRootRef"
     data-testid="music-player"
     :data-expanded="expandedState"
     class="border-t border-white/10 bg-ts-panel/95 text-ts-text shadow-[0_-8px_24px_rgba(0,0,0,0.35)] backdrop-blur"
