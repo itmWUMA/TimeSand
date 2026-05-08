@@ -43,6 +43,14 @@ export default {
     slideshow: '幻灯片',
     settings: '设置',
   },
+  error: {
+    network: '\u65E0\u6CD5\u8FDE\u63A5\u5230\u670D\u52A1\u5668',
+    unknown: '\u53D1\u751F\u672A\u77E5\u9519\u8BEF',
+    fileTooLarge: '\u6587\u4EF6\u8D85\u51FA\u5927\u5C0F\u9650\u5236',
+    permissionDenied: '\u6CA1\u6709\u6743\u9650\u6267\u884C\u6B64\u64CD\u4F5C',
+    notFound: '\u672A\u627E\u5230\u8D44\u6E90',
+    server: '\u670D\u52A1\u5668\u9519\u8BEF\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5',
+  },
   photo: {
     uploadTitle: '上传',
     uploadDesc: '批量上传你的回忆，并即时预览。',

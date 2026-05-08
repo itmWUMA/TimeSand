@@ -4,9 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import MobileDrawer from '../components/MobileDrawer.vue'
 import MusicPlayer from '../components/MusicPlayer.vue'
+import TsToast from '../components/ui/TsToast.vue'
+import TsToastProvider from '../components/ui/TsToastProvider.vue'
+import { useToast } from '../composables/useToast'
 
 const route = useRoute()
 const { locale, t } = useI18n()
+const { toasts, dismissToast } = useToast()
 const mobileOpen = ref(false)
 const isMobileViewport = ref(true)
 const isFullscreenRoute = computed(() => route.name === 'slideshow')
@@ -56,6 +60,11 @@ function handleMobileViewportChange(event: MediaQueryListEvent): void {
   isMobileViewport.value = !event.matches
   if (event.matches)
     mobileOpen.value = false
+}
+
+function handleToastOpenChange(toastId: string, isOpen: boolean): void {
+  if (!isOpen)
+    dismissToast(toastId)
 }
 
 onMounted(() => {
@@ -155,5 +164,17 @@ onBeforeUnmount(() => {
       v-if="!isFullscreenRoute"
       class="fixed inset-x-0 bottom-0 z-40 md:left-72"
     />
+
+    <TsToastProvider>
+      <TsToast
+        v-for="toast in toasts"
+        :key="toast.id"
+        :open="true"
+        :title="toast.title"
+        :description="toast.description"
+        :variant="toast.variant"
+        @update:open="(open) => handleToastOpenChange(toast.id, open)"
+      />
+    </TsToastProvider>
   </div>
 </template>

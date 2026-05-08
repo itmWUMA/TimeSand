@@ -110,7 +110,11 @@ def test_upload_rejects_non_image(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid image files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid image files provided",
+        "status_code": 400,
+    }
 
 
 def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -122,7 +126,11 @@ def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.M
     )
 
     assert response.status_code == 413
-    assert response.json() == {"detail": "File too large"}
+    assert response.json() == {
+        "error": "file_too_large",
+        "message": "File too large",
+        "status_code": 413,
+    }
 
 
 def test_upload_heic_converts_to_jpeg(client: TestClient) -> None:
@@ -265,7 +273,11 @@ def test_get_photo_by_id_and_404(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["id"] == photo["id"]
     assert missing_response.status_code == 404
-    assert missing_response.json() == {"detail": "Photo not found"}
+    assert missing_response.json() == {
+        "error": "not_found",
+        "message": "Photo not found",
+        "status_code": 404,
+    }
 
 
 def test_get_file_and_thumbnail(client: TestClient) -> None:
