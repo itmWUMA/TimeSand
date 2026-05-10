@@ -2,9 +2,9 @@
 type: task
 iteration: "1.5"
 status: pending
-branch: "feat/ci-cd"
+branch: feat/ci-cd
 pr:
-completed:
+completed: 2026-05-10
 tags:
   - v1.5
   - infrastructure
