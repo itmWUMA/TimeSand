@@ -3,9 +3,11 @@ import type { StorageInfo } from '../services/settings'
 import type { Album } from '../types/album'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TsButton, TsSelect } from '../components/ui'
+import { TsButton, TsDialog, TsSelect } from '../components/ui'
 import { useSoundEffects } from '../composables/useSoundEffects'
+import { useToast } from '../composables/useToast'
 import { listAlbums } from '../services/album'
+import { exportBackup, importBackup } from '../services/backup'
 import { getStorageInfo } from '../services/settings'
 import {
   DRAW_ANIMATION_SPEED_OPTIONS,
@@ -17,6 +19,7 @@ import { DRAW_WEIGHT_MODES } from '../types/draw'
 
 const settingsStore = useSettingsStore()
 const soundEffects = useSoundEffects()
+const { showToast } = useToast()
 const { t, locale } = useI18n()
 
 const loadingStorage = ref(false)
@@ -25,6 +28,13 @@ const errorMessage = ref<string | null>(null)
 const loadingAlbums = ref(false)
 const albums = ref<Album[]>([])
 const sfxVolumePercent = ref(Math.round(soundEffects.getVolume() * 100))
+const backupFileInput = ref<HTMLInputElement | null>(null)
+const selectedBackupFile = ref<File | null>(null)
+const isExportingBackup = ref(false)
+const exportBackupProgress = ref(0)
+const isImportingBackup = ref(false)
+const importBackupProgress = ref(0)
+const isRestoreDialogOpen = ref(false)
 
 const appVersion = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
 const localeOptions = [
@@ -114,6 +124,7 @@ const drawDefaultAlbumValue = computed({
 })
 
 const isSfxMuted = computed(() => soundEffects.isMuted.value)
+const selectedBackupFilename = computed(() => selectedBackupFile.value?.name ?? '')
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
@@ -184,6 +195,103 @@ function toggleSfxMute(): void {
   }
 
   soundEffects.mute()
+}
+
+function triggerBrowserDownload(blob: Blob, filename: string): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return
+  }
+
+  const objectUrl = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  // Delay revoke to ensure download starts on slower browsers
+  setTimeout(() => {
+    window.URL.revokeObjectURL(objectUrl)
+  }, 100)
+}
+
+async function onExportBackup(): Promise<void> {
+  isExportingBackup.value = true
+  exportBackupProgress.value = 0
+
+  try {
+    const payload = await exportBackup((progress) => {
+      exportBackupProgress.value = progress
+    })
+    triggerBrowserDownload(payload.blob, payload.filename)
+    showToast(t('settings.backup.exportSuccess'), undefined, 'success')
+  }
+  finally {
+    isExportingBackup.value = false
+    exportBackupProgress.value = 0
+  }
+}
+
+function onImportBackupClick(): void {
+  backupFileInput.value?.click()
+}
+
+function onBackupFileSelected(event: Event): void {
+  const target = event.target as HTMLInputElement
+  const selected = target.files?.[0]
+  target.value = ''
+
+  if (!selected) {
+    return
+  }
+
+  selectedBackupFile.value = selected
+  importBackupProgress.value = 0
+  isRestoreDialogOpen.value = true
+}
+
+function closeRestoreDialog(): void {
+  if (isImportingBackup.value) {
+    return
+  }
+
+  isRestoreDialogOpen.value = false
+  selectedBackupFile.value = null
+  importBackupProgress.value = 0
+}
+
+function onRestoreDialogOpenChange(value: boolean): void {
+  if (value) {
+    isRestoreDialogOpen.value = true
+    return
+  }
+
+  closeRestoreDialog()
+}
+
+async function onConfirmRestoreBackup(): Promise<void> {
+  const file = selectedBackupFile.value
+  if (!file) {
+    return
+  }
+
+  isImportingBackup.value = true
+  importBackupProgress.value = 0
+
+  try {
+    const payload = await importBackup(file, (progress) => {
+      importBackupProgress.value = progress
+    })
+    showToast(t('settings.backup.restoreSuccess'), payload.message, 'success', 8000)
+    isRestoreDialogOpen.value = false
+    selectedBackupFile.value = null
+    await loadStorageInfo()
+  }
+  finally {
+    isImportingBackup.value = false
+    importBackupProgress.value = 0
+  }
 }
 
 onMounted(async () => {
@@ -283,6 +391,95 @@ onMounted(async () => {
           </p>
         </article>
       </div>
+    </section>
+
+    <section
+      data-testid="settings-backup-section"
+      class="space-y-4 rounded-xl border border-white/10 bg-ts-panel p-4"
+    >
+      <h2 class="text-xl font-semibold text-ts-accent">
+        {{ $t('settings.dataManagement') }}
+      </h2>
+      <p class="text-sm text-ts-muted">
+        {{ $t('settings.dataManagementDescription') }}
+      </p>
+
+      <div class="grid gap-3 lg:grid-cols-2">
+        <article class="space-y-3 rounded border border-white/10 bg-ts-panelSoft px-4 py-4">
+          <div class="space-y-1">
+            <h3 class="text-sm font-semibold text-ts-text">
+              {{ $t('settings.backup.exportTitle') }}
+            </h3>
+            <p class="text-xs text-ts-muted">
+              {{ $t('settings.backup.exportDescription') }}
+            </p>
+          </div>
+
+          <TsButton
+            :disabled="isExportingBackup || isImportingBackup"
+            @click="onExportBackup"
+          >
+            {{ isExportingBackup ? $t('settings.backup.exporting') : $t('settings.backup.exportAction') }}
+          </TsButton>
+
+          <div
+            v-if="isExportingBackup"
+            class="space-y-2 rounded border border-ts-accent/20 bg-black/20 px-3 py-2"
+          >
+            <p class="text-xs text-ts-muted">
+              {{ $t('settings.backup.downloadProgress', { progress: exportBackupProgress }) }}
+            </p>
+            <div class="h-2 overflow-hidden rounded bg-white/10">
+              <div
+                class="h-full bg-ts-accent transition-all duration-200"
+                :style="{ width: `${exportBackupProgress}%` }"
+              />
+            </div>
+          </div>
+        </article>
+
+        <article class="space-y-3 rounded border border-white/10 bg-ts-panelSoft px-4 py-4">
+          <div class="space-y-1">
+            <h3 class="text-sm font-semibold text-ts-text">
+              {{ $t('settings.backup.importTitle') }}
+            </h3>
+            <p class="text-xs text-ts-muted">
+              {{ $t('settings.backup.importDescription') }}
+            </p>
+          </div>
+
+          <TsButton
+            variant="secondary"
+            :disabled="isExportingBackup || isImportingBackup"
+            @click="onImportBackupClick"
+          >
+            {{ isImportingBackup ? $t('settings.backup.restoring') : $t('settings.backup.importAction') }}
+          </TsButton>
+
+          <div
+            v-if="isImportingBackup"
+            class="space-y-2 rounded border border-ts-accent/20 bg-black/20 px-3 py-2"
+          >
+            <p class="text-xs text-ts-muted">
+              {{ $t('settings.backup.uploadProgress', { progress: importBackupProgress }) }}
+            </p>
+            <div class="h-2 overflow-hidden rounded bg-white/10">
+              <div
+                class="h-full bg-ts-accent transition-all duration-200"
+                :style="{ width: `${importBackupProgress}%` }"
+              />
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <input
+        ref="backupFileInput"
+        type="file"
+        accept=".zip,application/zip"
+        class="hidden"
+        @change="onBackupFileSelected"
+      >
     </section>
 
     <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
@@ -405,5 +602,56 @@ onMounted(async () => {
         {{ $t('settings.github') }}
       </a>
     </section>
+
+    <TsDialog
+      :open="isRestoreDialogOpen"
+      :title="$t('settings.backup.confirmTitle')"
+      :description="$t('settings.backup.confirmDescription')"
+      @update:open="onRestoreDialogOpenChange"
+    >
+      <div
+        data-testid="settings-restore-dialog"
+        class="space-y-4"
+      >
+        <p class="rounded border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {{ $t('settings.backup.confirmWarning') }}
+        </p>
+        <p class="text-sm text-ts-muted">
+          {{ $t('settings.backup.selectedFile', { filename: selectedBackupFilename || '-' }) }}
+        </p>
+
+        <div v-if="isImportingBackup" class="space-y-2">
+          <p class="text-xs text-ts-muted">
+            {{ $t('settings.backup.uploadProgress', { progress: importBackupProgress }) }}
+          </p>
+          <div class="h-2 overflow-hidden rounded bg-white/10">
+            <div
+              class="h-full bg-ts-accent transition-all duration-200"
+              :style="{ width: `${importBackupProgress}%` }"
+            />
+          </div>
+        </div>
+
+        <p class="text-xs text-ts-muted">
+          {{ $t('settings.backup.restartHint') }}
+        </p>
+
+        <div class="flex items-center justify-end gap-2">
+          <TsButton
+            variant="ghost"
+            :disabled="isImportingBackup"
+            @click="closeRestoreDialog"
+          >
+            {{ $t('common.cancel') }}
+          </TsButton>
+          <TsButton
+            :disabled="isImportingBackup || !selectedBackupFile"
+            @click="onConfirmRestoreBackup"
+          >
+            {{ isImportingBackup ? $t('settings.backup.restoring') : $t('settings.backup.confirmAction') }}
+          </TsButton>
+        </div>
+      </div>
+    </TsDialog>
   </section>
 </template>

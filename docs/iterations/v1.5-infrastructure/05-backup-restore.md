@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.5"
-status: pending
+status: done
 branch: "feat/backup-restore"
 pr:
-completed:
+completed: "2026-05-10"
 tags:
   - v1.5
   - infrastructure
