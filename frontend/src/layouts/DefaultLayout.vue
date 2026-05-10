@@ -173,6 +173,7 @@ onBeforeUnmount(() => {
         :title="toast.title"
         :description="toast.description"
         :variant="toast.variant"
+        :duration="toast.durationMs"
         @update:open="(open) => handleToastOpenChange(toast.id, open)"
       />
     </TsToastProvider>

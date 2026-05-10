@@ -7,24 +7,16 @@ export interface ToastItem {
   title: string
   description?: string
   variant: ToastVariant
+  durationMs: number
 }
 
 const DEFAULT_TOAST_DURATION_MS = 5000
-const toastTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 function createToastId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
     return crypto.randomUUID()
 
   return `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function clearToastTimer(toastId: string): void {
-  const timer = toastTimers.get(toastId)
-  if (timer) {
-    clearTimeout(timer)
-    toastTimers.delete(toastId)
-  }
 }
 
 export const useToastStore = defineStore('toast', {
@@ -44,22 +36,15 @@ export const useToastStore = defineStore('toast', {
         title,
         description,
         variant,
+        durationMs: Math.max(0, durationMs),
       })
-
-      const timeout = setTimeout(() => {
-        this.dismissToast(toastId)
-      }, Math.max(0, durationMs))
-      toastTimers.set(toastId, timeout)
 
       return toastId
     },
     dismissToast(toastId: string): void {
-      clearToastTimer(toastId)
       this.toasts = this.toasts.filter(toast => toast.id !== toastId)
     },
     clearToasts(): void {
-      for (const toast of this.toasts)
-        clearToastTimer(toast.id)
       this.toasts = []
     },
   },
@@ -80,5 +65,4 @@ export function useToast() {
 export function __resetToastForTests(): void {
   const toastStore = useToastStore()
   toastStore.clearToasts()
-  toastTimers.clear()
 }
