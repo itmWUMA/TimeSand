@@ -97,6 +97,8 @@ describe('settingsPage', () => {
     expect(wrapper.text()).toContain('Card Draw')
     expect(wrapper.text()).toContain('Sound Effects')
     expect(listAlbums).toHaveBeenCalledTimes(1)
+
+    wrapper.unmount()
   })
 
   it('shows restore confirmation dialog before uploading backup', async () => {
@@ -124,5 +126,7 @@ describe('settingsPage', () => {
     expect(renderedText).toContain('restore-target.zip')
     expect(renderedText).toContain('This will replace all existing data')
     expect(importBackup).not.toHaveBeenCalled()
+
+    wrapper.unmount()
   })
 })

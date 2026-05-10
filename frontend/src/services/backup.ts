@@ -23,7 +23,12 @@ function resolveExportFilename(contentDisposition?: string): string | null {
 
   const utf8Match = UTF8_FILENAME_REGEX.exec(contentDisposition)
   if (utf8Match?.[1]) {
-    return decodeURIComponent(utf8Match[1])
+    try {
+      return decodeURIComponent(utf8Match[1])
+    }
+    catch {
+      // Fall through to fallback if decoding fails
+    }
   }
 
   const fallbackMatch = FILENAME_REGEX.exec(contentDisposition)

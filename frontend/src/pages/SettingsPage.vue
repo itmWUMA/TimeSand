@@ -210,7 +210,10 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
   document.body.appendChild(link)
   link.click()
   link.remove()
-  window.URL.revokeObjectURL(objectUrl)
+  // Delay revoke to ensure download starts on slower browsers
+  setTimeout(() => {
+    window.URL.revokeObjectURL(objectUrl)
+  }, 100)
 }
 
 async function onExportBackup(): Promise<void> {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
@@ -17,6 +17,7 @@ from app.services.backup_service import (
 
 router = APIRouter(prefix="/api/backup", tags=["backup"])
 UPLOAD_CHUNK_SIZE = 1024 * 1024
+MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500MB
 
 
 class BackupImportResponse(BaseModel):
@@ -45,11 +46,19 @@ async def save_upload_to_temporary_zip(upload: UploadFile) -> Path:
     with NamedTemporaryFile(prefix="timesand-restore-", suffix=".zip", delete=False) as temp_file:
         temp_path = Path(temp_file.name)
 
+    total_bytes = 0
     with temp_path.open("wb") as file_pointer:
         while True:
             chunk = await upload.read(UPLOAD_CHUNK_SIZE)
             if not chunk:
                 break
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                temp_path.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Upload exceeds maximum size of {MAX_UPLOAD_BYTES} bytes",
+                )
             file_pointer.write(chunk)
 
     return temp_path

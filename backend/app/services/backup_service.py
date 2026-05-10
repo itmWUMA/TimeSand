@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import sqlite3
+import threading
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -26,6 +27,9 @@ logger = get_logger(__name__)
 DATABASE_ARC_NAME = "timesand.db"
 PHOTO_ARC_PREFIX = "photos/originals/"
 MUSIC_ARC_PREFIX = "music/files/"
+
+# Global lock for backup operations to prevent concurrent import/export
+_backup_lock = threading.Lock()
 
 
 class BackupError(RuntimeError):
@@ -69,54 +73,60 @@ def build_backup_download_filename() -> str:
 
 
 def create_backup_archive() -> Path:
-    started_at = perf_counter()
-    snapshot_db_path = _create_database_snapshot_file()
+    if not _backup_lock.acquire(blocking=False):
+        raise BackupExportError("Another backup operation is in progress")
 
     try:
-        with NamedTemporaryFile(prefix="timesand-backup-", suffix=".zip", delete=False) as temp_file:
-            archive_path = Path(temp_file.name)
+        started_at = perf_counter()
+        snapshot_db_path = _create_database_snapshot_file()
 
-        photo_count = 0
-        music_count = 0
+        try:
+            with NamedTemporaryFile(prefix="timesand-backup-", suffix=".zip", delete=False) as temp_file:
+                archive_path = Path(temp_file.name)
 
-        logger.info("backup_export_started")
+            photo_count = 0
+            music_count = 0
 
-        with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            archive.write(snapshot_db_path, DATABASE_ARC_NAME)
-            archive.writestr(PHOTO_ARC_PREFIX, b"")
-            archive.writestr(MUSIC_ARC_PREFIX, b"")
+            logger.info("backup_export_started")
 
-            photo_count = _add_directory_to_archive(
-                archive=archive,
-                source_dir=originals_directory(),
-                arc_prefix=PHOTO_ARC_PREFIX,
+            with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.write(snapshot_db_path, DATABASE_ARC_NAME)
+                archive.writestr(PHOTO_ARC_PREFIX, b"")
+                archive.writestr(MUSIC_ARC_PREFIX, b"")
+
+                photo_count = _add_directory_to_archive(
+                    archive=archive,
+                    source_dir=originals_directory(),
+                    arc_prefix=PHOTO_ARC_PREFIX,
+                )
+                music_count = _add_directory_to_archive(
+                    archive=archive,
+                    source_dir=music_directory(),
+                    arc_prefix=MUSIC_ARC_PREFIX,
+                )
+
+            duration_ms = int((perf_counter() - started_at) * 1000)
+            logger.info(
+                "backup_export_completed",
+                size_bytes=archive_path.stat().st_size,
+                photo_count=photo_count,
+                music_count=music_count,
+                duration_ms=duration_ms,
             )
-            music_count = _add_directory_to_archive(
-                archive=archive,
-                source_dir=music_directory(),
-                arc_prefix=MUSIC_ARC_PREFIX,
+            return archive_path
+        except Exception as exc:
+            logger.error(
+                "backup_export_failed",
+                error_type=type(exc).__name__,
+                error=str(exc),
             )
-
-        duration_ms = int((perf_counter() - started_at) * 1000)
-        logger.info(
-            "backup_export_completed",
-            size_bytes=archive_path.stat().st_size,
-            photo_count=photo_count,
-            music_count=music_count,
-            duration_ms=duration_ms,
-        )
-        return archive_path
-    except Exception as exc:
-        logger.error(
-            "backup_export_failed",
-            error_type=type(exc).__name__,
-            error=str(exc),
-        )
-        if "archive_path" in locals():
-            archive_path.unlink(missing_ok=True)
-        raise BackupExportError("Failed to export backup archive") from exc
+            if "archive_path" in locals():
+                archive_path.unlink(missing_ok=True)
+            raise BackupExportError("Failed to export backup archive") from exc
+        finally:
+            snapshot_db_path.unlink(missing_ok=True)
     finally:
-        snapshot_db_path.unlink(missing_ok=True)
+        _backup_lock.release()
 
 
 def restore_from_backup_archive(
@@ -124,6 +134,8 @@ def restore_from_backup_archive(
     *,
     source_filename: str | None = None,
 ) -> BackupRestoreResult:
+    if not _backup_lock.acquire(blocking=False):
+        raise BackupRestoreError("Another backup operation is in progress")
     started_at = perf_counter()
     resolved_filename = source_filename or archive_path.name
     file_size = archive_path.stat().st_size if archive_path.exists() else 0
@@ -173,6 +185,8 @@ def restore_from_backup_archive(
             error=str(exc),
         )
         raise BackupRestoreError("Failed to restore backup archive") from exc
+    finally:
+        _backup_lock.release()
 
 
 def validate_backup_archive(archive_path: Path) -> None:
@@ -283,8 +297,57 @@ def _extract_backup_archive(archive_path: Path, temp_root: Path) -> Path:
     expected_db_path = (temp_root / DATABASE_ARC_NAME).resolve()
     base_resolved = temp_root.resolve()
 
+    # Zip bomb protection limits
+    MAX_SINGLE_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file
+    MAX_TOTAL_UNCOMPRESSED_SIZE = 500 * 1024 * 1024  # 500MB total
+    MAX_COMPRESSION_RATIO = 100  # Reject if compressed:uncompressed > 1:100
+    MAX_FILE_COUNT = 100_000  # Reject excessive file counts
+
     with zipfile.ZipFile(archive_path, "r") as archive:
-        for member in archive.infolist():
+        members = archive.infolist()
+
+        # Check file count
+        if len(members) > MAX_FILE_COUNT:
+            raise BackupValidationError(
+                f"Backup archive contains too many files ({len(members)} > {MAX_FILE_COUNT})"
+            )
+
+        # Check sizes and compression ratios
+        total_uncompressed = 0
+        total_compressed = 0
+        for member in members:
+            if member.is_dir():
+                continue
+
+            # Check single file size
+            if member.file_size > MAX_SINGLE_FILE_SIZE:
+                raise BackupValidationError(
+                    f"File {member.filename} exceeds maximum size ({member.file_size} > {MAX_SINGLE_FILE_SIZE})"
+                )
+
+            total_uncompressed += member.file_size
+            total_compressed += member.compress_size
+
+            # Check compression ratio for individual file
+            if member.compress_size > 0 and member.file_size / member.compress_size > MAX_COMPRESSION_RATIO:
+                raise BackupValidationError(
+                    f"File {member.filename} has suspicious compression ratio"
+                )
+
+        # Check total uncompressed size
+        if total_uncompressed > MAX_TOTAL_UNCOMPRESSED_SIZE:
+            raise BackupValidationError(
+                f"Total uncompressed size exceeds limit ({total_uncompressed} > {MAX_TOTAL_UNCOMPRESSED_SIZE})"
+            )
+
+        # Check overall compression ratio
+        if total_compressed > 0 and total_uncompressed / total_compressed > MAX_COMPRESSION_RATIO:
+            raise BackupValidationError(
+                "Archive has suspicious overall compression ratio"
+            )
+
+        # Extract files
+        for member in members:
             member_path = PurePosixPath(member.filename)
 
             if member_path.is_absolute() or ".." in member_path.parts:
