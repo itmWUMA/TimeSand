@@ -17,9 +17,9 @@ class Photo(SQLModel, table=True):
     file_size: int
     width: int
     height: int
-    taken_at: datetime | None = None
+    taken_at: datetime | None = Field(default=None, index=True)
     latitude: float | None = None
     longitude: float | None = None
-    uploaded_at: datetime = Field(default_factory=utc_now)
+    uploaded_at: datetime = Field(default_factory=utc_now, index=True)
     mime_type: str
     is_demo: bool = False

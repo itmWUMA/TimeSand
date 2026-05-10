@@ -16,6 +16,9 @@ from app.core.config import settings
 from app.services import photo_service
 
 
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+
 def build_jpeg_bytes(width: int = 1200, height: int = 800, with_exif: bool = True) -> bytes:
     image = Image.new("RGB", (width, height), color=(255, 170, 0))
     buffer = BytesIO()
@@ -290,12 +293,12 @@ def test_get_file_and_thumbnail(client: TestClient) -> None:
     assert thumbnail_response.status_code == 200
     assert file_response.headers["content-type"] == "image/jpeg"
     assert thumbnail_response.headers["content-type"] == "image/jpeg"
-    assert file_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
-    assert thumbnail_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
-    assert file_response.headers["pragma"] == "no-cache"
-    assert thumbnail_response.headers["pragma"] == "no-cache"
-    assert file_response.headers["expires"] == "0"
-    assert thumbnail_response.headers["expires"] == "0"
+    assert file_response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
+    assert thumbnail_response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
+    assert "pragma" not in file_response.headers
+    assert "pragma" not in thumbnail_response.headers
+    assert "expires" not in file_response.headers
+    assert "expires" not in thumbnail_response.headers
     assert len(file_response.content) > 0
     assert len(thumbnail_response.content) > 0
 
