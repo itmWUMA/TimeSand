@@ -86,7 +86,11 @@ def test_upload_non_audio_returns_400(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid audio files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid audio files provided",
+        "status_code": 400,
+    }
 
 
 def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
@@ -97,7 +101,11 @@ def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid audio files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid audio files provided",
+        "status_code": 400,
+    }
 
     stored = list((settings.data_dir / "music" / "files").glob("*.mp3"))
     assert stored == []

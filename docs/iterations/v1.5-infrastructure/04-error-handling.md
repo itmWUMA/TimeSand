@@ -1,10 +1,10 @@
 ---
 type: task
 iteration: "1.5"
-status: pending
+status: done
 branch: "feat/error-handling"
 pr:
-completed:
+completed: 2026-05-08
 tags:
   - v1.5
   - infrastructure
@@ -149,16 +149,16 @@ Add error message keys to both `zh.json` and `en.json`:
 
 ## Acceptance Criteria
 
-- [ ] All API error responses follow the unified `{error, message, status_code}` format
-- [ ] Unhandled exceptions return 500 with generic message (no internal details leaked)
-- [ ] Unhandled exceptions are logged with full error details
-- [ ] `useToast` composable provides `showToast()` for programmatic toast display
-- [ ] Axios interceptor automatically shows error toast on API failure
-- [ ] Network errors (server unreachable) show a user-friendly message
-- [ ] Individual API calls can still catch errors for custom handling
-- [ ] Error messages are i18n'd (zh + en)
-- [ ] Existing tests still pass
-- [ ] Frontend type-check passes: `bun run type-check`
+- [x] All API error responses follow the unified `{error, message, status_code}` format
+- [x] Unhandled exceptions return 500 with generic message (no internal details leaked)
+- [x] Unhandled exceptions are logged with full error details
+- [x] `useToast` composable provides `showToast()` for programmatic toast display
+- [x] Axios interceptor automatically shows error toast on API failure
+- [x] Network errors (server unreachable) show a user-friendly message
+- [x] Individual API calls can still catch errors for custom handling
+- [x] Error messages are i18n'd (zh + en)
+- [x] Existing tests still pass
+- [x] Frontend type-check passes: `bun run type-check`
 
 ## Tests
 

@@ -1,5 +1,6 @@
 import type { MessageSchema } from '../../i18n/types'
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createI18n } from 'vue-i18n'
 
@@ -50,7 +51,7 @@ function createWrapper(locale: 'zh-CN' | 'en' = 'en') {
 
   return mount(DefaultLayout, {
     global: {
-      plugins: [i18n],
+      plugins: [createPinia(), i18n],
       stubs: {
         RouterLink: {
           props: ['to'],

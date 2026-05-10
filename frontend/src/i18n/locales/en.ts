@@ -45,6 +45,14 @@ const en: MessageSchema = {
     slideshow: 'Slideshow',
     settings: 'Settings',
   },
+  error: {
+    network: 'Cannot connect to server',
+    unknown: 'An unexpected error occurred',
+    fileTooLarge: 'File exceeds size limit',
+    permissionDenied: 'Permission denied',
+    notFound: 'Resource not found',
+    server: 'Server error, please try again',
+  },
   photo: {
     uploadTitle: 'Upload',
     uploadDesc: 'Batch upload your memories and review them instantly.',

@@ -70,7 +70,11 @@ def test_draw_with_all_excluded_returns_404(client: TestClient, session: Session
     response = client.post("/api/draw", json={"exclude_ids": [first.id, second.id]})
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "No more photos available to draw"}
+    assert response.json() == {
+        "error": "not_found",
+        "message": "No more photos available to draw",
+        "status_code": 404,
+    }
 
 
 def test_draw_with_album_filter_returns_only_album_photo(client: TestClient, session: Session) -> None:

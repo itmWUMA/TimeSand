@@ -5,16 +5,18 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.albums import router as albums_router
 from app.api.demo import router as demo_router
+from app.api.draw import router as draw_router
 from app.api.music import router as music_router
 from app.api.playlists import router as playlists_router
-from app.api.draw import router as draw_router
 from app.api.photos import router as photos_router
 from app.api.settings import router as settings_router
 from app.api.slideshow import router as slideshow_router
@@ -22,6 +24,11 @@ from app.api.tags import router as tags_router
 from app.core import database as database_module
 from app.core.config import settings
 from app.core.database import create_db_and_tables
+from app.core.errors import (
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 from app.core.logging import get_logger, setup_logging
 from app.models.music import Playlist
 from app.services.demo_service import seed_demo_data
@@ -135,6 +142,9 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(Exception, unhandled_exception_handler)
 
     @app.get("/api/health")
     def health_check() -> dict[str, str]:
