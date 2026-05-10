@@ -18,7 +18,7 @@ class Music(SQLModel, table=True):
     file_size: int
     duration: float | None = None
     mime_type: str
-    uploaded_at: datetime = Field(default_factory=utc_now)
+    uploaded_at: datetime = Field(default_factory=utc_now, index=True)
     is_demo: bool = False
 
 
@@ -30,11 +30,11 @@ class Playlist(SQLModel, table=True):
 
 
 class PlaylistMusic(SQLModel, table=True):
-    playlist_id: int = Field(foreign_key="playlist.id", primary_key=True)
-    music_id: int = Field(foreign_key="music.id", primary_key=True)
+    playlist_id: int = Field(foreign_key="playlist.id", primary_key=True, index=True)
+    music_id: int = Field(foreign_key="music.id", primary_key=True, index=True)
     position: int
 
 
 class AlbumPlaylist(SQLModel, table=True):
-    album_id: int = Field(foreign_key="album.id", primary_key=True)
-    playlist_id: int = Field(foreign_key="playlist.id")
+    album_id: int = Field(foreign_key="album.id", primary_key=True, index=True)
+    playlist_id: int = Field(foreign_key="playlist.id", index=True)

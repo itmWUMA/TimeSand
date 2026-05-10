@@ -12,6 +12,9 @@ from mutagen.wave import WAVE
 from app.core.config import settings
 
 
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+
 def build_wav_bytes(*, with_tags: bool, duration_seconds: int = 1) -> bytes:
     with TemporaryDirectory() as temp_dir:
         file_path = Path(temp_dir) / "sample.wav"
@@ -133,6 +136,7 @@ def test_get_music_file_includes_accept_ranges_header(client: TestClient) -> Non
 
     assert response.status_code == 200
     assert response.headers["accept-ranges"] == "bytes"
+    assert response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
     assert response.headers["content-type"] == "audio/wav"
     assert len(response.content) > 0
 
