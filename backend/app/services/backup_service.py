@@ -243,9 +243,15 @@ def _create_database_snapshot_file() -> Path:
 
     try:
         snapshot_path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(settings.database_path.as_posix()) as source_connection:
-            with sqlite3.connect(snapshot_path.as_posix()) as target_connection:
+        source_connection = sqlite3.connect(settings.database_path.as_posix())
+        try:
+            target_connection = sqlite3.connect(snapshot_path.as_posix())
+            try:
                 source_connection.backup(target_connection)
+            finally:
+                target_connection.close()
+        finally:
+            source_connection.close()
         return snapshot_path
     except Exception:
         snapshot_path.unlink(missing_ok=True)
@@ -256,9 +262,15 @@ def _restore_database(source_database_path: Path) -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     database_module.engine.dispose()
 
-    with sqlite3.connect(source_database_path.as_posix()) as source_connection:
-        with sqlite3.connect(settings.database_path.as_posix()) as target_connection:
+    source_connection = sqlite3.connect(source_database_path.as_posix())
+    try:
+        target_connection = sqlite3.connect(settings.database_path.as_posix())
+        try:
             source_connection.backup(target_connection)
+        finally:
+            target_connection.close()
+    finally:
+        source_connection.close()
 
     database_module.engine.dispose()
 
@@ -300,7 +312,7 @@ def _extract_backup_archive(archive_path: Path, temp_root: Path) -> Path:
     # Zip bomb protection limits
     MAX_SINGLE_FILE_SIZE = 100 * 1024 * 1024  # 100MB per file
     MAX_TOTAL_UNCOMPRESSED_SIZE = 500 * 1024 * 1024  # 500MB total
-    MAX_COMPRESSION_RATIO = 100  # Reject if compressed:uncompressed > 1:100
+    MAX_COMPRESSION_RATIO = 1000  # Reject if ratio > 1000:1 (real bombs are 10000:1+)
     MAX_FILE_COUNT = 100_000  # Reject excessive file counts
 
     with zipfile.ZipFile(archive_path, "r") as archive:
@@ -328,8 +340,12 @@ def _extract_backup_archive(archive_path: Path, temp_root: Path) -> Path:
             total_uncompressed += member.file_size
             total_compressed += member.compress_size
 
-            # Check compression ratio for individual file
-            if member.compress_size > 0 and member.file_size / member.compress_size > MAX_COMPRESSION_RATIO:
+            # Check compression ratio for individual file (only meaningful for larger files)
+            if (
+                member.file_size > 1024 * 1024  # only check files > 1MB
+                and member.compress_size > 0
+                and member.file_size / member.compress_size > MAX_COMPRESSION_RATIO
+            ):
                 raise BackupValidationError(
                     f"File {member.filename} has suspicious compression ratio"
                 )
