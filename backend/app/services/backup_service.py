@@ -212,17 +212,21 @@ def rebuild_thumbnails_from_database() -> bool:
 
     started_at = perf_counter()
     logger.info("thumbnail_rebuild_started", photo_count=len(photos))
+
+    # Pre-check all original photos exist before clearing thumbnails
+    for photo in photos:
+        original_path = photo_service.get_original_path(photo.file_path)
+        if not original_path.exists():
+            raise BackupRestoreError(
+                f"Missing original photo file during thumbnail rebuild: {photo.file_path}"
+            )
+
     _reset_thumbnail_directory()
 
     for photo in photos:
         original_path = photo_service.get_original_path(photo.file_path)
         thumbnail_path = photo_service.get_thumbnail_path(photo.thumbnail_path)
         thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
-
-        if not original_path.exists():
-            raise BackupRestoreError(
-                f"Missing original photo file during thumbnail rebuild: {photo.file_path}"
-            )
 
         thumbnail_suffix = Path(photo.thumbnail_path).suffix.lower()
         if thumbnail_suffix not in photo_service.IMAGE_FORMAT_BY_SUFFIX:
@@ -282,7 +286,17 @@ def _create_pre_restore_database_backup() -> None:
         return
 
     backup_path = settings.data_dir / "timesand.db.pre-restore"
-    shutil.copy2(source_db, backup_path)
+    database_module.engine.dispose()
+
+    source_connection = sqlite3.connect(source_db.as_posix())
+    try:
+        target_connection = sqlite3.connect(backup_path.as_posix())
+        try:
+            source_connection.backup(target_connection)
+        finally:
+            target_connection.close()
+    finally:
+        source_connection.close()
 
 
 def _restore_media_directories(temp_root: Path) -> None:
