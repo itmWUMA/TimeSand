@@ -50,7 +50,7 @@ def _is_unversioned_existing_database() -> bool:
     return "alembic_version" not in table_names and bool(table_names & SCHEMA_TABLES)
 
 
-def _pending_revisions(alembic_cfg: Config):
+def _pending_revisions(alembic_cfg: Config) -> list:
     script = ScriptDirectory.from_config(alembic_cfg)
     target_revision = script.get_current_head()
     with engine.connect() as connection:

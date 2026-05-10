@@ -165,6 +165,19 @@ def test_autogenerate_detects_model_changes(migration_engine) -> None:
 
     database.run_migrations()
 
+    with migration_engine.connect() as connection:
+        context = MigrationContext.configure(
+            connection,
+            opts={
+                "compare_type": True,
+                "render_as_batch": True,
+                "target_metadata": SQLModel.metadata,
+            },
+        )
+        baseline_differences = compare_metadata(context, SQLModel.metadata)
+
+    assert not baseline_differences, "Schema should match before adding probe column"
+
     candidate_metadata = MetaData()
     for table in SQLModel.metadata.tables.values():
         table.to_metadata(candidate_metadata)
@@ -183,9 +196,7 @@ def test_autogenerate_detects_model_changes(migration_engine) -> None:
         )
         differences = compare_metadata(context, candidate_metadata)
 
-    assert any(
-        difference[0] == "add_column"
-        and difference[2] == "photo"
-        and difference[3].name == "temporary_autogenerate_probe"
-        for difference in differences
-    )
+    assert len(differences) == 1, f"Expected exactly 1 difference, got {len(differences)}"
+    assert differences[0][0] == "add_column"
+    assert differences[0][2] == "photo"
+    assert differences[0][3].name == "temporary_autogenerate_probe"
