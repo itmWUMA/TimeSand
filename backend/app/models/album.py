@@ -11,13 +11,13 @@ def utc_now() -> datetime:
 
 
 class PhotoAlbum(SQLModel, table=True):
-    photo_id: int = Field(foreign_key="photo.id", primary_key=True)
-    album_id: int = Field(foreign_key="album.id", primary_key=True)
+    photo_id: int = Field(foreign_key="photo.id", primary_key=True, index=True)
+    album_id: int = Field(foreign_key="album.id", primary_key=True, index=True)
 
 
 class PhotoTag(SQLModel, table=True):
-    photo_id: int = Field(foreign_key="photo.id", primary_key=True)
-    tag_id: int = Field(foreign_key="tag.id", primary_key=True)
+    photo_id: int = Field(foreign_key="photo.id", primary_key=True, index=True)
+    tag_id: int = Field(foreign_key="tag.id", primary_key=True, index=True)
 
 
 class Album(SQLModel, table=True):

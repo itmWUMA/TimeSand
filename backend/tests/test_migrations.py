@@ -22,6 +22,31 @@ EXPECTED_SCHEMA_TABLES = {
     "playlistmusic",
     "tag",
 }
+EXPECTED_PERFORMANCE_INDEXES = {
+    "albumplaylist": {
+        ("ix_albumplaylist_album_id", ("album_id",)),
+        ("ix_albumplaylist_playlist_id", ("playlist_id",)),
+    },
+    "music": {
+        ("ix_music_uploaded_at", ("uploaded_at",)),
+    },
+    "photo": {
+        ("ix_photo_taken_at", ("taken_at",)),
+        ("ix_photo_uploaded_at", ("uploaded_at",)),
+    },
+    "photoalbum": {
+        ("ix_photoalbum_album_id", ("album_id",)),
+        ("ix_photoalbum_photo_id", ("photo_id",)),
+    },
+    "phototag": {
+        ("ix_phototag_photo_id", ("photo_id",)),
+        ("ix_phototag_tag_id", ("tag_id",)),
+    },
+    "playlistmusic": {
+        ("ix_playlistmusic_music_id", ("music_id",)),
+        ("ix_playlistmusic_playlist_id", ("playlist_id",)),
+    },
+}
 
 
 class CapturingLogger:
@@ -70,6 +95,22 @@ def test_run_migrations_creates_schema_on_fresh_database(migration_engine) -> No
         "uploaded_at",
         "is_demo",
     }
+
+
+def test_run_migrations_creates_performance_indexes(migration_engine) -> None:
+    database.run_migrations()
+    migration_engine.dispose()
+
+    with migration_engine.connect() as connection:
+        for table_name, expected_indexes in EXPECTED_PERFORMANCE_INDEXES.items():
+            actual_indexes = set()
+            index_rows = connection.exec_driver_sql(f"PRAGMA index_list({table_name})").all()
+            for index_row in index_rows:
+                index_name = index_row[1]
+                column_rows = connection.exec_driver_sql(f"PRAGMA index_info({index_name})").all()
+                actual_indexes.add((index_name, tuple(row[2] for row in column_rows)))
+
+            assert expected_indexes <= actual_indexes
 
 
 def test_alembic_cli_config_creates_data_directory(

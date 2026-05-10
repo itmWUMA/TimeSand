@@ -18,9 +18,7 @@ router = APIRouter(prefix="/api/photos", tags=["photos"])
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 UPLOAD_CHUNK_SIZE = 1024 * 1024
 PHOTO_CACHE_HEADERS = {
-    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-    "Pragma": "no-cache",
-    "Expires": "0"
+    "Cache-Control": "public, max-age=31536000, immutable",
 }
 
 
