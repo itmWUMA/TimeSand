@@ -13,6 +13,7 @@ from sqlmodel import Session, select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.albums import router as albums_router
+from app.api.backup import router as backup_router
 from app.api.demo import router as demo_router
 from app.api.draw import router as draw_router
 from app.api.music import router as music_router
@@ -159,6 +160,7 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
     app.include_router(draw_router)
     app.include_router(slideshow_router)
     app.include_router(settings_router)
+    app.include_router(backup_router)
 
     resolved_frontend_dist = resolve_frontend_dist() if frontend_dist is None else frontend_dist
     configure_spa_routes(app, resolved_frontend_dist)
