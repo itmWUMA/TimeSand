@@ -434,7 +434,7 @@ watch(
       <h1 class="text-3xl font-semibold text-ts-accent">
         {{ $t('draw.title') }}
       </h1>
-      <p class="text-sm text-ts-muted">
+      <p class="text-sm text-ts-text/80">
         {{ $t('draw.description') }}
       </p>
 
@@ -468,14 +468,14 @@ watch(
 
         <button
           type="button"
-          class="rounded border border-white/20 px-4 py-2 text-sm font-semibold text-ts-text transition hover:border-white/40 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          class="rounded border border-white/30 px-4 py-2 text-sm font-semibold text-ts-text/95 transition hover:border-white/50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="!hasDrawnCards || isDrawing"
           @click="reshuffle"
         >
           {{ $t('draw.reshuffle') }}
         </button>
 
-        <p class="text-xs text-ts-muted md:ml-auto">
+        <p class="text-xs text-ts-text/75 md:ml-auto">
           {{ $t('draw.swipeHint') }}
         </p>
       </div>

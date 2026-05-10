@@ -12,6 +12,9 @@ from mutagen.wave import WAVE
 from app.core.config import settings
 
 
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+
 def build_wav_bytes(*, with_tags: bool, duration_seconds: int = 1) -> bytes:
     with TemporaryDirectory() as temp_dir:
         file_path = Path(temp_dir) / "sample.wav"
@@ -86,7 +89,11 @@ def test_upload_non_audio_returns_400(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid audio files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid audio files provided",
+        "status_code": 400,
+    }
 
 
 def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
@@ -97,7 +104,11 @@ def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid audio files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid audio files provided",
+        "status_code": 400,
+    }
 
     stored = list((settings.data_dir / "music" / "files").glob("*.mp3"))
     assert stored == []
@@ -125,6 +136,7 @@ def test_get_music_file_includes_accept_ranges_header(client: TestClient) -> Non
 
     assert response.status_code == 200
     assert response.headers["accept-ranges"] == "bytes"
+    assert response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
     assert response.headers["content-type"] == "audio/wav"
     assert len(response.content) > 0
 

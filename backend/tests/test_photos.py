@@ -16,6 +16,9 @@ from app.core.config import settings
 from app.services import photo_service
 
 
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+
 def build_jpeg_bytes(width: int = 1200, height: int = 800, with_exif: bool = True) -> bytes:
     image = Image.new("RGB", (width, height), color=(255, 170, 0))
     buffer = BytesIO()
@@ -110,7 +113,11 @@ def test_upload_rejects_non_image(client: TestClient) -> None:
     )
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "No valid image files provided"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "No valid image files provided",
+        "status_code": 400,
+    }
 
 
 def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -122,7 +129,11 @@ def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.M
     )
 
     assert response.status_code == 413
-    assert response.json() == {"detail": "File too large"}
+    assert response.json() == {
+        "error": "file_too_large",
+        "message": "File too large",
+        "status_code": 413,
+    }
 
 
 def test_upload_heic_converts_to_jpeg(client: TestClient) -> None:
@@ -220,7 +231,7 @@ def test_create_photo_rolls_back_file_on_thumbnail_failure(
     assert list(thumbnails_dir.glob("*")) == []
 
 
-def test_create_db_and_tables_creates_data_directory(
+def test_run_migrations_creates_data_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -233,7 +244,7 @@ def test_create_db_and_tables_creates_data_directory(
     monkeypatch.setattr(settings, "data_dir", data_dir)
     monkeypatch.setattr(database, "engine", test_engine)
 
-    database.create_db_and_tables()
+    database.run_migrations()
 
     assert data_dir.exists()
     assert (data_dir / "timesand.db").exists()
@@ -265,7 +276,11 @@ def test_get_photo_by_id_and_404(client: TestClient) -> None:
     assert get_response.status_code == 200
     assert get_response.json()["id"] == photo["id"]
     assert missing_response.status_code == 404
-    assert missing_response.json() == {"detail": "Photo not found"}
+    assert missing_response.json() == {
+        "error": "not_found",
+        "message": "Photo not found",
+        "status_code": 404,
+    }
 
 
 def test_get_file_and_thumbnail(client: TestClient) -> None:
@@ -278,12 +293,12 @@ def test_get_file_and_thumbnail(client: TestClient) -> None:
     assert thumbnail_response.status_code == 200
     assert file_response.headers["content-type"] == "image/jpeg"
     assert thumbnail_response.headers["content-type"] == "image/jpeg"
-    assert file_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
-    assert thumbnail_response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
-    assert file_response.headers["pragma"] == "no-cache"
-    assert thumbnail_response.headers["pragma"] == "no-cache"
-    assert file_response.headers["expires"] == "0"
-    assert thumbnail_response.headers["expires"] == "0"
+    assert file_response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
+    assert thumbnail_response.headers["cache-control"] == IMMUTABLE_CACHE_CONTROL
+    assert "pragma" not in file_response.headers
+    assert "pragma" not in thumbnail_response.headers
+    assert "expires" not in file_response.headers
+    assert "expires" not in thumbnail_response.headers
     assert len(file_response.content) > 0
     assert len(thumbnail_response.content) > 0
 

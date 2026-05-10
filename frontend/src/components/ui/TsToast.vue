@@ -16,10 +16,12 @@ const props = withDefaults(defineProps<{
   title?: string
   description?: string
   variant?: ToastVariant
+  duration?: number
 }>(), {
   title: undefined,
   description: undefined,
   variant: 'default',
+  duration: undefined,
 })
 
 const emit = defineEmits<{
@@ -51,6 +53,7 @@ function onUpdateOpen(value: boolean): void {
 <template>
   <ToastRoot
     :open="props.open"
+    :duration="props.duration"
     class="relative overflow-hidden rounded-ts-md border bg-ts-panel shadow-ts-md"
     :class="variantClasses[props.variant]"
     @update:open="onUpdateOpen"

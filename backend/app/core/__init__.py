@@ -1,4 +1,4 @@
 ﻿from .config import settings
-from .database import create_db_and_tables, engine, get_session
+from .database import engine, get_session, run_migrations
 
-__all__ = ["settings", "engine", "create_db_and_tables", "get_session"]
+__all__ = ["settings", "engine", "get_session", "run_migrations"]

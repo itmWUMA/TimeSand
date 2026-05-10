@@ -107,7 +107,11 @@ def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
 
     missing = client.get(f"/api/playlists/{playlist_id}")
     assert missing.status_code == 404
-    assert missing.json() == {"detail": "Playlist not found"}
+    assert missing.json() == {
+        "error": "not_found",
+        "message": "Playlist not found",
+        "status_code": 404,
+    }
 
 
 def test_cannot_delete_default_playlist(client: TestClient) -> None:
@@ -118,7 +122,11 @@ def test_cannot_delete_default_playlist(client: TestClient) -> None:
     response = client.delete(f"/api/playlists/{default_playlist['id']}")
 
     assert response.status_code == 400
-    assert response.json() == {"detail": "Default playlist cannot be deleted"}
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "Default playlist cannot be deleted",
+        "status_code": 400,
+    }
 
 
 def test_album_playlist_association_set_and_clear(client: TestClient) -> None:

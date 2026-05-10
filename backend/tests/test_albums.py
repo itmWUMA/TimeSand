@@ -63,7 +63,11 @@ def test_album_crud_lifecycle(client: TestClient) -> None:
 
     missing_response = client.get(f"/api/albums/{album['id']}")
     assert missing_response.status_code == 404
-    assert missing_response.json() == {"detail": "Album not found"}
+    assert missing_response.json() == {
+        "error": "not_found",
+        "message": "Album not found",
+        "status_code": 404,
+    }
 
 
 def test_add_and_remove_photos_in_album(client: TestClient) -> None:

@@ -270,7 +270,10 @@ onBeforeUnmount(() => {
       :style="spotlightStyle"
     />
 
-    <div class="relative flex min-h-full items-center justify-center px-4 py-8">
+    <div
+      class="relative flex min-h-full items-start justify-center overflow-y-auto px-4 py-6"
+      :style="{ paddingBottom: 'calc(var(--ts-player-main-padding, 5rem) + 1rem)' }"
+    >
       <section
         ref="panelRef"
         class="relative w-full max-w-lg overflow-hidden rounded-ts-lg border border-ts-border bg-ts-panel px-6 py-6 shadow-ts-md md:px-8 md:py-8"

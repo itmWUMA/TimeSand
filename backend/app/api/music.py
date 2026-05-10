@@ -14,6 +14,10 @@ from app.services.music_service import InvalidMusicUploadError
 router = APIRouter(prefix="/api/music", tags=["music"])
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 UPLOAD_CHUNK_SIZE = 1024 * 1024
+MUSIC_FILE_HEADERS = {
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=31536000, immutable",
+}
 
 
 class UploadMusicResponse(BaseModel):
@@ -140,5 +144,5 @@ def get_music_file(music_id: int, session: Session = Depends(get_session)) -> Fi
         path=file_path,
         media_type=track.mime_type,
         filename=track.filename,
-        headers={"Accept-Ranges": "bytes"},
+        headers=MUSIC_FILE_HEADERS,
     )
