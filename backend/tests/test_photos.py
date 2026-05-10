@@ -228,7 +228,7 @@ def test_create_photo_rolls_back_file_on_thumbnail_failure(
     assert list(thumbnails_dir.glob("*")) == []
 
 
-def test_create_db_and_tables_creates_data_directory(
+def test_run_migrations_creates_data_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -241,7 +241,7 @@ def test_create_db_and_tables_creates_data_directory(
     monkeypatch.setattr(settings, "data_dir", data_dir)
     monkeypatch.setattr(database, "engine", test_engine)
 
-    database.create_db_and_tables()
+    database.run_migrations()
 
     assert data_dir.exists()
     assert (data_dir / "timesand.db").exists()

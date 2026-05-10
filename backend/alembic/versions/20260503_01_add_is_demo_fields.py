@@ -1,33 +1,24 @@
-"""add is_demo fields to photo and music
+"""is_demo fields are included in the baseline schema
 
 Revision ID: 20260503_01
-Revises:
+Revises: 001_initial_schema
 Create Date: 2026-05-03 00:00:00
 """
 
 from __future__ import annotations
 
-from alembic import op
-import sqlalchemy as sa
+from collections.abc import Sequence
 
 # revision identifiers, used by Alembic.
-revision = "20260503_01"
-down_revision = None
-branch_labels = None
-depends_on = None
+revision: str = "20260503_01"
+down_revision: str | None = "001_initial_schema"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "photo",
-        sa.Column("is_demo", sa.Boolean(), nullable=False, server_default=sa.false()),
-    )
-    op.add_column(
-        "music",
-        sa.Column("is_demo", sa.Boolean(), nullable=False, server_default=sa.false()),
-    )
+    pass
 
 
 def downgrade() -> None:
-    op.drop_column("music", "is_demo")
-    op.drop_column("photo", "is_demo")
+    pass

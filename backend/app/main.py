@@ -23,7 +23,7 @@ from app.api.slideshow import router as slideshow_router
 from app.api.tags import router as tags_router
 from app.core import database as database_module
 from app.core.config import settings
-from app.core.database import create_db_and_tables
+from app.core.database import run_migrations
 from app.core.errors import (
     http_exception_handler,
     unhandled_exception_handler,
@@ -90,7 +90,7 @@ async def lifespan(_: FastAPI):
         cors_origins_count=len(settings.cors_origins),
     )
     ensure_data_directories()
-    create_db_and_tables()
+    run_migrations()
     ensure_storage_directories()
     ensure_default_playlist()
     if settings.enable_demo_seed:
