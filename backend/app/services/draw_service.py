@@ -6,7 +6,7 @@ from typing import Literal
 
 from sqlmodel import Session, select
 
-from app.models.album import PhotoAlbum
+from app.models.album import Album, PhotoAlbum
 from app.models.photo import Photo
 
 BASE_WEIGHT = 1.0
@@ -23,6 +23,14 @@ WEIGHT_PRESETS: dict[DrawWeightMode, dict[str, float]] = {
 
 
 class NoAvailablePhotosError(ValueError):
+    pass
+
+
+class DrawPoolEmptyError(ValueError):
+    pass
+
+
+class AlbumNotFoundError(ValueError):
     pass
 
 
@@ -132,20 +140,28 @@ def draw_photo(
     weight_mode: DrawWeightMode = "standard",
     nearby_days: int = 3,
 ) -> tuple[Photo, str | None]:
+    if album_id is not None and session.get(Album, album_id) is None:
+        raise AlbumNotFoundError
+
     candidates = query_draw_pool(
         session,
         album_id=album_id,
         exclude_ids=exclude_ids,
     )
-    if not candidates:
-        raise NoAvailablePhotosError
+    if candidates:
+        return choose_weighted_photo(
+            candidates,
+            today=today,
+            weight_mode=weight_mode,
+            nearby_days=nearby_days,
+        )
 
-    return choose_weighted_photo(
-        candidates,
-        today=today,
-        weight_mode=weight_mode,
-        nearby_days=nearby_days,
-    )
+    if exclude_ids:
+        unfiltered_candidates = query_draw_pool(session, album_id=album_id, exclude_ids=None)
+        if unfiltered_candidates:
+            raise DrawPoolEmptyError
+
+    raise NoAvailablePhotosError
 
 
 def count_available_photos(session: Session) -> int:

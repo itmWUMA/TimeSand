@@ -128,6 +128,7 @@ export function useCardDraw() {
   const isDrawing = ref(false)
   const isScatterOpen = ref(false)
   const errorMessage = ref<string | null>(null)
+  const poolEmpty = ref(false)
   const lastWeightReason = ref<string | null>(null)
   const hiddenPileCardId = ref<number | null>(null)
 
@@ -165,6 +166,7 @@ export function useCardDraw() {
 
     isDrawing.value = true
     errorMessage.value = null
+    poolEmpty.value = false
     killCeremony()
 
     const reducedMotion = prefersReducedMotion()
@@ -177,6 +179,17 @@ export function useCardDraw() {
         weight_mode: settingsStore.drawWeightMode,
         nearby_days: settingsStore.drawNearbyDays,
       })
+      if (payload.pool_empty) {
+        ceremonyState.value = 'IDLE'
+        clearGhost()
+        poolEmpty.value = true
+        isDrawing.value = false
+        return
+      }
+
+      if (!payload.photo) {
+        throw new Error('Draw response is missing photo payload')
+      }
 
       const hadPreviousCard = !!drawStore.activeCard
       const previousCardId = drawStore.activeCard?.photo.id ?? null
@@ -190,9 +203,9 @@ export function useCardDraw() {
 
       drawStore.addDrawnCard({
         photo: payload.photo,
-        weightReason: payload.weight_reason,
+        weightReason: payload.weight_reason ?? null,
       })
-      lastWeightReason.value = payload.weight_reason
+      lastWeightReason.value = payload.weight_reason ?? null
 
       await nextTick()
 
@@ -362,6 +375,7 @@ export function useCardDraw() {
     catch (error) {
       ceremonyState.value = 'IDLE'
       clearGhost()
+      poolEmpty.value = false
 
       if (isAxiosError<{ detail?: string }>(error)) {
         errorMessage.value = error.response?.data?.detail ?? i18n.global.t('draw.drawFailed')
@@ -405,6 +419,7 @@ export function useCardDraw() {
     ceremonyState.value = 'IDLE'
     isScatterOpen.value = false
     errorMessage.value = null
+    poolEmpty.value = false
     lastWeightReason.value = null
   }
 
@@ -522,6 +537,7 @@ export function useCardDraw() {
     isDrawing,
     isScatterOpen,
     errorMessage,
+    poolEmpty,
     lastWeightReason,
     drawNextCard,
     openScatter,

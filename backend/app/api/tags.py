@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["tags"])
 
 
 class TagCreateRequest(BaseModel):
-    name: str
+    name: str = Field(max_length=255)
 
 
 class AddPhotoTagsRequest(BaseModel):
@@ -130,6 +130,7 @@ def remove_tag_from_photo(
     session: Session = Depends(get_session),
 ) -> OkResponse:
     get_photo_or_404(photo_id, session)
+    get_tag_or_404(tag_id, session)
 
     link = session.exec(
         select(PhotoTag).where(
@@ -137,9 +138,11 @@ def remove_tag_from_photo(
             PhotoTag.tag_id == tag_id,
         )
     ).first()
-    if link is not None:
-        session.delete(link)
-        session.commit()
+    if link is None:
+        raise HTTPException(status_code=404, detail="Tag is not attached to photo")
+
+    session.delete(link)
+    session.commit()
 
     return OkResponse(ok=True)
 

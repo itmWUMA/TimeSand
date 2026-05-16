@@ -12,6 +12,7 @@ const albums = ref<Album[]>([])
 const loading = ref(false)
 const creating = ref(false)
 const errorMessage = ref<string | null>(null)
+const nameValidationMessage = ref<string | null>(null)
 
 const newName = ref('')
 const newDescription = ref('')
@@ -34,10 +35,16 @@ async function loadAlbums(): Promise<void> {
 
 async function handleCreateAlbum(): Promise<void> {
   const name = newName.value.trim()
-  if (!name || creating.value) {
+  if (creating.value) {
     return
   }
 
+  if (!name) {
+    nameValidationMessage.value = t('album.nameRequired')
+    return
+  }
+
+  nameValidationMessage.value = null
   creating.value = true
   errorMessage.value = null
 
@@ -55,6 +62,12 @@ async function handleCreateAlbum(): Promise<void> {
   }
   finally {
     creating.value = false
+  }
+}
+
+function onNameInput(): void {
+  if (newName.value.trim()) {
+    nameValidationMessage.value = null
   }
 }
 
@@ -82,7 +95,11 @@ onMounted(async () => {
         v-model="newName"
         type="text"
         :placeholder="$t('album.namePlaceholder')"
-        class="album-create-input rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
+        class="album-create-input rounded border bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none"
+        :class="nameValidationMessage
+          ? 'border-red-400/70 focus:border-red-300'
+          : 'border-white/15 focus:border-ts-accent'"
+        @input="onNameInput"
       >
       <input
         v-model="newDescription"
@@ -98,6 +115,10 @@ onMounted(async () => {
         {{ creating ? $t('common.creating') : $t('common.create') }}
       </button>
     </form>
+
+    <p v-if="nameValidationMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+      {{ nameValidationMessage }}
+    </p>
 
     <p v-if="errorMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
       {{ errorMessage }}

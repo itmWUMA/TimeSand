@@ -248,4 +248,20 @@ describe('useCardDraw', () => {
     expect(cardDraw.isDrawing.value).toBe(false)
     expect(cardDraw.errorMessage.value).toBe('No more photos available to draw')
   })
+
+  it('marks pool as empty when draw api reports pool exhaustion', async () => {
+    vi.mocked(drawApi.drawPhoto).mockResolvedValue({
+      pool_empty: true,
+    } as DrawResponse)
+
+    const cardDraw = useCardDraw()
+
+    await cardDraw.drawNextCard()
+
+    expect(cardDraw.poolEmpty.value).toBe(true)
+    expect(cardDraw.errorMessage.value).toBeNull()
+    expect(cardDraw.ceremonyState.value).toBe('IDLE')
+    expect(cardDraw.isDrawing.value).toBe(false)
+    expect(vi.mocked(gsapApi.gsap.timeline)).not.toHaveBeenCalled()
+  })
 })

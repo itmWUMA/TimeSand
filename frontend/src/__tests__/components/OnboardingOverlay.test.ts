@@ -77,6 +77,23 @@ describe('onboardingOverlay', () => {
     expect(wrapper.find('[data-testid="onboarding-overlay"]').exists()).toBe(false)
   })
 
+  it('renders when forceShow is enabled even if completion flag is true', async () => {
+    localStorage.setItem('ts-onboarding-complete', 'true')
+
+    const wrapper = mount(OnboardingOverlay, {
+      props: {
+        forceShow: true,
+      },
+      global: {
+        plugins: [i18n],
+      },
+    })
+
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="onboarding-overlay"]').exists()).toBe(true)
+  })
+
   it('advances through all steps with next button', async () => {
     const wrapper = await mountOverlay()
 

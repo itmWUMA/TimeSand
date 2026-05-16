@@ -63,7 +63,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section
+    class="space-y-6 pb-6"
+    :style="{ paddingBottom: 'calc(var(--ts-player-main-padding, 5rem) + 1rem)' }"
+  >
     <header class="space-y-2">
       <h1 class="text-3xl font-semibold text-ts-accent">
         {{ $t('photo.uploadTitle') }}
