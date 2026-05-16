@@ -46,11 +46,51 @@ const lightboxIndex = ref(0)
 const lightboxOrigin = ref<DOMRect | null>(null)
 
 const albumId = computed(() => Number(route.params.id))
+const PHOTO_PAGE_SIZE = 100
 
 const availablePhotosToAdd = computed(() => {
   const albumPhotoIds = new Set(albumPhotos.value.map(photo => photo.id))
-  return allPhotos.value.filter(photo => !albumPhotoIds.has(photo.id))
+  const uniquePhotoIds = new Set<number>()
+  const options: Photo[] = []
+
+  for (const photo of allPhotos.value) {
+    if (albumPhotoIds.has(photo.id) || uniquePhotoIds.has(photo.id)) {
+      continue
+    }
+
+    uniquePhotoIds.add(photo.id)
+    options.push(photo)
+  }
+
+  return options
 })
+
+async function loadAllPhotos(): Promise<Photo[]> {
+  const allItems: Photo[] = []
+  let page = 1
+  let total = 0
+
+  while (page === 1 || allItems.length < total) {
+    const payload = await listPhotos(page, PHOTO_PAGE_SIZE)
+    total = payload.total
+
+    if (payload.items.length === 0) {
+      break
+    }
+
+    allItems.push(...payload.items)
+    page += 1
+  }
+
+  const uniqueById = new Map<number, Photo>()
+  for (const photo of allItems) {
+    if (!uniqueById.has(photo.id)) {
+      uniqueById.set(photo.id, photo)
+    }
+  }
+
+  return Array.from(uniqueById.values())
+}
 
 async function loadPhotoTags(photoId: number): Promise<void> {
   const payload = await listPhotoTags(photoId)
@@ -70,16 +110,16 @@ async function loadAlbumData(): Promise<void> {
   errorMessage.value = null
 
   try {
-    const [albumPayload, albumPhotoPayload, allPhotoPayload, tagsPayload] = await Promise.all([
+    const [albumPayload, albumPhotoPayload, allPhotoItems, tagsPayload] = await Promise.all([
       getAlbum(albumId.value),
-      listPhotos(1, 100, { albumId: albumId.value }),
-      listPhotos(1, 100),
+      listPhotos(1, PHOTO_PAGE_SIZE, { albumId: albumId.value }),
+      loadAllPhotos(),
       listTags(),
     ])
 
     album.value = albumPayload
     albumPhotos.value = albumPhotoPayload.items
-    allPhotos.value = allPhotoPayload.items
+    allPhotos.value = allPhotoItems
     availableTags.value = tagsPayload.items
 
     editName.value = albumPayload.name

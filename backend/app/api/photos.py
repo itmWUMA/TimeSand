@@ -5,11 +5,11 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import Select, func
+from sqlalchemy import Select, delete, func
 from sqlmodel import Session, select
 
 from app.core.database import get_session
-from app.models.album import PhotoAlbum, PhotoTag
+from app.models.album import Album, PhotoAlbum, PhotoTag, utc_now
 from app.models.photo import Photo
 from app.services import photo_service
 from app.services.photo_service import InvalidPhotoUploadError
@@ -86,6 +86,7 @@ async def upload_photos(
     session: Session = Depends(get_session)
 ) -> UploadPhotosResponse:
     uploaded: list[Photo] = []
+    invalid_image_detected = False
 
     try:
         for upload_file in files or []:
@@ -96,7 +97,9 @@ async def upload_photos(
                     mime_type=upload_file.content_type,
                     data=file_bytes
                 )
-            except InvalidPhotoUploadError:
+            except InvalidPhotoUploadError as exc:
+                if str(exc) == "Invalid image file":
+                    invalid_image_detected = True
                 continue
             finally:
                 await upload_file.close()
@@ -105,6 +108,8 @@ async def upload_photos(
             uploaded.append(photo)
 
         if not uploaded:
+            if invalid_image_detected:
+                raise HTTPException(status_code=400, detail="Invalid image file")
             raise HTTPException(status_code=400, detail="No valid image files provided")
 
         session.commit()
@@ -154,6 +159,14 @@ def get_photo(photo_id: int, session: Session = Depends(get_session)) -> Photo:
 @router.delete("/{photo_id}", response_model=DeletePhotoResponse)
 def delete_photo(photo_id: int, session: Session = Depends(get_session)) -> DeletePhotoResponse:
     photo = get_photo_or_404(photo_id, session)
+
+    albums = session.exec(select(Album).where(Album.cover_photo_id == photo_id)).all()
+    for album in albums:
+        album.cover_photo_id = None
+        album.updated_at = utc_now()
+        session.add(album)
+
+    session.exec(delete(PhotoAlbum).where(PhotoAlbum.photo_id == photo_id))
 
     photo_service.delete_photo_files(photo)
     session.delete(photo)

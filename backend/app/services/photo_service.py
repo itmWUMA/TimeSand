@@ -119,7 +119,10 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
         with Image.open(BytesIO(data)) as image:
             image.load()
 
-            taken_at, latitude, longitude = extract_exif_metadata(image)
+            try:
+                taken_at, latitude, longitude = extract_exif_metadata(image)
+            except Exception as exc:
+                raise InvalidPhotoUploadError("Invalid image file") from exc
             width, height = image.size
             thumbnail_source = image
 
@@ -158,6 +161,10 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
             try:
                 original_path.write_bytes(data)
                 save_thumbnail(thumbnail_source, thumbnail_path, suffix)
+            except InvalidPhotoUploadError:
+                original_path.unlink(missing_ok=True)
+                thumbnail_path.unlink(missing_ok=True)
+                raise
             except OSError:
                 original_path.unlink(missing_ok=True)
                 thumbnail_path.unlink(missing_ok=True)
@@ -207,14 +214,20 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
 
 
 def save_thumbnail(image: Image.Image, path: Path, suffix: str) -> None:
-    thumbnail = image.copy()
-    thumbnail.thumbnail((400, 400), Image.Resampling.LANCZOS)
+    try:
+        thumbnail = image.copy()
+        thumbnail.thumbnail((400, 400), Image.Resampling.LANCZOS)
 
-    format_name = IMAGE_FORMAT_BY_SUFFIX[suffix]
-    if format_name == "JPEG" and thumbnail.mode not in ("RGB", "L"):
-        thumbnail = thumbnail.convert("RGB")
+        format_name = IMAGE_FORMAT_BY_SUFFIX[suffix]
+        if format_name == "JPEG" and thumbnail.mode not in ("RGB", "L"):
+            thumbnail = thumbnail.convert("RGB")
 
-    thumbnail.save(path, format=format_name)
+        output = BytesIO()
+        thumbnail.save(output, format=format_name)
+    except Exception as exc:
+        raise InvalidPhotoUploadError("Invalid image file") from exc
+
+    path.write_bytes(output.getvalue())
     logger.info(
         "thumbnail_generated",
         thumbnail_path=path.name,
