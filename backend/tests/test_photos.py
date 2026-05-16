@@ -67,6 +67,23 @@ def upload_photo(client: TestClient) -> dict:
     return response.json()["photos"][0]
 
 
+def create_album(client: TestClient, name: str = "Album") -> dict:
+    response = client.post(
+        "/api/albums",
+        json={"name": name, "description": None},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def add_photos_to_album(client: TestClient, album_id: int, photo_ids: list[int]) -> None:
+    response = client.post(
+        f"/api/albums/{album_id}/photos",
+        json={"photo_ids": photo_ids},
+    )
+    assert response.status_code == 200
+
+
 def test_upload_single_creates_files_and_db_record(client: TestClient) -> None:
     response = client.post(
         "/api/photos/upload",
@@ -321,3 +338,96 @@ def test_delete_photo_removes_db_record_and_files(client: TestClient) -> None:
 
     get_response = client.get(f"/api/photos/{photo['id']}")
     assert get_response.status_code == 404
+
+
+def test_delete_photo_cleans_album_links_and_counts(client: TestClient) -> None:
+    target_photo = upload_photo(client)
+    retained_photo = upload_photo(client)
+    first_album = create_album(client, "Album One")
+    second_album = create_album(client, "Album Two")
+
+    add_photos_to_album(client, first_album["id"], [target_photo["id"], retained_photo["id"]])
+    add_photos_to_album(client, second_album["id"], [target_photo["id"]])
+
+    delete_response = client.delete(f"/api/photos/{target_photo['id']}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json() == {"ok": True}
+
+    first_album_payload = client.get(f"/api/albums/{first_album['id']}").json()
+    second_album_payload = client.get(f"/api/albums/{second_album['id']}").json()
+    first_album_photo_list = client.get(
+        "/api/photos",
+        params={"album_id": first_album["id"], "page_size": 100},
+    ).json()
+    second_album_photo_list = client.get(
+        "/api/photos",
+        params={"album_id": second_album["id"], "page_size": 100},
+    ).json()
+
+    assert first_album_payload["photo_count"] == 1
+    assert second_album_payload["photo_count"] == 0
+    assert first_album_photo_list["total"] == 1
+    assert second_album_photo_list["total"] == 0
+    assert {item["id"] for item in first_album_photo_list["items"]} == {retained_photo["id"]}
+
+
+def test_delete_photo_clears_cover_photo_reference(client: TestClient) -> None:
+    cover_photo = upload_photo(client)
+    album = create_album(client, "Cover Album")
+    add_photos_to_album(client, album["id"], [cover_photo["id"]])
+
+    set_cover_response = client.put(
+        f"/api/albums/{album['id']}",
+        json={
+            "name": album["name"],
+            "description": album["description"],
+            "cover_photo_id": cover_photo["id"],
+        },
+    )
+    assert set_cover_response.status_code == 200
+
+    delete_response = client.delete(f"/api/photos/{cover_photo['id']}")
+    assert delete_response.status_code == 200
+
+    album_payload = client.get(f"/api/albums/{album['id']}").json()
+    assert album_payload["cover_photo_id"] is None
+    assert album_payload["cover_photo"] is None
+
+
+def test_upload_returns_400_when_thumbnail_generation_fails(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_thumbnail(*_args, **_kwargs):
+        raise ValueError("broken tiny image")
+
+    monkeypatch.setattr(Image.Image, "thumbnail", fail_thumbnail)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("tiny.jpg", build_jpeg_bytes(width=1, height=1, with_exif=False), "image/jpeg"))],
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "Invalid image file",
+        "status_code": 400,
+    }
+
+
+def test_upload_returns_400_when_exif_extraction_fails(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_extract(*_args, **_kwargs):
+        raise ValueError("invalid exif payload")
+
+    monkeypatch.setattr(photo_service, "extract_exif_metadata", fail_extract)
+
+    response = client.post(
+        "/api/photos/upload",
+        files=[("files", ("tiny.jpg", build_jpeg_bytes(width=1, height=1, with_exif=False), "image/jpeg"))],
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": "bad_request",
+        "message": "Invalid image file",
+        "status_code": 400,
+    }
