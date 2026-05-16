@@ -12,7 +12,7 @@ from app.core.database import get_session
 from app.models.album import Album, PhotoAlbum, PhotoTag, utc_now
 from app.models.photo import Photo
 from app.services import photo_service
-from app.services.photo_service import InvalidPhotoUploadError
+from app.services.photo_service import InvalidImageFileError, InvalidPhotoUploadError
 
 router = APIRouter(prefix="/api/photos", tags=["photos"])
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -98,7 +98,7 @@ async def upload_photos(
                     data=file_bytes
                 )
             except InvalidPhotoUploadError as exc:
-                if str(exc) == "Invalid image file":
+                if isinstance(exc, InvalidImageFileError):
                     invalid_image_detected = True
                 continue
             finally:
@@ -167,6 +167,7 @@ def delete_photo(photo_id: int, session: Session = Depends(get_session)) -> Dele
         session.add(album)
 
     session.exec(delete(PhotoAlbum).where(PhotoAlbum.photo_id == photo_id))
+    session.exec(delete(PhotoTag).where(PhotoTag.photo_id == photo_id))
 
     photo_service.delete_photo_files(photo)
     session.delete(photo)

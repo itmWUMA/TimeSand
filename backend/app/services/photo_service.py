@@ -53,6 +53,11 @@ class InvalidPhotoUploadError(ValueError):
     pass
 
 
+class InvalidImageFileError(InvalidPhotoUploadError):
+    """Raised when the uploaded file is not a valid/processable image."""
+    pass
+
+
 def originals_directory() -> Path:
     return settings.data_dir / "photos" / "originals"
 
@@ -121,8 +126,8 @@ def create_photo_from_upload(filename: str | None, mime_type: str | None, data: 
 
             try:
                 taken_at, latitude, longitude = extract_exif_metadata(image)
-            except Exception as exc:
-                raise InvalidPhotoUploadError("Invalid image file") from exc
+            except (ValueError, KeyError, TypeError, OSError, AttributeError) as exc:
+                raise InvalidImageFileError("Invalid image file") from exc
             width, height = image.size
             thumbnail_source = image
 
@@ -224,8 +229,8 @@ def save_thumbnail(image: Image.Image, path: Path, suffix: str) -> None:
 
         output = BytesIO()
         thumbnail.save(output, format=format_name)
-    except Exception as exc:
-        raise InvalidPhotoUploadError("Invalid image file") from exc
+    except (OSError, ValueError, KeyError) as exc:
+        raise InvalidImageFileError("Invalid image file") from exc
 
     path.write_bytes(output.getvalue())
     logger.info(
