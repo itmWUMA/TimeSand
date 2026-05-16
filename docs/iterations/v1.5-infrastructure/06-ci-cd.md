@@ -73,7 +73,7 @@ Add a `docker-publish` job after the existing `release` job:
       packages: write
     steps:
       - name: Checkout code at tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: v${{ inputs.version }}
 
