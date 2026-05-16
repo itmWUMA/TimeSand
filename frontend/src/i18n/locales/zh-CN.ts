@@ -82,6 +82,7 @@ export default {
     title: '相册',
     description: '创建和浏览带有封面照片和数量统计的相册。',
     namePlaceholder: '相册名称',
+    nameRequired: '相册名称为必填项',
     descPlaceholder: '描述（可选）',
     createFailed: '创建相册失败。',
     loadFailed: '加载相册失败。',

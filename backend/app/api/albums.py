@@ -4,7 +4,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
@@ -17,12 +17,12 @@ router = APIRouter(prefix="/api/albums", tags=["albums"])
 
 
 class AlbumCreateRequest(BaseModel):
-    name: str
+    name: str = Field(max_length=255)
     description: str | None = None
 
 
 class AlbumUpdateRequest(BaseModel):
-    name: str
+    name: str = Field(max_length=255)
     description: str | None = None
     cover_photo_id: int | None = None
 
@@ -256,8 +256,10 @@ def remove_photo_from_album(
             PhotoAlbum.photo_id == photo_id,
         )
     ).first()
-    if link is not None:
-        session.delete(link)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Photo is not in album")
+
+    session.delete(link)
 
     if album.cover_photo_id == photo_id:
         album.cover_photo_id = None

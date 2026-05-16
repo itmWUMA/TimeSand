@@ -12,6 +12,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomePage },
+    { path: '/debug/onboarding', name: 'onboarding-debug', component: HomePage },
     { path: '/albums', name: 'albums', component: AlbumsPage },
     { path: '/albums/:id', name: 'album-detail', component: AlbumDetailPage },
     { path: '/upload', name: 'upload', component: UploadPage },

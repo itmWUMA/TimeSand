@@ -150,3 +150,40 @@ def test_set_album_cover_photo(client: TestClient) -> None:
     payload = detail_response.json()
     assert payload["cover_photo_id"] == photo["id"]
     assert payload["cover_photo"].startswith(f"/api/photos/{photo['id']}/thumbnail?v=")
+
+
+def test_remove_missing_photo_association_returns_404(client: TestClient) -> None:
+    photo = upload_photo(client)
+    album = create_album(client)
+
+    response = client.delete(f"/api/albums/{album['id']}/photos/{photo['id']}")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": "not_found",
+        "message": "Photo is not in album",
+        "status_code": 404,
+    }
+
+
+def test_album_name_rejects_more_than_255_characters(client: TestClient) -> None:
+    long_name = "a" * 256
+
+    create_response = client.post(
+        "/api/albums",
+        json={"name": long_name, "description": "too long"},
+    )
+    assert create_response.status_code == 422
+    create_payload = create_response.json()
+    assert create_payload["error"] == "validation_error"
+    assert "name" in create_payload["message"]
+
+    album = create_album(client)
+    update_response = client.put(
+        f"/api/albums/{album['id']}",
+        json={"name": long_name, "description": "too long", "cover_photo_id": None},
+    )
+    assert update_response.status_code == 422
+    update_payload = update_response.json()
+    assert update_payload["error"] == "validation_error"
+    assert "name" in update_payload["message"]

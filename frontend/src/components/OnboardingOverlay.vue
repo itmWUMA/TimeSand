@@ -24,6 +24,11 @@ interface CompletionParticle {
   delay: number
 }
 
+const props = withDefaults(defineProps<{
+  forceShow?: boolean
+}>(), {
+  forceShow: false,
+})
 const STORAGE_KEY = 'ts-onboarding-complete'
 const STEP_TRANSITION_SECONDS = 0.3
 const DONE_ANIMATION_MS = 480
@@ -227,7 +232,7 @@ function handleWindowChange(): void {
 }
 
 onMounted(async () => {
-  if (localStorage.getItem(STORAGE_KEY) === 'true') {
+  if (!props.forceShow && localStorage.getItem(STORAGE_KEY) === 'true') {
     return
   }
 
@@ -271,12 +276,12 @@ onBeforeUnmount(() => {
     />
 
     <div
-      class="relative flex min-h-full items-start justify-center overflow-y-auto px-4 py-6"
+      class="pointer-events-none relative flex min-h-full items-start justify-center overflow-y-auto px-4 py-6"
       :style="{ paddingBottom: 'calc(var(--ts-player-main-padding, 5rem) + 1rem)' }"
     >
       <section
         ref="panelRef"
-        class="relative w-full max-w-lg overflow-hidden rounded-ts-lg border border-ts-border bg-ts-panel px-6 py-6 shadow-ts-md md:px-8 md:py-8"
+        class="pointer-events-auto relative z-10 w-full max-w-lg overflow-hidden rounded-ts-lg border border-ts-border bg-ts-panel px-6 py-6 shadow-ts-md md:px-8 md:py-8"
       >
         <div class="flex items-start justify-between gap-4">
           <p class="text-xs uppercase tracking-[0.14em] text-ts-muted/80">
@@ -285,7 +290,7 @@ onBeforeUnmount(() => {
           <button
             data-testid="onboarding-skip"
             type="button"
-            class="text-sm text-ts-muted transition hover:text-ts-text"
+            class="relative z-20 touch-manipulation text-sm text-ts-muted transition hover:text-ts-text"
             @click="onSkip"
           >
             {{ t('onboarding.skip') }}

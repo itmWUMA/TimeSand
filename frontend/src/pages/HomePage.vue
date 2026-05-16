@@ -5,6 +5,7 @@ import type { Photo } from '../types/photo'
 
 import { gsap } from 'gsap'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import CardDeck from '../components/draw/CardDeck.vue'
 import CardPile from '../components/draw/CardPile.vue'
 import CardScatter from '../components/draw/CardScatter.vue'
@@ -39,6 +40,7 @@ const SWIPE_ROTATION_FACTOR = 0.05
 
 const drawStore = useDrawStore()
 const settingsStore = useSettingsStore()
+const route = useRoute()
 const { playlistId, setContext, tracks } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
@@ -79,6 +81,7 @@ const {
   isDrawing,
   isScatterOpen,
   errorMessage,
+  poolEmpty,
   lastWeightReason,
   drawNextCard,
   openScatter,
@@ -113,6 +116,7 @@ const ceremonyClass = computed<Record<string, boolean>>(() => {
     'ceremony-display': state === 'DISPLAYING',
   }
 })
+const forceShowOnboarding = computed(() => route.name === 'onboarding-debug')
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -468,7 +472,10 @@ watch(
 
         <button
           type="button"
-          class="rounded border border-white/30 px-4 py-2 text-sm font-semibold text-ts-text/95 transition hover:border-white/50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+          class="rounded border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+          :class="poolEmpty
+            ? 'border-ts-accent text-ts-accent shadow-glow hover:bg-ts-accent/15'
+            : 'border-white/30 text-ts-text/95 hover:border-white/50 hover:bg-white/10'"
           :disabled="!hasDrawnCards || isDrawing"
           @click="reshuffle"
         >
@@ -481,8 +488,24 @@ watch(
       </div>
     </header>
 
+    <div
+      v-if="poolEmpty"
+      class="flex flex-col items-start gap-2 rounded border border-ts-accent/45 bg-ts-accent/10 px-4 py-3 text-sm text-ts-accent md:flex-row md:items-center"
+    >
+      <p>
+        Card pool is empty. Click Reshuffle to continue drawing.
+      </p>
+      <button
+        type="button"
+        class="rounded border border-ts-accent/80 px-3 py-1.5 text-xs font-semibold text-ts-accent transition hover:bg-ts-accent/20"
+        @click="reshuffle"
+      >
+        {{ $t('draw.reshuffle') }}
+      </button>
+    </div>
+
     <p
-      v-if="errorMessage"
+      v-else-if="errorMessage"
       class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
     >
       {{ errorMessage }}
@@ -599,7 +622,7 @@ watch(
       :origin-rect="lightboxOrigin"
       origin-kind="card"
     />
-    <OnboardingOverlay />
+    <OnboardingOverlay :force-show="forceShowOnboarding" />
   </section>
 </template>
 
