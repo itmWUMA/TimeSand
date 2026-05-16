@@ -153,3 +153,19 @@ def test_album_playlist_association_set_and_clear(client: TestClient) -> None:
     album_after_clear = client.get(f"/api/albums/{album['id']}")
     assert album_after_clear.status_code == 200
     assert album_after_clear.json()["playlist_id"] is None
+
+
+def test_remove_missing_track_association_returns_404(client: TestClient) -> None:
+    track = upload_track(client, "lonely.wav")
+    create_response = client.post("/api/playlists", json={"name": "No Track Link"})
+    assert create_response.status_code == 201
+    playlist_id = create_response.json()["id"]
+
+    remove_response = client.delete(f"/api/playlists/{playlist_id}/tracks/{track['id']}")
+
+    assert remove_response.status_code == 404
+    assert remove_response.json() == {
+        "error": "not_found",
+        "message": "Music track is not in playlist",
+        "status_code": 404,
+    }

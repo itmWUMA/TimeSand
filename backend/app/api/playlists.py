@@ -233,10 +233,12 @@ def remove_track_from_playlist(
         )
     ).first()
 
-    if link is not None:
-        session.delete(link)
-        session.flush()
-        compact_playlist_positions(session, playlist_id)
-        session.commit()
+    if link is None:
+        raise HTTPException(status_code=404, detail="Music track is not in playlist")
+
+    session.delete(link)
+    session.flush()
+    compact_playlist_positions(session, playlist_id)
+    session.commit()
 
     return OkResponse(ok=True)

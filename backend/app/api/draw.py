@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session
@@ -8,7 +10,7 @@ from app.core.database import get_session
 from app.core.logging import get_logger
 from app.models.photo import Photo
 from app.services import draw_service
-from app.services.draw_service import NoAvailablePhotosError
+from app.services.draw_service import AlbumNotFoundError, DrawPoolEmptyError, NoAvailablePhotosError
 
 router = APIRouter(prefix="/api/draw", tags=["draw"])
 logger = get_logger(__name__)
@@ -33,16 +35,20 @@ class DrawResponse(BaseModel):
     weight_reason: str | None = None
 
 
+class DrawPoolEmptyResponse(BaseModel):
+    pool_empty: Literal[True]
+
+
 class DrawResetResponse(BaseModel):
     ok: bool
     total_available: int
 
 
-@router.post("", response_model=DrawResponse)
+@router.post("", response_model=DrawResponse | DrawPoolEmptyResponse)
 def draw_card(
     request: DrawRequest,
     session: Session = Depends(get_session),
-) -> DrawResponse:
+) -> DrawResponse | DrawPoolEmptyResponse:
     try:
         photo, weight_reason = draw_service.draw_photo(
             session,
@@ -51,6 +57,10 @@ def draw_card(
             weight_mode=request.weight_mode,
             nearby_days=request.nearby_days,
         )
+    except AlbumNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Album not found") from exc
+    except DrawPoolEmptyError:
+        return DrawPoolEmptyResponse(pool_empty=True)
     except NoAvailablePhotosError as exc:
         raise HTTPException(status_code=404, detail="No more photos available to draw") from exc
 

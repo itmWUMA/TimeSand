@@ -22,10 +22,17 @@ export interface DrawRequest {
   nearby_days?: number
 }
 
-export interface DrawResponse {
+export interface DrawSuccessResponse {
   photo: Photo
   weight_reason: string | null
+  pool_empty?: false
 }
+
+export interface DrawPoolEmptyResponse {
+  pool_empty: true
+}
+
+export type DrawResponse = DrawSuccessResponse | DrawPoolEmptyResponse
 
 export interface DrawResetResponse {
   ok: boolean

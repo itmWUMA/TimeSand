@@ -32,6 +32,7 @@ const imageSurfaceRef = ref<HTMLElement | null>(null)
 const imageRef = ref<HTMLImageElement | null>(null)
 const isRendered = ref(false)
 const contentVisible = ref(false)
+const isAnimating = ref(false)
 const currentIndex = ref(0)
 const prefersReducedMotion = ref(false)
 
@@ -198,9 +199,11 @@ function showInstantly(): void {
     gsapApi.set(backdrop, { opacity: 1 })
   }
   contentVisible.value = true
+  isAnimating.value = false
 }
 
 function runOpenAnimation(): void {
+  isAnimating.value = true
   const backdrop = backdropRef.value
   const surface = imageSurfaceRef.value
   const photo = currentPhoto.value
@@ -253,6 +256,7 @@ function runOpenAnimation(): void {
     onComplete: () => {
       contentVisible.value = true
       cleanupClone()
+      isAnimating.value = false
     },
   })
 
@@ -280,6 +284,7 @@ function runOpenAnimation(): void {
 function finalizeClose(emitModelUpdate: boolean): void {
   cleanupClone()
   killTimelines()
+  isAnimating.value = false
   contentVisible.value = false
   isRendered.value = false
   unlockBodyScroll()
@@ -289,6 +294,15 @@ function finalizeClose(emitModelUpdate: boolean): void {
 }
 
 function runCloseAnimation(emitModelUpdate: boolean): void {
+  killTimelines()
+  cleanupClone()
+  isAnimating.value = true
+
+  if (!contentVisible.value) {
+    finalizeClose(emitModelUpdate)
+    return
+  }
+
   const backdrop = backdropRef.value
   const image = imageRef.value
   const photo = currentPhoto.value
@@ -328,6 +342,9 @@ function runCloseAnimation(emitModelUpdate: boolean): void {
 }
 
 function openLightbox(): void {
+  killTimelines()
+  cleanupClone()
+
   if (props.photos.length === 0) {
     emit('update:open', false)
     return
@@ -337,6 +354,8 @@ function openLightbox(): void {
   activeOriginRect = props.originRect ? copyRect(props.originRect) : null
   activeOriginKind = props.originKind
   isRendered.value = true
+  contentVisible.value = false
+  isAnimating.value = true
   lockBodyScroll()
 
   nextTick(() => {
@@ -405,15 +424,12 @@ function handleMotionChange(event: MediaQueryListEvent): void {
 }
 
 watch(() => props.open, (open) => {
-  killTimelines()
-  cleanupClone()
-
   if (open) {
     openLightbox()
     return
   }
 
-  if (isRendered.value) {
+  if (isRendered.value || isAnimating.value) {
     runCloseAnimation(false)
   }
 }, { immediate: true })

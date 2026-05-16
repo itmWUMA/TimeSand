@@ -94,3 +94,26 @@ def test_delete_tag_removes_all_photo_associations(client: TestClient) -> None:
     filtered_after_delete = client.get("/api/photos", params={"tag_id": tag["id"]})
     assert filtered_after_delete.status_code == 200
     assert filtered_after_delete.json()["total"] == 0
+
+
+def test_remove_missing_tag_association_returns_404(client: TestClient) -> None:
+    photo = upload_photo(client)
+    tag = create_tag(client, "detached")
+
+    response = client.delete(f"/api/photos/{photo['id']}/tags/{tag['id']}")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": "not_found",
+        "message": "Tag is not attached to photo",
+        "status_code": 404,
+    }
+
+
+def test_tag_name_rejects_more_than_255_characters(client: TestClient) -> None:
+    response = client.post("/api/tags", json={"name": "x" * 256})
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["error"] == "validation_error"
+    assert "name" in payload["message"]

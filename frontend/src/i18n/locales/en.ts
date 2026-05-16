@@ -84,6 +84,7 @@ const en: MessageSchema = {
     title: 'Albums',
     description: 'Create and browse albums with cover photos and quick counts.',
     namePlaceholder: 'Album name',
+    nameRequired: 'Album name is required',
     descPlaceholder: 'Description (optional)',
     createFailed: 'Failed to create album.',
     loadFailed: 'Failed to load albums.',
