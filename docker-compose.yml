@@ -3,7 +3,7 @@ services:
     image: ghcr.io/itmwuma/timesand:latest
     user: "0:0"
     ports:
-      - "8080:8080"
+      - "8800:8080"
     volumes:
       - ./data:/data
     restart: unless-stopped
