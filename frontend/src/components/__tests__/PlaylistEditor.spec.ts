@@ -43,4 +43,17 @@ describe('playlistEditor', () => {
     await wrapper.get('[data-testid="remove-track-1"]').trigger('click')
     expect(wrapper.emitted('removeTrack')?.[0]).toEqual([1])
   })
+
+  it('renders visible drag handles for playlist rows', () => {
+    const wrapper = mountWithI18n(PlaylistEditor, {
+      props: {
+        tracks,
+      },
+    })
+
+    const firstHandle = wrapper.get('[data-testid="playlist-track-drag-handle-1"]')
+    expect(firstHandle.attributes('draggable')).toBe('true')
+    expect(firstHandle.classes()).toContain('cursor-grab')
+    expect(firstHandle.attributes('aria-label')).toBe('Drag Track One')
+  })
 })

@@ -11,6 +11,7 @@ import App from '../../App.vue'
 import { useToast } from '../../composables/useToast'
 import en from '../../i18n/locales/en'
 import zhCN from '../../i18n/locales/zh-CN'
+import { usePlayerStore } from '../../stores/player'
 import DefaultLayout from '../DefaultLayout.vue'
 
 function createTestI18n(locale: 'zh-CN' | 'en' = 'en') {
@@ -111,6 +112,47 @@ describe('defaultLayout shell', () => {
     const source = readFileSync('src/layouts/DefaultLayout.vue', 'utf8')
 
     expect(source).toContain('top: auto;')
+  })
+
+  it('lets the bottom player progress range seek within the current track', async () => {
+    const { wrapper } = await createWrapper()
+    const store = usePlayerStore()
+    store.loadPlaylist({
+      playlistId: 1,
+      playlistName: 'Default Playlist',
+      tracks: [
+        {
+          id: 1,
+          title: 'Quiet Sea',
+          artist: 'TimeSand',
+          filename: 'quiet-sea.mp3',
+          file_path: 'quiet-sea.mp3',
+          file_size: 1024,
+          duration: 110,
+          mime_type: 'audio/mpeg',
+          uploaded_at: '2026-04-10T09:00:00Z',
+        },
+      ],
+    })
+    store.setDuration(110)
+    await nextTick()
+
+    const progress = wrapper.get('[data-testid="shell-player-progress-range"]')
+    await progress.setValue('42')
+
+    expect(store.currentTime).toBe(42)
+  })
+
+  it('keeps the bottom player progress slim while preserving volume tools', async () => {
+    const { wrapper } = await createWrapper()
+    const source = readFileSync('src/layouts/DefaultLayout.vue', 'utf8')
+
+    expect(wrapper.find('.player-tools').exists()).toBe(true)
+    expect(wrapper.find('.player-vol').exists()).toBe(true)
+    expect(source).toContain('backgroundImage')
+    expect(source).toContain('.player-bar-range::-webkit-slider-thumb')
+    expect(source).toContain('width: 0;')
+    expect(source).toContain('height: 0;')
   })
 })
 
