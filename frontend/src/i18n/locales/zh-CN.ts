@@ -277,7 +277,7 @@ export default {
       meta: '现有端点 · zip 归档',
       exportEyebrow: 'EXPORT · 建议每月一次',
       exportTitle: '导出备份',
-      exportDescription: '将数据库、原图、缩略图和音乐文件打包成一个可迁移的 zip 归档。',
+      exportDescription: '将数据库、原图和音乐文件打包成一个可迁移的 zip 归档；缩略图会在恢复后重新生成。',
       exportAction: '导出备份',
       exporting: '导出备份中...',
       exportSuccess: '备份导出成功。',

@@ -166,6 +166,17 @@ select:not(:disabled),
   color: var(--ts-fg);
 }
 
+.btn-danger {
+  border-color: oklch(40% 0.08 25);
+  background: transparent;
+  color: oklch(78% 0.14 25);
+}
+
+.btn-danger:hover {
+  background: oklch(30% 0.08 25 / 40%);
+  color: oklch(85% 0.14 25);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

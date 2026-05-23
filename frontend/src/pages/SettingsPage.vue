@@ -27,7 +27,7 @@ interface StorageLegendRow {
   id: string
   label: string
   meta: string
-  bytes: number
+  bytes?: number
   swatch: string
 }
 
@@ -99,18 +99,7 @@ const drawDefaultAlbumValue = computed({
 const isSfxMuted = computed(() => soundEffects.isMuted.value)
 const selectedBackupFilename = computed(() => selectedBackupFile.value?.name ?? '')
 const storageTotalBytes = computed(() => storageInfo.value?.total_storage_bytes ?? 0)
-const thumbnailStorageBytes = computed(() => {
-  if (!storageInfo.value) {
-    return 0
-  }
-
-  return Math.max(
-    storageInfo.value.total_storage_bytes
-    - storageInfo.value.photo_storage_bytes
-    - storageInfo.value.music_storage_bytes,
-    0,
-  )
-})
+const storageCenterValue = computed(() => formatBytes(storageTotalBytes.value))
 
 const storageLegendRows = computed<StorageLegendRow[]>(() => {
   const info = storageInfo.value
@@ -137,7 +126,6 @@ const storageLegendRows = computed<StorageLegendRow[]>(() => {
       id: 'thumbnails',
       label: t('settings.thumbnails'),
       meta: t('settings.thumbnailMeta', { count: info.thumbnail_count }),
-      bytes: thumbnailStorageBytes.value,
       swatch: 'oklch(50% 0.04 80)',
     },
     {
@@ -151,27 +139,24 @@ const storageLegendRows = computed<StorageLegendRow[]>(() => {
 })
 
 const storageSegments = computed(() => {
-  const total = storageTotalBytes.value
-  if (total <= 0 || !storageInfo.value) {
+  const info = storageInfo.value
+  const total = info ? info.photo_storage_bytes + info.music_storage_bytes : 0
+  if (total <= 0 || !info) {
     return [
       { id: 'photos', length: 0, offset: 0, color: 'var(--ts-accent)' },
       { id: 'music', length: 0, offset: 0, color: 'oklch(60% 0.08 30)' },
-      { id: 'thumbnails', length: 0, offset: 0, color: 'oklch(50% 0.04 80)' },
     ]
   }
 
-  const photoLength = Math.round((storageInfo.value.photo_storage_bytes / total) * circleCircumference)
-  const musicLength = Math.round((storageInfo.value.music_storage_bytes / total) * circleCircumference)
-  const thumbnailLength = Math.max(circleCircumference - photoLength - musicLength, 0)
+  const photoLength = Math.round((info.photo_storage_bytes / total) * circleCircumference)
+  const musicLength = Math.max(circleCircumference - photoLength, 0)
 
   return [
     { id: 'photos', length: photoLength, offset: 0, color: 'var(--ts-accent)' },
     { id: 'music', length: musicLength, offset: -photoLength, color: 'oklch(60% 0.08 30)' },
-    { id: 'thumbnails', length: thumbnailLength, offset: -(photoLength + musicLength), color: 'oklch(50% 0.04 80)' },
   ]
 })
 
-const storagePercent = computed(() => storageTotalBytes.value > 0 ? 100 : 0)
 const exportStatus = computed(() => {
   if (isExportingBackup.value) {
     return t('settings.backup.downloadProgress', { progress: exportBackupProgress.value })
@@ -463,7 +448,7 @@ onMounted(async () => {
               <div class="donut-center">
                 <div>
                   <div class="pct">
-                    {{ storagePercent }}<span>%</span>
+                    {{ storageCenterValue }}
                   </div>
                   <div class="lbl">
                     {{ $t('settings.storageUsedLabel') }}
@@ -486,7 +471,7 @@ onMounted(async () => {
                     {{ row.meta }}
                   </div>
                 </div>
-                <span class="meta num">{{ formatBytes(row.bytes) }}</span>
+                <span class="meta num">{{ row.bytes == null ? '' : formatBytes(row.bytes) }}</span>
               </div>
             </div>
             <p v-else class="storage-state">
@@ -1069,9 +1054,10 @@ onMounted(async () => {
 .pct {
   color: var(--ts-fg);
   font-family: var(--ts-font-display);
-  font-size: 38px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .pct span {

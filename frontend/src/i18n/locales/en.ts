@@ -279,7 +279,7 @@ const en: MessageSchema = {
       meta: 'Existing endpoints · zip archive',
       exportEyebrow: 'Export · recommended monthly',
       exportTitle: 'Export Backup',
-      exportDescription: 'Package the database, original photos, thumbnails, and music files into one portable zip archive.',
+      exportDescription: 'Package the database, original photos, and music files into one portable zip archive. Thumbnails are regenerated after restore.',
       exportAction: 'Export Backup',
       exporting: 'Exporting Backup...',
       exportSuccess: 'Backup exported successfully.',

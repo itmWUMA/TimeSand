@@ -108,6 +108,17 @@ describe('settingsPage', () => {
     expect(wrapper.text()).toContain('142')
     expect(wrapper.text()).toContain('23')
     expect(wrapper.text()).toContain('500.00 MB')
+    expect(wrapper.find('.pct').text()).toBe('600.00 MB')
+    expect(wrapper.find('.pct').text()).not.toBe('100%')
+
+    const thumbnailRow = wrapper
+      .findAll('.legend-row')
+      .find(row => row.text().includes('Thumbnails'))
+    expect(thumbnailRow?.text()).toContain('142 generated')
+    expect(thumbnailRow?.text()).not.toContain('0 B')
+
+    expect(wrapper.text()).toContain('Package the database, original photos, and music files')
+    expect(wrapper.text()).not.toContain('thumbnails, and music files')
     expect(wrapper.text()).toContain('Draw and Time Weight')
     expect(wrapper.text()).toContain('Slideshow and Playback')
     expect(wrapper.text()).toContain('Appearance and Language')
