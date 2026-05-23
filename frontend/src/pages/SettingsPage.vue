@@ -4,6 +4,7 @@ import type { Album } from '../types/album'
 import type { DrawWeightMode } from '../types/draw'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import packageJson from '../../package.json'
 import { TsDialog } from '../components/ui'
 import { useSoundEffects } from '../composables/useSoundEffects'
 import { useToast } from '../composables/useToast'
@@ -51,7 +52,7 @@ const importBackupProgress = ref(0)
 const isRestoreDialogOpen = ref(false)
 const activeSection = ref<SectionLink['id']>('storage')
 
-const appVersion = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
+const appVersion = packageJson.version
 const circleCircumference = 302
 const localeOptions = ['zh-CN', 'en'] as const
 const sectionLinks: SectionLink[] = [

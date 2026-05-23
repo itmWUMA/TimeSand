@@ -2,6 +2,7 @@ import { flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import packageJson from '../../../package.json'
 import { listAlbums } from '../../services/album'
 import { exportBackup, importBackup } from '../../services/backup'
 import { getStorageInfo } from '../../services/settings'
@@ -123,6 +124,24 @@ describe('settingsPage', () => {
     expect(wrapper.text()).toContain('Slideshow and Playback')
     expect(wrapper.text()).toContain('Appearance and Language')
     expect(listAlbums).toHaveBeenCalledTimes(1)
+
+    wrapper.unmount()
+  })
+
+  it('shows the package version in the header chip and about section', async () => {
+    const wrapper = mountWithI18n(SettingsPage, {
+      global: {
+        plugins: [createPinia()],
+      },
+      attachTo: document.body,
+    })
+
+    await flushPromises()
+
+    const versionText = `v${packageJson.version}`
+    const renderedText = wrapper.text()
+    expect(renderedText).toContain(`${versionText} · local archive`)
+    expect(renderedText).toContain(`TimeSand · ${versionText}`)
 
     wrapper.unmount()
   })
