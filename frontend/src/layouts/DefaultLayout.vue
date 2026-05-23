@@ -2,10 +2,7 @@
 import { computed, defineComponent, h, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import TsToast from '../components/ui/TsToast.vue'
-import TsToastProvider from '../components/ui/TsToastProvider.vue'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
-import { useToast } from '../composables/useToast'
 
 type Locale = 'zh-CN' | 'en'
 type IconName = 'spark' | 'album' | 'film' | 'upload' | 'music' | 'gear' | 'info'
@@ -83,7 +80,6 @@ const ShellIcon = defineComponent({
 
 const route = useRoute()
 const { locale, t } = useI18n()
-const { toasts, dismissToast } = useToast()
 const {
   currentTrack,
   isPlaying,
@@ -180,11 +176,6 @@ function toggleLocale(nextLocale: Locale): void {
   locale.value = nextLocale
   localStorage.setItem('ts-locale', nextLocale)
   document.documentElement.lang = nextLocale
-}
-
-function handleToastOpenChange(toastId: string, isOpen: boolean): void {
-  if (!isOpen)
-    dismissToast(toastId)
 }
 
 onMounted(() => {
@@ -360,19 +351,6 @@ onMounted(() => {
         </div>
       </div>
     </footer>
-
-    <TsToastProvider>
-      <TsToast
-        v-for="toast in toasts"
-        :key="toast.id"
-        :open="true"
-        :title="toast.title"
-        :description="toast.description"
-        :variant="toast.variant"
-        :duration="toast.durationMs"
-        @update:open="(open) => handleToastOpenChange(toast.id, open)"
-      />
-    </TsToastProvider>
   </div>
 </template>
 

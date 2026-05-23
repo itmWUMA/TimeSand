@@ -2,7 +2,12 @@
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import { RouterView } from 'vue-router'
 
+import TsToast from './components/ui/TsToast.vue'
+import TsToastProvider from './components/ui/TsToastProvider.vue'
+import { useToast } from './composables/useToast'
 import DefaultLayout from './layouts/DefaultLayout.vue'
+
+const { toasts, dismissToast } = useToast()
 
 function routeUsesShell(route: RouteLocationNormalizedLoaded): boolean {
   return route.meta.shell !== false
@@ -10,6 +15,11 @@ function routeUsesShell(route: RouteLocationNormalizedLoaded): boolean {
 
 function transitionName(route: RouteLocationNormalizedLoaded): string {
   return route.name === 'slideshow' ? '' : 'page'
+}
+
+function handleToastOpenChange(toastId: string, isOpen: boolean): void {
+  if (!isOpen)
+    dismissToast(toastId)
 }
 </script>
 
@@ -38,6 +48,19 @@ function transitionName(route: RouteLocationNormalizedLoaded): string {
       />
     </Transition>
   </RouterView>
+
+  <TsToastProvider>
+    <TsToast
+      v-for="toast in toasts"
+      :key="toast.id"
+      :open="true"
+      :title="toast.title"
+      :description="toast.description"
+      :variant="toast.variant"
+      :duration="toast.durationMs"
+      @update:open="(open) => handleToastOpenChange(toast.id, open)"
+    />
+  </TsToastProvider>
 </template>
 
 <style>

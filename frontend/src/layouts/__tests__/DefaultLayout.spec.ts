@@ -2,10 +2,12 @@ import type { MessageSchema } from '../../i18n/types'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import App from '../../App.vue'
+import { useToast } from '../../composables/useToast'
 import en from '../../i18n/locales/en'
 import zhCN from '../../i18n/locales/zh-CN'
 import DefaultLayout from '../DefaultLayout.vue'
@@ -152,5 +154,40 @@ describe('app shell selection', () => {
 
     expect(wrapper.find('[data-testid="default-layout"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Landing')
+  })
+
+  it('renders global toasts on routes that opt out of DefaultLayout', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div>Landing</div>' }, meta: { shell: false } },
+      ],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [createPinia(), createTestI18n(), router],
+        stubs: {
+          DefaultLayout: {
+            template: '<div data-testid="default-layout"><slot /></div>',
+          },
+          TsToastProvider: {
+            template: '<div data-testid="toast-provider"><slot /></div>',
+          },
+          TsToast: {
+            props: ['title'],
+            template: '<div data-testid="toast">{{ title }}</div>',
+          },
+        },
+      },
+    })
+
+    useToast().showToast('Network unavailable', undefined, 'error')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="default-layout"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="toast"]').text()).toBe('Network unavailable')
   })
 })
