@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>音乐盒 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .music-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* sidebar: playlists */
+    .pl-side {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .pl-side-head {
+      padding: 16px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pl-side-h {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .pl-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 18px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pl-item:last-child { border-bottom: none; }
+    .pl-item:hover { background: var(--surface-2); }
+    .pl-item.is-on { background: var(--surface-2); }
+    .pl-item.is-on::before {
+      content: '';
+      display: block;
+      width: 2px; height: 28px;
+      background: var(--accent);
+      position: absolute;
+      left: 0;
+    }
+    .pl-item { position: relative; }
+    .pl-cover {
+      width: 44px; height: 44px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .pl-name {
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.25;
+    }
+    .pl-meta {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+    .pl-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* main panel */
+    .pl-main {
+      background: transparent;
+    }
+
+    .pl-hero {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 32px;
+      padding: 18px 4px 30px;
+      align-items: end;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 24px;
+    }
+    .pl-art {
+      width: 220px;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 30% 25%, var(--accent-soft), transparent 55%),
+        linear-gradient(135deg, oklch(45% 0.06 60), oklch(22% 0.03 50));
+      box-shadow: 0 20px 50px -16px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
+    }
+    .pl-art::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><g stroke='%23f4d49a' fill='none' stroke-width='0.7' opacity='0.6'><circle cx='100' cy='100' r='30'/><circle cx='100' cy='100' r='50'/><circle cx='100' cy='100' r='70'/><circle cx='100' cy='100' r='90'/><circle cx='100' cy='100' r='3' fill='%23f4d49a'/></g></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+    }
+    .pl-hero-info .h-eyebrow { color: var(--accent); }
+    .pl-hero-info h2 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 4.4vw, 54px);
+      font-weight: 500;
+      margin: 8px 0 12px;
+      letter-spacing: -0.01em;
+      line-height: 1.05;
+    }
+    .pl-hero-desc {
+      color: var(--fg-soft);
+      font-size: 14px;
+      max-width: 56ch;
+      margin-bottom: 16px;
+    }
+    .pl-hero-meta {
+      display: flex;
+      gap: 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+    }
+    .pl-hero-meta .ac { color: var(--accent); }
+    .pl-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* track table */
+    .tracks {
+      display: grid;
+      gap: 2px;
+    }
+    .track-head {
+      display: grid;
+      grid-template-columns: 36px 1.2fr 1fr 60px;
+      gap: 18px;
+      padding: 0 18px 10px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      color: var(--muted-2);
+      text-transform: uppercase;
+    }
+    .track {
+      display: grid;
+      grid-template-columns: 36px 1.2fr 1fr 60px;
+      gap: 18px;
+      align-items: center;
+      padding: 12px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .track:hover { background: var(--surface); }
+    .track.is-playing { background: var(--surface); }
+    .track.is-playing .t-num { color: var(--accent); }
+    .track .t-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .track .t-name {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .t-cover {
+      width: 40px; height: 40px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+    .t-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .t-artist {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .t-album {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .t-len {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .empty-hint {
+      margin-top: 30px;
+      padding: 30px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-hint strong { color: var(--fg-soft); }
+
+    @media (max-width: 880px) {
+      .music-layout { grid-template-columns: 1fr; }
+      .pl-hero { grid-template-columns: 1fr; }
+      .pl-art { width: 160px; aspect-ratio: 1; }
+      .track, .track-head { grid-template-columns: 36px 1fr 50px; }
+      .track > :nth-child(3), .track-head > :nth-child(3) { display: none; }
+    }
+    @media (max-width: 720px) {
+      .pl-side {
+        border-radius: var(--radius);
+      }
+      .pl-side-head { padding: 12px 14px; }
+      .pl-item { padding: 10px 14px; gap: 10px; grid-template-columns: 40px 1fr auto; }
+      .pl-cover { width: 40px; height: 40px; }
+      .pl-name { font-size: 13px; }
+      .pl-meta { font-size: 10px; }
+      .pl-hero { gap: 18px; padding: 4px 4px 22px; margin-bottom: 18px; }
+      .pl-art { width: 140px; }
+      .pl-hero-info h2 { font-size: clamp(28px, 8vw, 40px); }
+      .pl-hero-meta { gap: 12px; flex-wrap: wrap; font-size: 10px; letter-spacing: 0.06em; }
+      .pl-hero-cta { gap: 8px; }
+      .pl-hero-cta .btn { font-size: 12.5px; padding: 9px 14px; }
+      .track-head { padding: 0 12px 8px; font-size: 9.5px; letter-spacing: 0.12em; }
+      .track { padding: 10px 12px; gap: 12px; }
+      .track .t-name { gap: 10px; }
+      .t-cover { width: 36px; height: 36px; }
+      .t-title { font-size: 13px; }
+      .t-artist { font-size: 10.5px; }
+      .empty-hint { padding: 20px 16px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body data-page="music">
+
+<div class="app">
+  <aside class="rail" id="shell-rail"></aside>
+
+  <main class="canvas">
+
+    <header class="page-head">
+      <div>
+        <div class="h-eyebrow">SOUND</div>
+        <h1 class="h-title">音乐盒</h1>
+        <p class="h-sub">本地音乐和播放列表。把一段曲子绑到一本相册上，下次放映时它会跟着照片一起走。</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/></svg>
+          上传音乐
+        </button>
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
+          新建播放列表
+        </button>
+      </div>
+    </header>
+
+    <div class="music-layout">
+
+      <aside class="pl-side">
+        <div class="pl-side-head">
+          <span class="pl-side-h">播放列表 · 5</span>
+          <span class="pl-side-h" style="color: var(--accent); cursor:pointer;">+ 新建</span>
+        </div>
+
+        <div class="pl-item is-on">
+          <div class="pl-cover" style="background: linear-gradient(135deg, var(--accent), var(--accent-deep));"></div>
+          <div>
+            <div class="pl-name">夜窗微光</div>
+            <div class="pl-meta">12 首 · 绑定 1 本相册</div>
+          </div>
+          <span class="pl-count num">12</span>
+        </div>
+
+        <div class="pl-item">
+          <div class="pl-cover" style="background: linear-gradient(135deg, oklch(50% 0.08 200), oklch(28% 0.05 220));"></div>
+          <div>
+            <div class="pl-name">雨天午后</div>
+            <div class="pl-meta">8 首</div>
+          </div>
+          <span class="pl-count num">8</span>
+        </div>
+
+        <div class="pl-item">
+          <div class="pl-cover" style="background: linear-gradient(135deg, oklch(50% 0.08 130), oklch(28% 0.04 150));"></div>
+          <div>
+            <div class="pl-name">公路上 · 长</div>
+            <div class="pl-meta">24 首 · 绑定 2 本相册</div>
+          </div>
+          <span class="pl-count num">24</span>
+        </div>
+
+        <div class="pl-item">
+          <div class="pl-cover" style="background: linear-gradient(135deg, oklch(45% 0.07 30), oklch(26% 0.04 25));"></div>
+          <div>
+            <div class="pl-name">爸妈的卡带</div>
+            <div class="pl-meta">16 首</div>
+          </div>
+          <span class="pl-count num">16</span>
+        </div>
+
+        <div class="pl-item">
+          <div class="pl-cover" style="background: linear-gradient(135deg, oklch(50% 0.08 290), oklch(28% 0.05 280));"></div>
+          <div>
+            <div class="pl-name">写代码用</div>
+            <div class="pl-meta">42 首</div>
+          </div>
+          <span class="pl-count num">42</span>
+        </div>
+      </aside>
+
+      <section class="pl-main">
+
+        <div class="pl-hero">
+          <div class="pl-art"></div>
+          <div class="pl-hero-info">
+            <div class="h-eyebrow">PLAYLIST · 默认音乐盒</div>
+            <h2>夜窗微光</h2>
+            <p class="pl-hero-desc">傍晚到入睡前的那一段。绑定在 <a href="album-detail.html" style="color: var(--accent);">青海 · 茶卡盐湖</a>。放映时会循环播放。</p>
+            <div class="pl-hero-meta">
+              <span><span class="ac">12</span> 首 · 共 47 分 12 秒</span>
+              <span>绑定 1 本相册</span>
+              <span>更新于 5 月 18 日</span>
+            </div>
+            <div class="pl-hero-cta">
+              <button class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8L6 20V4z"/></svg>
+                从头播放
+              </button>
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/></svg>
+                随机
+              </button>
+              <button class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 16V4M6 10l6-6 6 6"/></svg>
+                添加曲目
+              </button>
+              <button class="btn btn-ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 14l4-4 5 5 3-3 6 6"/></svg>
+                绑定相册
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tracks">
+          <div class="track-head">
+            <span>#</span>
+            <span>曲目</span>
+            <span>来源</span>
+            <span style="text-align:right;">时长</span>
+          </div>
+
+          <div class="track is-playing">
+            <span class="t-num num">01</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(60% 0.08 70), oklch(35% 0.05 50));"></div>
+              <div>
+                <div class="t-title">Window Drift</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · drift.mp3</span>
+            <span class="t-len">3:42</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">02</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(50% 0.06 30), oklch(28% 0.04 25));"></div>
+              <div>
+                <div class="t-title">Slow Tea</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · slow-tea.flac</span>
+            <span class="t-len">4:18</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">03</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(55% 0.08 200), oklch(32% 0.05 220));"></div>
+              <div>
+                <div class="t-title">Salt Lake, 17:42</div>
+                <div class="t-artist">TimeSand · Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · salt-lake.mp3</span>
+            <span class="t-len">5:01</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">04</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(48% 0.07 130), oklch(28% 0.04 150));"></div>
+              <div>
+                <div class="t-title">Living Room</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · living-room.flac</span>
+            <span class="t-len">3:24</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">05</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(48% 0.07 80), oklch(28% 0.04 60));"></div>
+              <div>
+                <div class="t-title">Long Drive Home</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · long-drive.mp3</span>
+            <span class="t-len">6:12</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">06</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(50% 0.08 290), oklch(28% 0.05 280));"></div>
+              <div>
+                <div class="t-title">Late Window</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · late-window.flac</span>
+            <span class="t-len">4:55</span>
+          </div>
+
+          <div class="track">
+            <span class="t-num num">07</span>
+            <div class="t-name">
+              <div class="t-cover" style="background: linear-gradient(135deg, oklch(46% 0.06 360), oklch(26% 0.04 350));"></div>
+              <div>
+                <div class="t-title">Pages Turn</div>
+                <div class="t-artist">Ambient Demo</div>
+              </div>
+            </div>
+            <span class="t-album">本地 · pages.mp3</span>
+            <span class="t-len">3:08</span>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+  </main>
+
+  <footer class="player" id="shell-player"></footer>
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

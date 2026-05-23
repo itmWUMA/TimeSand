@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>抽卡 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== Draw stage ====================================== */
+    .stage {
+      position: relative;
+      min-height: calc(100vh - 200px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 28px;
+    }
+
+    .stage-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .stage-head-left { max-width: 640px; }
+    .stage-head .h-title { font-size: clamp(30px, 3.6vw, 48px); }
+
+    .album-pick {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .album-pick svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+    .album-pick .num { color: var(--muted); }
+
+    /* ===== The card stage ==================================== */
+    .arena {
+      position: relative;
+      border-radius: var(--radius-lg);
+      background:
+        radial-gradient(ellipse at center, oklch(22% 0.024 55) 0%, oklch(15% 0.016 50) 70%);
+      border: 1px solid var(--border-soft);
+      overflow: hidden;
+      min-height: 540px;
+      display: grid;
+      place-items: center;
+    }
+
+    /* hourglass watermark — the time/sand metaphor */
+    .arena::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a36a' stroke-width='0.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 3h12M6 21h12'/><path d='M7 3c0 4 5 5.5 5 9s-5 5-5 9'/><path d='M17 3c0 4-5 5.5-5 9s5 5 5 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: min(70%, 540px);
+      opacity: 0.05;
+      pointer-events: none;
+    }
+
+    .deck {
+      position: relative;
+      width: clamp(280px, 30vw, 360px);
+      aspect-ratio: 3 / 4;
+      transform-style: preserve-3d;
+      cursor: pointer;
+      transition: transform .8s var(--ease-out-soft);
+    }
+    .deck:hover { transform: translateY(-4px); }
+
+    .card-mem {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background:
+        linear-gradient(140deg, oklch(40% 0.05 55) 0%, oklch(28% 0.04 50) 100%);
+      box-shadow:
+        0 30px 60px -20px rgba(0,0,0,0.6),
+        0 12px 30px -8px rgba(0,0,0,0.5),
+        inset 0 1px 0 oklch(60% 0.05 60 / 0.3);
+      overflow: hidden;
+      transition: transform .9s var(--ease-out-soft), opacity .6s var(--ease);
+    }
+    .card-mem::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 30% 25%, oklch(78% 0.14 72 / 0.18), transparent 55%),
+        repeating-linear-gradient(45deg, transparent 0 20px, oklch(50% 0.06 60 / 0.04) 20px 21px);
+    }
+    .card-mem.hero {
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 600'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23a87b4d'/><stop offset='50%25' stop-color='%23704a2b'/><stop offset='100%25' stop-color='%232a1a10'/></linearGradient></defs><rect width='400' height='600' fill='url(%23g)'/><circle cx='200' cy='180' r='80' fill='%23f4d49a' opacity='0.6'/><path d='M0 420 Q100 360 200 400 T400 380 L400 600 L0 600 Z' fill='%23241510' opacity='0.6'/></svg>") center / cover no-repeat;
+    }
+    .card-mem.hero::before { display: none; }
+
+    /* stacked back cards */
+    .card-mem.stack-1 { transform: translate(8px, 10px) rotate(2deg); opacity: 0.55; }
+    .card-mem.stack-2 { transform: translate(16px, 20px) rotate(4deg); opacity: 0.3; }
+    .card-mem.stack-3 { transform: translate(-8px, 14px) rotate(-2.5deg); opacity: 0.4; }
+
+    .card-meta {
+      position: absolute;
+      left: 22px; right: 22px; bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .card-date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .card-caption {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 500;
+      color: oklch(96% 0.02 80);
+      line-height: 1.2;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    }
+    .card-place {
+      font-size: 12px;
+      color: oklch(80% 0.02 70);
+      letter-spacing: 0.04em;
+    }
+
+    .arena-side {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 5;
+    }
+    .arena-side.left  { left: 22px; }
+    .arena-side.right { right: 22px; align-items: flex-end; }
+    .side-stat {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .side-stat .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* ===== Action bar (the only controls user sees) ========== */
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 4px 0 12px;
+    }
+    .action-main {
+      padding: 16px 38px;
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .action-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--muted-2);
+      text-transform: uppercase;
+      margin-left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kbd {
+      display: inline-grid;
+      place-items: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 10.5px;
+      color: var(--fg-soft);
+    }
+
+    /* ===== Recent strip — tiny stack of past draws ========== */
+    .ribbon {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 18px 22px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+    }
+    .ribbon-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      padding-right: 14px;
+      border-right: 1px solid var(--border-soft);
+      margin-right: 6px;
+    }
+    .ribbon-card {
+      flex-shrink: 0;
+      width: 64px;
+      aspect-ratio: 3/4;
+      border-radius: 8px;
+      position: relative;
+      cursor: pointer;
+      transition: transform .25s var(--ease);
+    }
+    .ribbon-card:hover { transform: translateY(-3px); }
+    .ribbon-card.c1 { background: linear-gradient(135deg, oklch(60% 0.10 80), oklch(35% 0.05 50)); }
+    .ribbon-card.c2 { background: linear-gradient(135deg, oklch(45% 0.06 30), oklch(30% 0.04 25)); }
+    .ribbon-card.c3 { background: linear-gradient(135deg, oklch(55% 0.08 200), oklch(35% 0.05 220)); }
+    .ribbon-card.c4 { background: linear-gradient(135deg, oklch(60% 0.08 130), oklch(35% 0.04 150)); }
+    .ribbon-card.c5 { background: linear-gradient(135deg, oklch(50% 0.07 60), oklch(30% 0.04 50)); }
+    .ribbon-card.c6 { background: linear-gradient(135deg, oklch(58% 0.09 290), oklch(34% 0.05 280)); }
+    .ribbon-spacer { flex: 1; }
+    .ribbon-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ===== Today panel (time-weighted feature) =============== */
+    .today {
+      position: absolute;
+      top: 22px; right: 22px;
+      width: 240px;
+      padding: 16px 18px;
+      background: oklch(20% 0.022 52 / 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      z-index: 6;
+    }
+    .today-eye {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .today-line {
+      font-family: var(--font-display);
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--fg-soft);
+    }
+    .today-line strong { color: var(--fg); font-weight: 500; }
+
+    @media (max-width: 720px) {
+      .stage { gap: 18px; }
+      .arena { min-height: 420px; border-radius: var(--radius); }
+      .today { display: none; }
+      .arena-side { display: none; }
+      .stage-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+      .stage-head .h-title { font-size: clamp(24px, 7.6vw, 34px); }
+      .stage-head .h-sub { font-size: 13.5px; }
+      .album-pick { font-size: 12.5px; padding: 7px 12px 7px 14px; }
+      .deck { width: clamp(220px, 70vw, 300px); }
+      .card-meta { left: 18px; right: 18px; bottom: 18px; }
+      .card-caption { font-size: 18px; }
+      .actions { flex-wrap: wrap; gap: 10px; }
+      .action-main { padding: 13px 28px; flex: 1; justify-content: center; min-width: 160px; }
+      .action-hint { display: none; }
+      .ribbon { padding: 14px 16px; border-radius: var(--radius); gap: 10px; }
+      .ribbon-label { font-size: 10px; letter-spacing: 0.16em; padding-right: 10px; }
+      .ribbon-card { width: 54px; }
+      .ribbon-tag { display: none; }
+    }
+    @media (max-width: 420px) {
+      .arena { min-height: 380px; }
+      .deck { width: 240px; }
+      .actions .btn-ghost { display: none; }
+    }
+  </style>
+</head>
+<body data-page="draw">
+
+<div class="app">
+  <aside class="rail" id="shell-rail"></aside>
+
+  <main class="canvas">
+    <div class="stage">
+
+      <header class="stage-head">
+        <div class="stage-head-left">
+          <div class="h-eyebrow">仪式 · 2026 · 春</div>
+          <h1 class="h-title">从沙里抽出一段时间。</h1>
+          <p class="h-sub">从你 1,248 张照片里随机取一帧。多年以前的今天会被略微提高权重。</p>
+        </div>
+
+        <button class="album-pick" type="button">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 14l4-4 5 5 3-3 6 6"/>
+          </svg>
+          <span>全部相册</span>
+          <span class="num">· 1,248</span>
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:.6">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
+      </header>
+
+      <section class="arena">
+        <div class="motes" data-motes="32"></div>
+
+        <aside class="today">
+          <div class="today-eye">多年以前的今天</div>
+          <div class="today-line"><strong>3 张照片</strong>来自 5/23 这天 — 已经被略微调高了概率。</div>
+        </aside>
+
+        <div class="arena-side left">
+          <div class="side-stat"><span class="dot"></span>剩余 <span class="num">1,184</span></div>
+          <div class="side-stat">已抽 <span class="num">64</span></div>
+          <div class="side-stat">连续 <span class="num">7</span> 天</div>
+        </div>
+
+        <div class="arena-side right">
+          <div class="side-stat">权重 · <span class="num">+12%</span></div>
+          <div class="side-stat">范围 · <span class="num">±3 d</span></div>
+          <div class="side-stat">深度 · <span class="num">2019</span></div>
+        </div>
+
+        <div class="deck" id="deck">
+          <div class="card-mem stack-2"></div>
+          <div class="card-mem stack-3"></div>
+          <div class="card-mem stack-1"></div>
+          <div class="card-mem hero">
+            <div class="card-meta">
+              <div class="card-date">2019 · 05 · 23</div>
+              <div class="card-caption">湖边那阵风把云吹散了。</div>
+              <div class="card-place">青海 · 茶卡盐湖</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="btn btn-primary action-main" id="btnDraw">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 4v16M4 12h16"/>
+          </svg>
+          抽下一张
+        </button>
+        <button class="btn">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+          </svg>
+          撤销
+        </button>
+        <button class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          散开看
+        </button>
+
+        <span class="action-hint">
+          <span class="kbd">Space</span> 抽
+          <span class="kbd">Z</span> 撤销
+          <span class="kbd">G</span> 散开
+        </span>
+      </div>
+
+      <div class="ribbon">
+        <div class="ribbon-label">最近抽出</div>
+        <div class="ribbon-card c1"></div>
+        <div class="ribbon-card c2"></div>
+        <div class="ribbon-card c3"></div>
+        <div class="ribbon-card c4"></div>
+        <div class="ribbon-card c5"></div>
+        <div class="ribbon-card c6"></div>
+        <div class="ribbon-spacer"></div>
+        <div class="ribbon-tag">第 64 / 1,248 张</div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="player" id="shell-player"></footer>
+</div>
+
+<script src="shell.js"></script>
+<script>
+  // light interaction: click deck or press space to "draw"
+  const deck = document.getElementById('deck');
+  const hero = deck.querySelector('.card-mem.hero');
+  const btn  = document.getElementById('btnDraw');
+
+  function drawAnim() {
+    hero.style.transform = 'translateY(-30px) rotate(-3deg) scale(1.02)';
+    hero.style.opacity = '0.4';
+    setTimeout(() => {
+      hero.style.transform = '';
+      hero.style.opacity = '';
+    }, 600);
+  }
+  deck.addEventListener('click', drawAnim);
+  btn.addEventListener('click', drawAnim);
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); drawAnim(); }
+  });
+</script>
+</body>
+</html>
