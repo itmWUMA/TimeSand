@@ -1,4 +1,5 @@
 import type { MessageSchema } from '../../i18n/types'
+import { readFileSync } from 'node:fs'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -73,6 +74,7 @@ describe('defaultLayout shell', () => {
     expect(wrapper.find('[data-testid="rail-group-content"]').text()).toContain('Content')
     expect(wrapper.find('[data-testid="rail-group-other"]').text()).toContain('Other')
     expect(wrapper.find('[data-testid="shell-player"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="shell-player"]').classes()).toContain('player-fixed')
     expect(wrapper.find('[data-testid="shell-player-title"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="shell-player-play"]').exists()).toBe(true)
   })
@@ -102,6 +104,13 @@ describe('defaultLayout shell', () => {
     expect(localStorage.getItem('ts-locale')).toBe('zh-CN')
     expect(wrapper.find('[data-testid="locale-zh-CN"]').classes()).toContain('is-on')
     expect(wrapper.text()).toContain(zhCN.nav.cardDraw)
+  })
+
+  it('resets the fixed mobile rail top edge so it does not cover page content', async () => {
+    await createWrapper('/albums/42')
+    const source = readFileSync('src/layouts/DefaultLayout.vue', 'utf8')
+
+    expect(source).toContain('top: auto;')
   })
 })
 

@@ -15,7 +15,11 @@ interface ListPhotosFilters {
   tagId?: number
 }
 
-export async function uploadPhotos(files: File[], onProgress?: (progress: number) => void): Promise<Photo[]> {
+export async function uploadPhotos(
+  files: File[],
+  onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
+): Promise<Photo[]> {
   const formData = new FormData()
 
   files.forEach((file) => {
@@ -31,6 +35,7 @@ export async function uploadPhotos(files: File[], onProgress?: (progress: number
       const progress = Math.min(100, Math.round((event.loaded / event.total) * 100))
       onProgress(progress)
     },
+    signal,
   })
 
   return response.data.photos

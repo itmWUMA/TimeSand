@@ -49,6 +49,7 @@ describe('photoGrid', () => {
     const firstImage = wrapper.find('img[alt="one.jpg"]')
     expect(firstImage.exists()).toBe(true)
     expect(firstImage.attributes('src')).toBe('/api/photos/1/thumbnail?v=one_thumb.jpg')
+    expect(wrapper.find('[data-testid="photo-grid"]').classes()).toContain('photo-grid-surface')
   })
 
   it('forwards photo item click events with index payload', async () => {

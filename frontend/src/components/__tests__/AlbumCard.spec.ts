@@ -41,6 +41,7 @@ describe('albumCard', () => {
     const image = wrapper.find('img[alt="Vacation 2023"]')
     expect(image.exists()).toBe(true)
     expect(image.attributes('src')).toBe('/api/photos/8/thumbnail?v=thumb.jpg')
+    expect(wrapper.find('[data-testid="album-cover-collage"]').exists()).toBe(true)
   })
 
   it('hides description when album description is null', () => {

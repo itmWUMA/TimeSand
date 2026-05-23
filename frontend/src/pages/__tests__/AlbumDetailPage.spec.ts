@@ -3,14 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../test-utils'
 import AlbumDetailPage from '../AlbumDetailPage.vue'
 
+const routerPushSpy = vi.hoisted(() => vi.fn())
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({
     params: { id: '1' },
+  }),
+  useRouter: () => ({
+    push: routerPushSpy,
   }),
 }))
 
 vi.mock('../../services/album', () => ({
   addPhotosToAlbum: vi.fn(),
+  deleteAlbum: vi.fn(),
   getAlbum: vi.fn(),
   removePhotoFromAlbum: vi.fn(),
   updateAlbum: vi.fn(),
@@ -64,6 +70,7 @@ function mountPage() {
 describe('albumDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    routerPushSpy.mockClear()
 
     vi.mocked(albumApi.getAlbum).mockResolvedValue({
       id: 1,
@@ -76,6 +83,7 @@ describe('albumDetailPage', () => {
       updated_at: '2026-05-10T00:00:00Z',
     })
     vi.mocked(albumApi.addPhotosToAlbum).mockResolvedValue(undefined)
+    vi.mocked(albumApi.deleteAlbum).mockResolvedValue(undefined)
     vi.mocked(albumApi.removePhotoFromAlbum).mockResolvedValue(undefined)
     vi.mocked(albumApi.updateAlbum).mockImplementation(async (_albumId, payload) => ({
       id: 1,
@@ -164,5 +172,34 @@ describe('albumDetailPage', () => {
 
     expect(calledPageTwo).toBe(true)
     expect(optionCount).toBe(151)
+  })
+
+  it('renders exported detail hero and deletes the album from detail controls', async () => {
+    vi.mocked(photoApi.listPhotos)
+      .mockResolvedValueOnce({
+        items: [buildPhoto(1)],
+        total: 1,
+        page: 1,
+        page_size: 100,
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: 100,
+      })
+
+    const wrapper = mountPage()
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="album-detail-hero"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="album-detail-stats"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="album-delete-button"]').trigger('click')
+    await flushPromises()
+
+    expect(albumApi.deleteAlbum).toHaveBeenCalledWith(1)
+    expect(routerPushSpy).toHaveBeenCalledWith('/albums')
   })
 })
