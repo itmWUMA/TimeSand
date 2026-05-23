@@ -8,7 +8,6 @@ describe('photoUploader', () => {
     const wrapper = mountWithI18n(PhotoUploader, {
       props: {
         uploading: false,
-        progress: 0,
       },
     })
 
@@ -24,7 +23,6 @@ describe('photoUploader', () => {
     const wrapper = mountWithI18n(PhotoUploader, {
       props: {
         uploading: true,
-        progress: 62,
         queue: [
           {
             id: '1',
@@ -47,6 +45,7 @@ describe('photoUploader', () => {
     expect(wrapper.find('[data-testid="photo-upload-queue"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('IMG_2018.HEIC')
     expect(wrapper.text()).toContain('broken.heic')
+    expect(wrapper.findAll('[data-testid="photo-upload-cancel"]')).toHaveLength(1)
 
     await wrapper.get('[data-testid="photo-upload-cancel"]').trigger('click')
     await wrapper.get('[data-testid="photo-upload-retry-2"]').trigger('click')

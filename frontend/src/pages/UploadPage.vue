@@ -25,7 +25,6 @@ const { t } = useI18n()
 const photos = ref<Photo[]>([])
 const albums = ref<Album[]>([])
 const uploading = ref(false)
-const progress = ref(0)
 const errorMessage = ref<string | null>(null)
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
@@ -103,14 +102,12 @@ function patchQueueItems(ids: string[], patch: Partial<Omit<UploadQueueItem, 'id
 
 async function runUpload(files: File[], queueIds: string[]): Promise<void> {
   uploading.value = true
-  progress.value = 0
   errorMessage.value = null
   activeUploadController = new AbortController()
   patchQueueItems(queueIds, { status: 'uploading', progress: 0 })
 
   try {
     const uploaded = await uploadPhotos(files, (value) => {
-      progress.value = value
       patchQueueItems(queueIds, { progress: value })
     }, activeUploadController.signal)
 
@@ -206,7 +203,6 @@ onMounted(async () => {
     <div class="upload-grid">
       <PhotoUploader
         :uploading="uploading"
-        :progress="progress"
         :queue="uploadQueueItems"
         :selected-album-name="selectedAlbumName"
         @upload="handleUpload"

@@ -13,7 +13,6 @@ interface UploadQueueItem {
 
 const props = withDefaults(defineProps<{
   uploading: boolean
-  progress: number
   queue?: UploadQueueItem[]
   selectedAlbumName?: string | null
 }>(), {
@@ -144,7 +143,7 @@ function statusLabel(status: UploadStatus, progress: number): string {
           {{ uploading ? $t('common.uploading') : $t('photo.chooseFiles') }}
         </button>
         <button
-          v-if="uploading"
+          v-if="uploading && !hasQueue"
           type="button"
           data-testid="photo-upload-cancel"
           class="btn btn-ghost"
