@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>相册 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-pill);
+    }
+    .toolbar-search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+    .toolbar-search svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .toolbar-search input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--fg);
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .toolbar-search input::placeholder { color: var(--muted-2); }
+    .toolbar-sort {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.16em;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .sort-pill {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+    }
+    .sort-pill.is-on { background: var(--surface-2); color: var(--fg); }
+
+    .albums-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 22px;
+    }
+
+    .album-card {
+      background: transparent;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .3s var(--ease), border-color .25s var(--ease);
+    }
+    .album-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--border);
+    }
+    .album-cover {
+      aspect-ratio: 4 / 3;
+      position: relative;
+      overflow: hidden;
+    }
+    .album-cover-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 2px;
+      width: 100%; height: 100%;
+    }
+    .album-cover-grid > div {
+      background: var(--surface-2);
+    }
+    .album-cover-grid > div:first-child { grid-row: span 2; }
+    .album-cover.solo { display: block; }
+
+    .cover-1 { background: linear-gradient(135deg, oklch(60% 0.10 70), oklch(35% 0.05 60)); }
+    .cover-2 { background: linear-gradient(135deg, oklch(45% 0.06 30), oklch(28% 0.04 25)); }
+    .cover-3 { background: linear-gradient(135deg, oklch(55% 0.08 200), oklch(32% 0.05 220)); }
+    .cover-4 { background: linear-gradient(135deg, oklch(50% 0.07 130), oklch(28% 0.04 150)); }
+    .cover-5 { background: linear-gradient(135deg, oklch(48% 0.07 60), oklch(28% 0.04 50)); }
+    .cover-6 { background: linear-gradient(135deg, oklch(54% 0.09 290), oklch(32% 0.05 280)); }
+    .cover-7 { background: linear-gradient(135deg, oklch(58% 0.08 100), oklch(32% 0.04 90)); }
+    .cover-8 { background: linear-gradient(135deg, oklch(45% 0.07 360), oklch(26% 0.04 350)); }
+
+    .album-body {
+      padding: 16px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .album-name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
+    }
+    .album-meta {
+      display: flex;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .album-meta .dot { color: var(--muted-2); }
+
+    .album-card.add {
+      display: grid;
+      place-items: center;
+      min-height: 100%;
+      border-style: dashed;
+      color: var(--muted);
+      transition: color .25s var(--ease), border-color .25s var(--ease);
+    }
+    .album-card.add:hover { color: var(--accent); border-color: var(--accent-soft); }
+    .album-card.add svg { width: 22px; height: 22px; margin-bottom: 6px; }
+
+    @media (max-width: 720px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        gap: 14px;
+      }
+      .toolbar-search {
+        background: var(--bg-deep);
+        border-radius: var(--radius-pill);
+        padding: 8px 14px;
+        border: 1px solid var(--border-soft);
+      }
+      .toolbar-search input { font-size: 14px; min-width: 0; width: 100%; }
+      .toolbar-sort {
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 2px;
+      }
+      .sort-pill { flex-shrink: 0; padding: 6px 12px; }
+      .albums-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 14px;
+      }
+      .album-body { padding: 12px 14px 14px; }
+      .album-name { font-size: 16px; }
+      .album-meta { font-size: 10.5px; flex-wrap: wrap; gap: 6px; }
+      .album-meta .dot { display: none; }
+    }
+    @media (max-width: 380px) {
+      .albums-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body data-page="albums">
+
+<div class="app">
+  <aside class="rail" id="shell-rail"></aside>
+
+  <main class="canvas">
+
+    <header class="page-head">
+      <div>
+        <div class="h-eyebrow">COLLECTIONS · 12 本</div>
+        <h1 class="h-title">相册</h1>
+        <p class="h-sub">一本相册 = 一段时间 + 一种心情。可以只用日期，也可以混合主题。</p>
+      </div>
+      <button class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
+        新建相册
+      </button>
+    </header>
+
+    <div class="toolbar">
+      <div class="toolbar-search">
+        <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="text" placeholder="搜索相册名、标签或拍摄地点…" />
+      </div>
+      <div class="toolbar-sort">
+        <span class="sort-pill is-on">最近</span>
+        <span class="sort-pill">字母</span>
+        <span class="sort-pill">照片数</span>
+      </div>
+    </div>
+
+    <div class="albums-grid">
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-1"></div><div class="cover-2"></div><div class="cover-3"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">青海 · 茶卡盐湖</div>
+          <div class="album-meta">
+            <span class="num">2019 · 05</span>
+            <span class="dot">·</span>
+            <span class="num">42 张</span>
+            <span class="dot">·</span>
+            <span>湖泊 · 风景</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-4"></div><div class="cover-5"></div><div class="cover-6"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">家里的下午</div>
+          <div class="album-meta">
+            <span class="num">不定时</span>
+            <span class="dot">·</span>
+            <span class="num">128 张</span>
+            <span class="dot">·</span>
+            <span>家 · 日常</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-7"></div><div class="cover-8"></div><div class="cover-1"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">京都 · 秋</div>
+          <div class="album-meta">
+            <span class="num">2021 · 11</span>
+            <span class="dot">·</span>
+            <span class="num">86 张</span>
+            <span class="dot">·</span>
+            <span>旅行</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-2"></div><div class="cover-7"></div><div class="cover-4"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">小黄(猫)</div>
+          <div class="album-meta">
+            <span class="num">2018 - 2025</span>
+            <span class="dot">·</span>
+            <span class="num">213 张</span>
+            <span class="dot">·</span>
+            <span>家人</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-3"></div><div class="cover-6"></div><div class="cover-8"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">海，到过的</div>
+          <div class="album-meta">
+            <span class="num">2017 - 2024</span>
+            <span class="dot">·</span>
+            <span class="num">94 张</span>
+            <span class="dot">·</span>
+            <span>海 · 旅行</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-5"></div><div class="cover-3"></div><div class="cover-1"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">爸妈年轻时</div>
+          <div class="album-meta">
+            <span class="num">1985 - 2002</span>
+            <span class="dot">·</span>
+            <span class="num">36 张</span>
+            <span class="dot">·</span>
+            <span>家 · 旧照</span>
+          </div>
+        </div>
+      </a>
+
+      <a class="album-card" href="album-detail.html">
+        <div class="album-cover">
+          <div class="album-cover-grid">
+            <div class="cover-8"></div><div class="cover-2"></div><div class="cover-5"></div>
+          </div>
+        </div>
+        <div class="album-body">
+          <div class="album-name">2024 · 大学最后一年</div>
+          <div class="album-meta">
+            <span class="num">2024</span>
+            <span class="dot">·</span>
+            <span class="num">158 张</span>
+            <span class="dot">·</span>
+            <span>朋友 · 校园</span>
+          </div>
+        </div>
+      </a>
+
+      <button class="album-card add">
+        <div style="text-align:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <div style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;">新建相册</div>
+        </div>
+      </button>
+
+    </div>
+
+  </main>
+
+  <footer class="player" id="shell-player"></footer>
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

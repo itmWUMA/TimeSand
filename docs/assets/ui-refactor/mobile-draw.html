@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>抽卡 · 移动端 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      background: oklch(10% 0.008 45);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 40px 0;
+      overflow-x: hidden;
+    }
+
+    .frame-wrap {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* iPhone frame */
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #000;
+      border-radius: 56px;
+      padding: 14px;
+      box-shadow:
+        0 0 0 2px oklch(28% 0.01 45),
+        0 0 0 14px oklch(15% 0.012 45),
+        0 60px 100px -30px rgba(0,0,0,0.7);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .phone-screen {
+      width: 100%; height: 100%;
+      border-radius: 44px;
+      background: var(--bg);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* status bar */
+    .pstatus {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 54px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 32px 0;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--fg);
+      z-index: 30;
+    }
+    .pstatus-r {
+      display: flex; gap: 6px; align-items: center;
+      color: var(--fg);
+    }
+    .pstatus-r svg { width: 16px; height: 11px; fill: currentColor; }
+
+    /* dynamic island */
+    .island {
+      position: absolute;
+      top: 12px; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 34px;
+      background: #000;
+      border-radius: 22px;
+      z-index: 40;
+    }
+
+    /* home indicator */
+    .home-ind {
+      position: absolute;
+      bottom: 8px; left: 50%;
+      transform: translateX(-50%);
+      width: 134px; height: 5px;
+      background: var(--fg);
+      border-radius: 3px;
+      z-index: 40;
+      opacity: 0.95;
+    }
+
+    /* content */
+    .pcontent {
+      position: absolute;
+      inset: 54px 0 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ptop {
+      padding: 14px 24px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ptop-pick {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .ptop-pick svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; opacity: 0.6; }
+    .ptop-icon {
+      width: 32px; height: 32px;
+      background: var(--surface);
+      border-radius: 50%;
+      display: grid; place-items: center;
+    }
+    .ptop-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+    .pstage {
+      flex: 1;
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 14px 32px;
+    }
+
+    .pstage .motes { z-index: 0; }
+
+    .pcard-stack {
+      position: relative;
+      width: 280px;
+      aspect-ratio: 3 / 4;
+    }
+    .pcard {
+      position: absolute;
+      inset: 0;
+      border-radius: 22px;
+      box-shadow: 0 30px 50px -16px rgba(0,0,0,0.6), 0 12px 24px -8px rgba(0,0,0,0.5);
+      overflow: hidden;
+      will-change: transform;
+    }
+    .pcard.b2 { transform: translate(8px, 12px) rotate(3deg); opacity: 0.5; }
+    .pcard.b1 { transform: translate(-6px, 8px) rotate(-2deg); opacity: 0.7; }
+    .pcard.hero {
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23d9b48a'/><stop offset='40%25' stop-color='%23a67a4d'/><stop offset='100%25' stop-color='%23231510'/></linearGradient></defs><rect width='300' height='400' fill='url(%23g)'/><circle cx='150' cy='150' r='60' fill='%23f6ebd6' opacity='0.6'/><path d='M0 280 Q80 230 160 260 T300 250 L300 400 L0 400 Z' fill='%23120a08' opacity='0.75'/></svg>") center / cover no-repeat;
+      cursor: grab;
+      animation: pcard-float 4s ease-in-out infinite alternate;
+    }
+    @keyframes pcard-float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+
+    .pcard-cap {
+      position: absolute;
+      left: 18px; right: 18px; bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pcard-date {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .pcard-caption {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 500;
+      color: oklch(96% 0.02 80);
+      line-height: 1.25;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .pcard-place {
+      font-size: 11px;
+      color: oklch(82% 0.02 70);
+    }
+
+    .gesture-hint {
+      position: absolute;
+      bottom: 24px; left: 0; right: 0;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.22em;
+      color: var(--muted-2);
+      text-transform: uppercase;
+      z-index: 5;
+    }
+    .gesture-hint .arr { color: var(--accent); font-size: 11px; }
+
+    /* action ring */
+    .pactions {
+      padding: 14px 32px 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .pact {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 12px 0 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pact svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .pact-lbl {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .pact.primary {
+      background: var(--accent);
+      color: var(--bg-deep);
+      border-color: transparent;
+      box-shadow: 0 8px 20px var(--accent-glow);
+    }
+    .pact.primary .pact-lbl { color: var(--bg-deep); opacity: 0.7; }
+
+    /* mini player + tab bar */
+    .pmini {
+      margin: 0 16px 8px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border-radius: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .pmini-cover {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+    }
+    .pmini-info { flex: 1; min-width: 0; }
+    .pmini-title { font-size: 12px; font-weight: 500; }
+    .pmini-artist {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .pmini-btn {
+      width: 28px; height: 28px;
+      background: transparent;
+      border: none;
+      color: var(--fg);
+      display: grid; place-items: center;
+    }
+    .pmini-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+    /* tab bar */
+    .ptab {
+      padding: 6px 12px 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .ptab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 0 4px;
+      color: var(--muted);
+    }
+    .ptab-item.is-on { color: var(--accent); }
+    .ptab-item svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .ptab-lbl { font-size: 9.5px; }
+
+    /* annotations panel beside phone */
+    .annot {
+      max-width: 320px;
+      color: var(--fg-soft);
+    }
+    .annot .h-eyebrow { color: var(--accent); }
+    .annot h2 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 500;
+      margin: 10px 0 16px;
+      line-height: 1.15;
+      color: var(--fg);
+    }
+    .annot p { font-size: 14px; line-height: 1.6; margin-bottom: 18px; }
+
+    .gest-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+    }
+    .gest-row { display: grid; grid-template-columns: 50px 1fr; gap: 16px; align-items: start; }
+    .gest-key {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding-top: 2px;
+    }
+    .gest-text { font-size: 13px; color: var(--fg-soft); line-height: 1.5; }
+    .gest-text strong { color: var(--fg); }
+
+    @media (max-width: 920px) {
+      body { padding: 24px 12px; }
+      .frame-wrap { flex-direction: column; }
+      .annot { max-width: 100%; padding: 0 8px; }
+    }
+    @media (max-width: 440px) {
+      body { padding: 16px 0; }
+      .phone {
+        transform: scale(calc(100vw / 430));
+        transform-origin: top center;
+        margin-bottom: calc((1 - 100vw / 430) * 844px * -1);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="frame-wrap">
+
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="island"></div>
+
+      <div class="pstatus">
+        <span>17:42</span>
+        <div class="pstatus-r">
+          <svg viewBox="0 0 18 12"><path d="M1 7l3 3 13-9"/></svg>
+          <svg viewBox="0 0 18 12"><rect x="0" y="3" width="14" height="6" rx="1"/><rect x="2" y="5" width="9" height="2"/><rect x="15" y="5" width="1.5" height="2"/></svg>
+        </div>
+      </div>
+
+      <div class="pcontent">
+
+        <div class="ptop">
+          <div class="ptop-pick">
+            全部相册 <span style="color: var(--muted); font-family: var(--font-mono); font-size: 12px;">· 1,248</span>
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="ptop-icon">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+          </div>
+        </div>
+
+        <div class="pstage">
+          <div class="motes" data-motes="18"></div>
+          <div class="pcard-stack">
+            <div class="pcard b2"></div>
+            <div class="pcard b1"></div>
+            <div class="pcard hero">
+              <div class="pcard-cap">
+                <div class="pcard-date">2019 · 05 · 23</div>
+                <div class="pcard-caption">湖边那阵风<br/>把云吹散了。</div>
+                <div class="pcard-place">青海 · 茶卡盐湖</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="gesture-hint">
+            <span class="arr">←</span> 左滑下一张 &nbsp;·&nbsp; <span class="arr">→</span> 右滑撤销
+          </div>
+        </div>
+
+        <div class="pactions">
+          <button class="pact">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+            <span class="pact-lbl">撤销</span>
+          </button>
+          <button class="pact primary">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M12 4v16M4 12h16"/></svg>
+            <span class="pact-lbl">抽下一张</span>
+          </button>
+          <button class="pact">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <span class="pact-lbl">散开看</span>
+          </button>
+        </div>
+
+        <div class="pmini">
+          <div class="pmini-cover"></div>
+          <div class="pmini-info">
+            <div class="pmini-title">夜窗微光 · Window Drift</div>
+            <div class="pmini-artist">TimeSand · 默认音乐盒</div>
+          </div>
+          <button class="pmini-btn"><svg viewBox="0 0 24 24"><path d="M6 4l14 8L6 20V4z"/></svg></button>
+        </div>
+
+        <div class="ptab">
+          <div class="ptab-item is-on">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="ptab-lbl">抽卡</span>
+          </div>
+          <div class="ptab-item">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 14l4-4 5 5 3-3 6 6"/></svg>
+            <span class="ptab-lbl">相册</span>
+          </div>
+          <div class="ptab-item">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/></svg>
+            <span class="ptab-lbl">上传</span>
+          </div>
+          <div class="ptab-item">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span class="ptab-lbl">音乐</span>
+          </div>
+          <div class="ptab-item">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+            <span class="ptab-lbl">设置</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <aside class="annot">
+    <div class="h-eyebrow">MOBILE · 抽卡</div>
+    <h2>把手机当成一本相册。</h2>
+    <p>桌面版关注的是"收藏"，手机版关注的是"打开 → 抽一张 → 收起来"。所以这里没有侧边栏、没有标签，只剩一张卡和三个动作。</p>
+
+    <div class="gest-list">
+      <div class="gest-row">
+        <span class="gest-key">← 滑</span>
+        <span class="gest-text"><strong>抽下一张。</strong>卡片像被风吹走一样飞出屏幕，下一张从底部升上来。</span>
+      </div>
+      <div class="gest-row">
+        <span class="gest-key">→ 滑</span>
+        <span class="gest-text"><strong>撤销。</strong>把刚才那张拉回来。</span>
+      </div>
+      <div class="gest-row">
+        <span class="gest-key">↑ 滑</span>
+        <span class="gest-text"><strong>查看大图。</strong>带 EXIF、地点、和"加入相册"。</span>
+      </div>
+      <div class="gest-row">
+        <span class="gest-key">长按</span>
+        <span class="gest-text"><strong>散开看。</strong>最近 9 张排成 3×3，可以随便挑。</span>
+      </div>
+      <div class="gest-row">
+        <span class="gest-key">双指</span>
+        <span class="gest-text"><strong>切相册。</strong>左旋上一本，右旋下一本。</span>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

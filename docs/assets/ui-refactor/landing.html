@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TimeSand — 把时间装进沙漏的私人相册</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* landing-only layout: full-bleed marketing surfaces */
+    body { background: var(--bg); }
+    .landing { position: relative; z-index: 1; }
+
+    /* nav */
+    .lnav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: oklch(15% 0.014 45 / 0.7);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .lnav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+    }
+    .lnav-brand {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 18px;
+    }
+    .lnav-brand .brand-mark { width: 32px; height: 32px; }
+    .lnav-brand .brand-mark svg { width: 18px; height: 18px; }
+    .lnav-links { display: flex; gap: 28px; font-size: 13px; color: var(--fg-soft); }
+    .lnav-links a { color: var(--fg-soft); }
+    .lnav-links a:hover { color: var(--accent); }
+    .lnav-actions { display: flex; gap: 10px; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+    /* hero */
+    .hero {
+      position: relative;
+      padding: 80px 0 100px;
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .hero-eye {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .hero-h1 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: clamp(46px, 6.4vw, 88px);
+      line-height: 1.02;
+      letter-spacing: -0.02em;
+      margin: 0 0 24px;
+    }
+    .hero-h1 em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--accent);
+    }
+    .hero-lead {
+      font-size: 17px;
+      line-height: 1.6;
+      color: var(--fg-soft);
+      max-width: 52ch;
+      margin-bottom: 36px;
+    }
+    .hero-cta { display: flex; gap: 14px; align-items: center; }
+    .hero-meta {
+      margin-top: 40px;
+      display: flex;
+      gap: 36px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .hero-meta-item .num {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--fg);
+      line-height: 1;
+    }
+    .hero-meta-item .lbl {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* hero stage — floating cards */
+    .hero-stage {
+      position: relative;
+      aspect-ratio: 5 / 6;
+      max-height: 640px;
+    }
+    .hero-stage .motes { z-index: 1; }
+    .float-card {
+      position: absolute;
+      width: 56%;
+      aspect-ratio: 3 / 4;
+      border-radius: 14px;
+      box-shadow: 0 30px 70px -20px rgba(0,0,0,0.7), 0 12px 30px -6px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .float-card.f1 {
+      top: 4%; left: 8%;
+      transform: rotate(-7deg);
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23c89766'/><stop offset='100%25' stop-color='%23381f10'/></linearGradient></defs><rect width='300' height='400' fill='url(%23g1)'/><circle cx='150' cy='130' r='60' fill='%23f4d49a' opacity='0.7'/><path d='M0 290 Q80 240 160 270 T300 250 L300 400 L0 400 Z' fill='%23231410'/></svg>") center / cover no-repeat;
+      animation: drift1 12s ease-in-out infinite alternate;
+    }
+    .float-card.f2 {
+      top: 18%; right: 6%;
+      transform: rotate(8deg);
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g2' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2378564a'/><stop offset='100%25' stop-color='%231a1410'/></linearGradient></defs><rect width='300' height='400' fill='url(%23g2)'/><rect x='80' y='90' width='140' height='220' fill='%23ddc09a' opacity='0.5'/><rect x='100' y='110' width='100' height='180' fill='%23f4d49a' opacity='0.4'/></svg>") center / cover no-repeat;
+      animation: drift2 14s ease-in-out infinite alternate;
+    }
+    .float-card.f3 {
+      bottom: 6%; left: 22%;
+      width: 60%;
+      transform: rotate(-3deg);
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'><defs><linearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23a87b50'/><stop offset='100%25' stop-color='%232a1810'/></linearGradient></defs><rect width='300' height='400' fill='url(%23g3)'/><circle cx='200' cy='100' r='40' fill='%23f4d49a' opacity='0.8'/><path d='M0 270 Q150 200 300 250 L300 400 L0 400 Z' fill='%231a0e08' opacity='0.7'/></svg>") center / cover no-repeat;
+      animation: drift3 16s ease-in-out infinite alternate;
+    }
+    .float-card-meta {
+      position: absolute;
+      left: 14px; right: 14px; bottom: 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    @keyframes drift1 { from { transform: rotate(-7deg) translateY(0); } to { transform: rotate(-6deg) translateY(-14px); } }
+    @keyframes drift2 { from { transform: rotate(8deg) translateY(0); } to { transform: rotate(7deg) translateY(-10px); } }
+    @keyframes drift3 { from { transform: rotate(-3deg) translateY(0); } to { transform: rotate(-2deg) translateY(-8px); } }
+
+    /* manifesto */
+    .manifesto {
+      padding: 80px 0;
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .manifesto-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 80px;
+    }
+    .manifesto-eye {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      color: var(--accent);
+      text-transform: uppercase;
+      align-self: start;
+      padding-top: 12px;
+    }
+    .manifesto-text {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 2.6vw, 32px);
+      line-height: 1.4;
+      color: var(--fg-soft);
+      max-width: 36ch;
+    }
+    .manifesto-text strong { color: var(--fg); font-weight: 500; }
+
+    /* features — three cards */
+    .features {
+      padding: 100px 0 60px;
+    }
+    .features-head {
+      max-width: 720px;
+      margin: 0 auto 60px;
+      text-align: center;
+    }
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+    .feat {
+      padding: 28px 26px 30px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+    }
+    .feat-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+    }
+    .feat h3 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 500;
+      margin: 14px 0 10px;
+      letter-spacing: -0.005em;
+    }
+    .feat p {
+      color: var(--fg-soft);
+      font-size: 14px;
+      line-height: 1.55;
+      margin: 0 0 22px;
+    }
+    .feat-spacer { flex: 1; }
+    .feat-art {
+      height: 110px;
+      border-radius: 12px;
+      margin-top: auto;
+      position: relative;
+      overflow: hidden;
+    }
+    .feat-art-1 {
+      background:
+        radial-gradient(circle at 30% 60%, var(--accent-soft), transparent 50%),
+        linear-gradient(135deg, oklch(28% 0.03 50), oklch(18% 0.02 45));
+    }
+    .feat-art-1 .arc {
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 110'><g stroke='%23d4a36a' fill='none' stroke-width='0.8'><path d='M30 80 C 30 30 170 30 170 80'/><path d='M50 80 C 50 50 150 50 150 80'/><path d='M70 80 C 70 65 130 65 130 80'/><circle cx='100' cy='30' r='3' fill='%23d4a36a'/></g></svg>");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+      opacity: 0.85;
+    }
+    .feat-art-2 {
+      background: linear-gradient(135deg, oklch(28% 0.03 50), oklch(18% 0.02 45));
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 14px;
+    }
+    .feat-art-2 .ph {
+      border-radius: 6px;
+      background: linear-gradient(135deg, oklch(50% 0.06 60), oklch(30% 0.04 50));
+    }
+    .feat-art-2 .ph:nth-child(2) { background: linear-gradient(135deg, oklch(45% 0.07 30), oklch(25% 0.04 25)); }
+    .feat-art-2 .ph:nth-child(3) { background: linear-gradient(135deg, oklch(48% 0.06 130), oklch(28% 0.04 150)); }
+    .feat-art-2 .ph:nth-child(4) { background: linear-gradient(135deg, oklch(50% 0.07 200), oklch(30% 0.04 220)); }
+    .feat-art-2 .ph:nth-child(5) { background: linear-gradient(135deg, oklch(46% 0.06 80), oklch(26% 0.04 70)); }
+    .feat-art-2 .ph:nth-child(6) { background: linear-gradient(135deg, oklch(50% 0.06 290), oklch(30% 0.04 280)); }
+    .feat-art-2 .ph:nth-child(7) { background: linear-gradient(135deg, oklch(44% 0.07 360), oklch(24% 0.04 350)); }
+    .feat-art-2 .ph:nth-child(8) { background: linear-gradient(135deg, oklch(48% 0.06 100), oklch(28% 0.04 110)); }
+    .feat-art-3 {
+      background: linear-gradient(135deg, oklch(28% 0.03 50), oklch(18% 0.02 45));
+      display: flex;
+      align-items: center;
+      padding: 18px 22px;
+      gap: 14px;
+    }
+    .feat-art-3 .wave {
+      flex: 1;
+      height: 28px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 30' preserveAspectRatio='none'><g fill='%23d4a36a'><rect x='2' y='10' width='2' height='10'/><rect x='8' y='6' width='2' height='18'/><rect x='14' y='12' width='2' height='6'/><rect x='20' y='4' width='2' height='22'/><rect x='26' y='8' width='2' height='14'/><rect x='32' y='2' width='2' height='26'/><rect x='38' y='10' width='2' height='10'/><rect x='44' y='6' width='2' height='18'/><rect x='50' y='12' width='2' height='6'/><rect x='56' y='8' width='2' height='14'/><rect x='62' y='4' width='2' height='22'/><rect x='68' y='10' width='2' height='10'/><rect x='74' y='6' width='2' height='18'/><rect x='80' y='2' width='2' height='26'/><rect x='86' y='12' width='2' height='6'/><rect x='92' y='8' width='2' height='14'/><rect x='98' y='10' width='2' height='10'/><rect x='104' y='4' width='2' height='22'/><rect x='110' y='8' width='2' height='14'/><rect x='116' y='12' width='2' height='6'/><rect x='122' y='6' width='2' height='18'/><rect x='128' y='2' width='2' height='26'/><rect x='134' y='10' width='2' height='10'/><rect x='140' y='8' width='2' height='14'/><rect x='146' y='12' width='2' height='6'/><rect x='152' y='4' width='2' height='22'/><rect x='158' y='10' width='2' height='10'/><rect x='164' y='6' width='2' height='18'/><rect x='170' y='8' width='2' height='14'/><rect x='176' y='12' width='2' height='6'/><rect x='182' y='4' width='2' height='22'/><rect x='188' y='10' width='2' height='10'/><rect x='194' y='8' width='2' height='14'/></g></svg>");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      opacity: 0.7;
+    }
+    .feat-art-3 .play {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .feat-art-3 .play svg { width: 14px; height: 14px; }
+
+    /* time-weighted spotlight */
+    .spotlight {
+      padding: 100px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .spot-art {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .spot-ring {
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--border-soft);
+      border-radius: 50%;
+    }
+    .spot-ring.r2 { inset: 14%; border-color: var(--border); }
+    .spot-ring.r3 { inset: 30%; border-color: var(--accent-soft); }
+    .spot-tick {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      left: 50%; top: 50%;
+      transform-origin: 0 0;
+    }
+    .spot-tick.now {
+      background: var(--accent);
+      box-shadow: 0 0 16px var(--accent-glow);
+      width: 14px; height: 14px;
+    }
+    .spot-label {
+      position: absolute;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .spot-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+    .spot-center .yr {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .spot-center .lbl {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* logs / privacy / cta */
+    .logs { padding: 80px 0; border-top: 1px solid var(--border-soft); }
+    .logs-grid { display: grid; grid-template-columns: 1.2fr 2fr; gap: 60px; }
+    .log-row {
+      display: grid;
+      grid-template-columns: 110px 160px 1fr;
+      gap: 24px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border-soft);
+      align-items: baseline;
+    }
+    .log-row:last-child { border-bottom: none; }
+    .log-date { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em; }
+    .log-tag  { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.18em; text-transform: uppercase; }
+    .log-text { font-family: var(--font-display); font-size: 18px; color: var(--fg-soft); }
+
+    .cta {
+      padding: 100px 0;
+      text-align: center;
+      border-top: 1px solid var(--border-soft);
+    }
+    .cta h2 {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 0 0 22px;
+    }
+    .cta p { color: var(--muted); max-width: 50ch; margin: 0 auto 36px; font-size: 15px; }
+
+    .foot {
+      padding: 38px 0 60px;
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .foot a { color: var(--muted); }
+    .foot a:hover { color: var(--accent); }
+
+    @media (max-width: 960px) {
+      .hero-grid, .manifesto-grid, .spotlight, .logs-grid { grid-template-columns: 1fr; gap: 40px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .hero-stage { max-width: 480px; margin: 0 auto; }
+      .lnav-links { display: none; }
+    }
+    @media (max-width: 720px) {
+      .lnav-inner { padding: 14px 18px; gap: 12px; }
+      .lnav-actions .btn { padding: 8px 14px; font-size: 12px; }
+      .lnav-actions .btn-ghost { display: none; }
+      .wrap { padding: 0 20px; }
+      .hero { padding: 48px 0 60px; }
+      .hero-h1 { font-size: clamp(40px, 11vw, 60px); }
+      .hero-lead { font-size: 15px; margin-bottom: 28px; }
+      .hero-meta { gap: 22px; flex-wrap: wrap; margin-top: 28px; padding-top: 22px; }
+      .hero-meta-item .num { font-size: 22px; }
+      .hero-stage { aspect-ratio: 4 / 5; max-width: 360px; }
+      .manifesto { padding: 56px 0; }
+      .manifesto-grid { gap: 20px; }
+      .manifesto-text { font-size: clamp(18px, 5vw, 24px); }
+      .features { padding: 64px 0 40px; }
+      .features-head { margin-bottom: 36px; }
+      .feat { min-height: auto; padding: 22px; }
+      .spotlight { padding: 64px 0; gap: 36px; }
+      .spot-art { max-width: 300px; transform: scale(0.82); transform-origin: center; }
+      .spot-center .yr { font-size: 44px; }
+      .logs { padding: 56px 0; }
+      .log-row { grid-template-columns: 1fr; gap: 4px; padding: 14px 0; }
+      .log-text { font-size: 16px; }
+      .cta { padding: 64px 0; }
+      .cta h2 { font-size: clamp(32px, 9vw, 48px); }
+      .foot { padding: 28px 0 calc(env(safe-area-inset-bottom, 0px) + 40px); flex-direction: column; gap: 8px; }
+    }
+    @media (max-width: 420px) {
+      .hero-cta { flex-direction: column; align-items: stretch; }
+      .hero-cta .btn { justify-content: center; }
+      .spot-art { transform: scale(0.7); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="landing">
+
+  <header class="lnav">
+    <div class="lnav-inner">
+      <a class="lnav-brand" href="landing.html">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" style="color:var(--bg-deep)">
+            <path d="M6 3h12M6 21h12"/>
+            <path d="M7 3c0 4 5 5.5 5 9s-5 5-5 9"/>
+            <path d="M17 3c0 4-5 5.5-5 9s5 5 5 9"/>
+            <line x1="9" y1="11" x2="15" y2="11"/>
+          </svg>
+        </div>
+        TimeSand
+      </a>
+      <nav class="lnav-links">
+        <a href="#manifesto">理念</a>
+        <a href="#features">功能</a>
+        <a href="#spotlight">时间权重</a>
+        <a href="#logs">更新日志</a>
+      </nav>
+      <div class="lnav-actions">
+        <a class="btn btn-ghost" href="https://github.com">GitHub</a>
+        <a class="btn btn-primary" href="draw.html">打开应用</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-eye">SELF-HOSTED · v1.0 · 2026</div>
+        <h1 class="hero-h1">把照片，<br/>从硬盘里<em>抽出来。</em></h1>
+        <p class="hero-lead">TimeSand 是一个自托管的私人照片墙与音乐盒。它不会再追问你"上次去哪里玩了"——它每天给你一张，多年以前的今天。配一段你自己的音乐。仅此而已。</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="draw.html">
+            进入抽卡
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn" href="#features">看看它能做什么</a>
+        </div>
+        <div class="hero-meta">
+          <div class="hero-meta-item">
+            <div class="num">100%</div>
+            <div class="lbl">本地存储</div>
+          </div>
+          <div class="hero-meta-item">
+            <div class="num">0</div>
+            <div class="lbl">第三方云</div>
+          </div>
+          <div class="hero-meta-item">
+            <div class="num">Docker</div>
+            <div class="lbl">单容器部署</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-stage">
+        <div class="motes" data-motes="20"></div>
+        <div class="float-card f1"><div class="float-card-meta">2019 · 05 · 23</div></div>
+        <div class="float-card f2"><div class="float-card-meta">2021 · 03 · 11</div></div>
+        <div class="float-card f3"><div class="float-card-meta">2024 · 12 · 06</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="manifesto wrap" id="manifesto">
+    <div class="manifesto-grid">
+      <div class="manifesto-eye">为什么再做一个相册</div>
+      <p class="manifesto-text">
+        云相册替你"整理"了照片，但它也替你<strong>把回忆藏起来了</strong>。我们想做的不是另一个云端搜索框，而是一个温度更低、更慢、更私人的盒子——让旧照片偶尔自己浮上来，配一段你自己的音乐，然后再沉下去。
+      </p>
+    </div>
+  </section>
+
+  <section class="features wrap" id="features">
+    <div class="features-head">
+      <div class="h-eyebrow">三件事，做透</div>
+      <h2 class="h-title">抽一张 · 翻一本 · 听一段</h2>
+      <p class="h-sub" style="margin: 16px auto 0;">没有 AI 整理，没有"为你推荐"，没有公开广场。只有你自己的硬盘、你自己的音乐和一杯茶的时间。</p>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-num">01 · DRAW</div>
+        <h3>回忆抽卡</h3>
+        <p>从全部照片或单个相册里随机抽一张。可以排除已抽，可以洗牌、撤销，也可以散开看一整把。手机上是左滑抽、右滑撤销。</p>
+        <div class="feat-spacer"></div>
+        <div class="feat-art feat-art-1"><div class="arc"></div></div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-num">02 · COLLECT</div>
+        <h3>相册与标签</h3>
+        <p>建相册、写描述、选封面、加标签——还像 2010 年那样。批量上传，自动生成缩略图，记住拍摄时间和位置。</p>
+        <div class="feat-spacer"></div>
+        <div class="feat-art feat-art-2">
+          <div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div>
+          <div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div>
+        </div>
+      </div>
+
+      <div class="feat">
+        <div class="feat-num">03 · LISTEN</div>
+        <h3>音乐与放映</h3>
+        <p>上传你自己的本地音乐，建播放列表，把它绑到某一本相册上。点开放映，照片和音乐一起走——一段不公开的家庭电影。</p>
+        <div class="feat-spacer"></div>
+        <div class="feat-art feat-art-3">
+          <div class="play"><svg viewBox="0 0 24 24" fill="var(--bg-deep)"><path d="M6 4l14 8L6 20V4z"/></svg></div>
+          <div class="wave"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="spotlight wrap" id="spotlight">
+    <div class="spot-art">
+      <div class="spot-ring"></div>
+      <div class="spot-ring r2"></div>
+      <div class="spot-ring r3"></div>
+      <div class="spot-center">
+        <div>
+          <div class="yr">2019</div>
+          <div class="lbl">+12% · 5/23</div>
+        </div>
+      </div>
+      <!-- 12 ticks -->
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(0deg) translate(180px) rotate(0deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(30deg) translate(180px) rotate(-30deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(60deg) translate(180px) rotate(-60deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(90deg) translate(180px) rotate(-90deg);"></span>
+      <span class="spot-tick now" style="transform: translate(-50%,-50%) rotate(120deg) translate(180px) rotate(-120deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(150deg) translate(180px) rotate(-150deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(180deg) translate(180px) rotate(-180deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(210deg) translate(180px) rotate(-210deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(240deg) translate(180px) rotate(-240deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(270deg) translate(180px) rotate(-270deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(300deg) translate(180px) rotate(-300deg);"></span>
+      <span class="spot-tick" style="transform: translate(-50%,-50%) rotate(330deg) translate(180px) rotate(-330deg);"></span>
+    </div>
+
+    <div>
+      <div class="h-eyebrow">差异化 · 时间弱权重</div>
+      <h2 class="h-title" style="margin-top:8px;">"多年以前的今天"<br/>比纯随机更值得抽。</h2>
+      <p style="color: var(--fg-soft); font-size: 15px; line-height: 1.65; margin: 18px 0 28px;">
+        TimeSand 不会让你设置"每天提醒我看看相册"。它只是在你按下抽卡时，给同月同日（或前后 ±N 天）的照片轻轻加一点权重——
+        <em>不是必中，只是让它们更容易浮上来。</em>权重强度、日期范围都能在设置里调。
+      </p>
+      <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+        <span class="chip accent">默认 +12%</span>
+        <span class="chip">±3 天范围</span>
+        <span class="chip">可关闭</span>
+        <span class="chip">完全本地计算</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="logs wrap" id="logs">
+    <div class="logs-grid">
+      <div>
+        <div class="h-eyebrow">最近变化</div>
+        <h2 class="h-title" style="margin-top:8px;">在公开提交里<br/>慢慢长成。</h2>
+        <p class="h-sub" style="margin-top:18px;">所有改动都在 GitHub 公开。下面是最近五条。</p>
+      </div>
+      <div>
+        <div class="log-row">
+          <span class="log-date">2026 · 05 · 18</span>
+          <span class="log-tag">FEATURE</span>
+          <span class="log-text">手机端抽卡新增"散开看"手势：双指外扩。</span>
+        </div>
+        <div class="log-row">
+          <span class="log-date">2026 · 05 · 11</span>
+          <span class="log-tag">FIX</span>
+          <span class="log-text">修复了 HEIC 缩略图在 Safari 下偶发的色偏。</span>
+        </div>
+        <div class="log-row">
+          <span class="log-date">2026 · 04 · 27</span>
+          <span class="log-tag">FEATURE</span>
+          <span class="log-text">设置页加上了存储占比环形图，能看出谁在吃硬盘。</span>
+        </div>
+        <div class="log-row">
+          <span class="log-date">2026 · 04 · 09</span>
+          <span class="log-tag">CHORE</span>
+          <span class="log-text">把 Docker 基础镜像换到了 daocloud 的国内源。</span>
+        </div>
+        <div class="log-row">
+          <span class="log-date">2026 · 03 · 22</span>
+          <span class="log-tag">FEATURE</span>
+          <span class="log-text">幻灯片放映支持把整本相册绑定到某个播放列表。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta wrap">
+    <div class="h-eyebrow">START</div>
+    <h2>把硬盘里的<br/>那些照片，请出来。</h2>
+    <p>一行 <code style="font-family:var(--font-mono); color: var(--accent);">docker compose up</code> 就够了。下次抽卡，让 2019 年那阵风重新吹一下。</p>
+    <div style="display:flex; gap:14px; justify-content:center;">
+      <a class="btn btn-primary" href="draw.html">立即试试</a>
+      <a class="btn" href="https://github.com">部署文档</a>
+    </div>
+  </section>
+
+  <footer class="foot wrap">
+    <span>© 2026 TimeSand · MIT License</span>
+    <span>本地、自托管、不上传任何东西。</span>
+  </footer>
+
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

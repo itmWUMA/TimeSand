@@ -31,4 +31,4 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser \
 USER appuser
 
 EXPOSE 8080
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/app/backend/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

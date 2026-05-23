@@ -4,7 +4,8 @@ import { ref } from 'vue'
 import { mountWithI18n } from '../../test-utils'
 import MusicPage from '../MusicPage.vue'
 
-const { setPlaylistMock } = vi.hoisted(() => ({
+const { playMock, setPlaylistMock } = vi.hoisted(() => ({
+  playMock: vi.fn(),
   setPlaylistMock: vi.fn(),
 }))
 
@@ -26,7 +27,9 @@ vi.mock('../../services/playlist', () => ({
 
 vi.mock('../../composables/useMusicPlayer', () => ({
   useMusicPlayer: () => ({
+    currentTrack: ref(null),
     playlistId: ref<number | null>(null),
+    play: playMock,
     setPlaylist: setPlaylistMock,
   }),
 }))
@@ -125,10 +128,21 @@ describe('musicPage', () => {
 
     expect(setPlaylistMock).toHaveBeenCalledWith(1)
 
-    const playlistSelect = wrapper.get('select')
-    await playlistSelect.setValue('2')
+    await wrapper.get('[data-testid="playlist-item-2"]').trigger('click')
     await flushPromises()
 
     expect(setPlaylistMock).toHaveBeenLastCalledWith(2)
+  })
+
+  it('renders exported music surface hierarchy with real playlist and track data', async () => {
+    const wrapper = mountWithI18n(MusicPage)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="music-layout"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="playlist-sidebar"]').text()).toContain('Default Playlist')
+    expect(wrapper.find('[data-testid="playlist-sidebar"]').text()).toContain('TimeSand Demo')
+    expect(wrapper.find('[data-testid="playlist-hero"]').text()).toContain('Default Playlist')
+    expect(wrapper.find('[data-testid="music-track-table"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="music-library-panel"]').text()).toContain('Gentle Drift')
   })
 })

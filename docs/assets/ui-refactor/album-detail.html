@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>青海 · 茶卡盐湖 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .crumb {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .crumb a { color: var(--muted); }
+    .crumb a:hover { color: var(--accent); }
+
+    .detail-head {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 50px;
+      padding-bottom: 32px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .detail-info .h-title { font-size: clamp(36px, 4.4vw, 56px); }
+    .detail-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .stat {
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+    }
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--fg);
+    }
+    .stat-lbl {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .detail-hero {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--bg-deep) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23d9b48a'/><stop offset='40%25' stop-color='%23a67a4d'/><stop offset='100%25' stop-color='%23241510'/></linearGradient></defs><rect width='400' height='300' fill='url(%23g)'/><ellipse cx='200' cy='130' rx='100' ry='14' fill='%23f6ebd6' opacity='0.85'/><rect y='160' width='400' height='140' fill='%23120a08' opacity='0.85'/><rect y='150' width='400' height='12' fill='%23f4d49a' opacity='0.4'/></svg>") center / cover no-repeat;
+    }
+    .detail-hero-cap {
+      position: absolute;
+      left: 22px; right: 22px; bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+    }
+    .detail-hero-cap .date {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .detail-hero-cap .tag {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: oklch(85% 0.015 60);
+      letter-spacing: 0.12em;
+      background: oklch(15% 0.012 45 / 0.6);
+      padding: 5px 10px;
+      border-radius: 4px;
+      backdrop-filter: blur(8px);
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      grid-auto-flow: dense;
+    }
+    .photo {
+      aspect-ratio: 3 / 4;
+      border-radius: var(--radius);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .25s var(--ease);
+    }
+    .photo:hover { transform: scale(1.02); }
+    .photo.tall { grid-row: span 2; aspect-ratio: 3 / 6; }
+    .photo.wide { grid-column: span 2; aspect-ratio: 6 / 4; }
+
+    .ph-1 { background: linear-gradient(135deg, oklch(70% 0.10 70), oklch(40% 0.05 50)); }
+    .ph-2 { background: linear-gradient(135deg, oklch(50% 0.08 30), oklch(28% 0.04 25)); }
+    .ph-3 { background: linear-gradient(135deg, oklch(60% 0.10 200), oklch(35% 0.05 220)); }
+    .ph-4 { background: linear-gradient(135deg, oklch(48% 0.08 130), oklch(28% 0.04 150)); }
+    .ph-5 { background: linear-gradient(135deg, oklch(58% 0.10 60), oklch(32% 0.05 50)); }
+    .ph-6 { background: linear-gradient(135deg, oklch(55% 0.09 290), oklch(32% 0.05 280)); }
+    .ph-7 { background: linear-gradient(135deg, oklch(50% 0.08 100), oklch(30% 0.04 90)); }
+    .ph-8 { background: linear-gradient(135deg, oklch(48% 0.07 360), oklch(28% 0.04 350)); }
+
+    .photo-meta {
+      position: absolute;
+      left: 12px; bottom: 12px; right: 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: oklch(90% 0.02 70);
+      letter-spacing: 0.04em;
+      opacity: 0;
+      transition: opacity .25s var(--ease);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    }
+    .photo:hover .photo-meta { opacity: 1; }
+
+    @media (max-width: 880px) {
+      .detail-head { grid-template-columns: 1fr; gap: 28px; }
+    }
+    @media (max-width: 720px) {
+      .detail-head { padding-bottom: 22px; margin-bottom: 22px; }
+      .detail-info .h-title { font-size: clamp(28px, 7.6vw, 38px); }
+      .detail-stats { gap: 8px; }
+      .stat { padding: 10px 12px; }
+      .stat-num { font-size: 18px; }
+      .stat-lbl { font-size: 9.5px; letter-spacing: 0.12em; }
+      .detail-actions { gap: 8px; margin-top: 24px; }
+      .detail-actions .btn { font-size: 12.5px; padding: 9px 14px; }
+      .detail-hero { aspect-ratio: 4 / 3; }
+      .photo-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+      .photo.wide { grid-column: span 2; }
+      .photo.tall { grid-row: span 2; }
+    }
+    @media (max-width: 380px) {
+      .photo-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body data-page="albums">
+
+<div class="app">
+  <aside class="rail" id="shell-rail"></aside>
+
+  <main class="canvas">
+
+    <div class="crumb"><a href="albums.html">相册</a> · 青海 · 茶卡盐湖</div>
+
+    <div class="detail-head">
+      <div class="detail-info">
+        <div class="h-eyebrow">2019 · 05 · 21 — 05 · 24</div>
+        <h1 class="h-title">青海 · 茶卡盐湖</h1>
+        <p class="h-sub">和 K 第一次自己开车去的地方。回来后觉得湖比照片里更安静。这本相册同时绑定到 <a href="music.html" style="color: var(--accent);">「夜窗微光」</a> 播放列表。</p>
+
+        <div class="detail-stats">
+          <div class="stat">
+            <div class="stat-num num">42</div>
+            <div class="stat-lbl">照片</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num num">3.6</div>
+            <div class="stat-lbl">GB · 原图</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num num">11</div>
+            <div class="stat-lbl">已抽出</div>
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <a class="btn btn-primary" href="slideshow.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4l14 8L6 20V4z"/></svg>
+            开始放映
+          </a>
+          <a class="btn" href="draw.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+            只从这本里抽
+          </a>
+          <button class="btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6"/></svg>
+            添加照片
+          </button>
+          <button class="btn btn-ghost">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="12" r="1.6"/></svg>
+            编辑信息
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-hero">
+        <div class="detail-hero-cap">
+          <span class="date">2019 · 05 · 23 · 17:42</span>
+          <span class="tag">封面 · iPhone XS</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px;">
+      <div class="h-eyebrow">PHOTOS · 42 张</div>
+      <div style="display:flex; gap:8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em;">
+        <span class="chip">按时间</span>
+        <span class="chip">网格</span>
+        <span class="chip">瀑布流</span>
+      </div>
+    </div>
+
+    <div class="photo-grid">
+      <div class="photo tall ph-1"><div class="photo-meta">2019.05.23 · 17:42 · 茶卡</div></div>
+      <div class="photo ph-2"><div class="photo-meta">2019.05.23 · 17:55</div></div>
+      <div class="photo ph-3"><div class="photo-meta">2019.05.23 · 18:08</div></div>
+      <div class="photo wide ph-5"><div class="photo-meta">2019.05.23 · 18:30 · 日落前</div></div>
+      <div class="photo ph-4"><div class="photo-meta">2019.05.22 · 11:14</div></div>
+      <div class="photo ph-6"><div class="photo-meta">2019.05.22 · 12:30</div></div>
+      <div class="photo tall ph-7"><div class="photo-meta">2019.05.22 · 14:18</div></div>
+      <div class="photo ph-8"><div class="photo-meta">2019.05.21 · 09:05</div></div>
+      <div class="photo ph-1"><div class="photo-meta">2019.05.21 · 09:42</div></div>
+      <div class="photo wide ph-3"><div class="photo-meta">2019.05.21 · 16:50 · 服务区</div></div>
+      <div class="photo ph-2"><div class="photo-meta">2019.05.24 · 07:30</div></div>
+      <div class="photo ph-5"><div class="photo-meta">2019.05.24 · 08:14</div></div>
+      <div class="photo ph-6"><div class="photo-meta">2019.05.24 · 10:00</div></div>
+      <div class="photo ph-4"><div class="photo-meta">2019.05.24 · 11:25</div></div>
+    </div>
+
+  </main>
+
+  <footer class="player" id="shell-player"></footer>
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

@@ -50,25 +50,25 @@ function onDrop(event: DragEvent): void {
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section class="music-uploader">
     <div
       data-testid="music-uploader-dropzone"
-      class="rounded-xl border border-dashed border-ts-accent/60 bg-ts-panel p-6 text-center transition"
-      :class="{ 'opacity-60': uploading, 'border-ts-accent shadow-glow': isDragging }"
+      class="music-uploader-dropzone"
+      :class="{ 'is-uploading': uploading, 'is-dragging': isDragging }"
       @dragover.prevent="onDragOver"
       @dragleave.prevent="onDragLeave"
       @drop.prevent="onDrop"
     >
-      <p class="text-base text-ts-text">
+      <p class="music-uploader-title">
         {{ $t('music.dropHint') }}
       </p>
-      <p class="mt-1 text-sm text-ts-muted">
+      <p class="music-uploader-formats">
         {{ $t('music.formats') }}
       </p>
 
       <button
         type="button"
-        class="mt-4 rounded-md bg-ts-accent px-4 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
+        class="music-uploader-button"
         :disabled="uploading"
         @click="openPicker"
       >
@@ -87,3 +87,60 @@ function onDrop(event: DragEvent): void {
     </div>
   </section>
 </template>
+
+<style scoped>
+.music-uploader {
+  display: grid;
+}
+
+.music-uploader-dropzone {
+  border: 1.5px dashed var(--ts-border);
+  border-radius: var(--ts-radius);
+  background: oklch(17% 0.018 50 / 35%);
+  padding: 22px 16px;
+  text-align: center;
+  transition:
+    border-color var(--ts-duration-normal) var(--ts-ease),
+    box-shadow var(--ts-duration-normal) var(--ts-ease),
+    opacity var(--ts-duration-normal) var(--ts-ease);
+}
+
+.music-uploader-dropzone.is-dragging {
+  border-color: var(--ts-accent);
+  box-shadow: var(--ts-glow-soft);
+}
+
+.music-uploader-dropzone.is-uploading {
+  opacity: 0.6;
+}
+
+.music-uploader-title {
+  color: var(--ts-fg-soft);
+  font-size: 13.5px;
+}
+
+.music-uploader-formats {
+  margin-top: 2px;
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 10.5px;
+}
+
+.music-uploader-button {
+  min-height: 38px;
+  margin-top: 14px;
+  border: 1px solid transparent;
+  border-radius: var(--ts-radius-pill);
+  background: var(--ts-accent);
+  box-shadow: var(--ts-glow-accent);
+  color: var(--ts-bg-deep);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 16px;
+}
+
+.music-uploader-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+</style>

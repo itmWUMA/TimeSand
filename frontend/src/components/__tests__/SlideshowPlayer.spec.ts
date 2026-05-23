@@ -59,6 +59,31 @@ describe('slideshowPlayer', () => {
     expect(wrapper.find('[data-testid="control-exit"]').exists()).toBe(true)
   })
 
+  it('renders the exported immersive overlay with progress, filmstrip, and music readout', async () => {
+    const wrapper = mountWithI18n(SlideshowPlayer, {
+      props: {
+        photos,
+        currentIndex: 0,
+        isPlaying: true,
+        intervalSeconds: 5,
+        intervalOptions: [3, 5, 8],
+        controlsVisible: true,
+        transitionMode: 'kenBurns',
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    })
+
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="slideshow-stage"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="slideshow-progress"]').text()).toContain('01 / 01')
+    expect(wrapper.find('[data-testid="slideshow-filmstrip"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="slideshow-music-readout"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="slideshow-counter"]').text()).toContain('01')
+  })
+
   it('emits cycleTransition when transition button is clicked', async () => {
     const wrapper = mountWithI18n(SlideshowPlayer, {
       props: {

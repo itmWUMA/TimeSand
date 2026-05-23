@@ -4,7 +4,6 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 
-import MusicPlayerMini from '../components/MusicPlayerMini.vue'
 import SlideshowPlayer from '../components/SlideshowPlayer.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
@@ -44,7 +43,7 @@ function parseInterval(value: unknown): number | undefined {
   return parsed
 }
 
-const albumId = computed(() => parseAlbumId(route.query.album_id))
+const albumId = computed(() => parseAlbumId(route.params.albumId ?? route.query.album_id))
 const intervalOverride = computed(() => parseInterval(route.query.interval))
 
 const {
@@ -200,16 +199,6 @@ onUnmounted(() => {
       @exit="exitSlideshow"
       @activity="reportActivity"
     />
-
-    <div
-      v-if="photos.length > 0 && !loading && !errorMessage"
-      class="pointer-events-none absolute bottom-4 right-4 z-[60] px-4 transition-all duration-300"
-      :class="controlsVisible ? 'translate-y-1 opacity-40' : 'translate-y-0 opacity-100'"
-    >
-      <div class="pointer-events-auto w-[min(24rem,calc(100vw-2rem))]">
-        <MusicPlayerMini />
-      </div>
-    </div>
   </section>
 </template>
 

@@ -1,6 +1,6 @@
 # TimeSand 产品路线图
 
-> 版本: v1.2 | 更新日期: 2026-04-19 | 基准版本: v0.0.1 (MVP)
+> 版本: v1.3 | 更新日期: 2026-05-23 | 基准版本: v0.1.x (Phase 1)
 
 ## 1. 产品愿景
 
@@ -52,10 +52,11 @@ TimeSand 是一个自托管的智能照片墙与音乐盒。核心价值不是"�
 ### 3.1 总体原则
 
 ```
-先打磨 → 后扩展 → 再进阶
+先打磨 → UI 对齐 → 后扩展 → 再进阶
 ```
 
 - **Phase 1 — 打磨期**: 设计系统驱动的整体升级，让产品达到"可以自信展示"的水平
+- **Bridge — UI 重构期**: 以新的 HTML 原型为视觉契约，彻底重构前端 UI，作为 Phase 2 前的产品体验闸门
 - **Phase 2 — 增强期**: 扩展内容形态，强化核心差异化体验
 - **Phase 3 — 扩展期**: 用户系统、外部集成等生态能力
 
@@ -95,11 +96,11 @@ v0.Y.Z
 
 | 迭代 | 主题 | 核心产出 | 状态 |
 |------|------|----------|------|
-| 1.1 | 设计系统 + i18n + HEIC | 建立视觉基础、国际化框架、iPhone 照片支持 | 🔧 进行中 (1/7) |
-| 1.2 | 核心体验重塑 | 抽卡仪式、幻灯片沉浸感、音效设计、首次体验 | 待开始 |
-| 1.3 | 全页面升级 | 所有页面应用设计系统，达到产品级品质 | 待开始 |
-| 1.4 | 响应式 & 移动端 | 汉堡菜单、触摸手势、移动端布局适配 | 待开始 |
-| 1.5 | 基础设施 | CI/CD、数据库迁移、备份恢复、性能基线 | 待开始 |
+| 1.1 | 设计系统 + i18n + HEIC | 建立视觉基础、国际化框架、iPhone 照片支持 | ✅ 已完成 |
+| 1.2 | 核心体验重塑 | 抽卡仪式、幻灯片沉浸感、音效设计、首次体验 | ✅ 已完成 |
+| 1.3 | 全页面升级 | 所有页面应用设计系统，达到产品级品质 | ✅ 已完成 |
+| 1.4 | 响应式 & 移动端 | 汉堡菜单、触摸手势、移动端布局适配 | ✅ 已完成 |
+| 1.5 | 基础设施 | CI/CD、数据库迁移、备份恢复、性能基线 | ✅ 已完成 |
 
 ### 4.2 迭代 1.1 — 设计系统 + i18n + HEIC
 
@@ -171,12 +172,61 @@ v0.Y.Z
 
 ---
 
-## 5. Phase 2 — 增强期
+## 5. Bridge — UI 重构期
+
+> 目标: 在进入 Phase 2 功能扩展前，以 `docs/assets/ui-refactor/` 中的新 HTML 原型为视觉契约，彻底重构现有 Vue 前端。
+> 预期产出: v0.1.x UI 基线版本
+> 参考地址: `docs/assets/ui-refactor/` 目录内全部文件。
+> 关键理念: **尽可能还原设计稿；先把产品壳、页面层级、响应式和真实 API 对齐，再继续扩展功能。**
+
+### 5.1 设计方案分析
+
+新的设计方案不是旧 UI 的局部皮肤，而是一套完整产品界面：
+
+- **参考地址**: `docs/assets/ui-refactor/` 是本阶段唯一视觉参考目录，包含 `HANDOFF.md`、`DESIGN-HANDOFF.md`、`DESIGN-MANIFEST.json`、`styles.css`、`shell.js`、`landing.html`、`draw.html`、`mobile-draw.html`、`albums.html`、`album-detail.html`、`upload.html`、`music.html`、`slideshow.html`、`settings.html`、`index.html`。
+- **还原目标**: 生产实现应尽可能还原该目录中的设计稿；当工程实现与视觉细节冲突时，除真实数据/API/可访问性/响应式安全需要外，优先保持原型的布局、间距、字体、颜色、动效和交互状态。
+- **视觉基调**: Warm Walnut 深胡桃木背景 + 单一暖琥珀强调色，减少旧版暗蓝/金色混用带来的割裂感。
+- **字体系统**: display 使用衬线字体，正文使用系统 sans，数字/metadata/kbd 使用 mono。
+- **应用壳**: 左侧 rail + 底部全局播放器 + 主画布，移动端改为底部 rail 与播放器固定布局。
+- **核心氛围**: 抽卡、放映、landing 使用漂浮沙粒和柔和 vignette，强化 TimeSand 的"时间沙"意象。
+- **页面边界**: 10 个 HTML 文件按 screen-file-first 处理，`index.html` 仅作设计总览，不进入生产路由。
+- **响应式契约**: 以 360/390/430/600/820/1024/1366/1440/1920 宽高矩阵验收，不再只做桌面适配。
+- **实现约束**: Vue 3 + Tailwind + Pinia + vue-i18n + axios，保留现有后端 API 和无鉴权 MVP 模式。
+
+### 5.2 迭代 1.6 — UI 原型重构
+
+**目标**: 将新原型迁移为真实 Vue 3 + Tailwind 前端，并让现有上传、相册、抽卡、音乐、幻灯片、设置能力在新 UI 中完整闭环。
+
+详细任务文档: [docs/iterations/v1.6-ui-refactor/task-plan.md](iterations/v1.6-ui-refactor/task-plan.md)
+
+| 任务 | 描述 | 优先级 |
+|------|------|--------|
+| 设计契约 + AppShell | 抽取 Warm Walnut token，重建左侧 rail + 底部播放器 shell，明确 `/draw`、landing、slideshow 路由边界 | P0 |
+| 上传 + 相册表面 | 迁移 `upload.html`、`albums.html`、`album-detail.html`，对接真实照片/相册 API | P0 |
+| 抽卡主舞台 | 迁移 `draw.html`，把 `mobile-draw.html` 合并为 `/draw` 小屏形态，保留抽卡状态与手势 | P0 |
+| 音乐盒 + 幻灯片 | 迁移 `music.html`、`slideshow.html`，完成全局播放器和全屏放映体验 | P0 |
+| 设置 + i18n + 数据表面 | 迁移 `settings.html`，补齐存储、备份、抽卡/放映默认值、语言切换和 handoff 决策 | P0 |
+| 视觉验收闸门 | 建立截图/响应式/可访问性/Lighthouse 验收，产出 fidelity report | P0 |
+
+### 5.3 验收标准
+
+- [ ] 新 UI 覆盖 `/draw`、`/albums`、`/albums/:id`、`/upload`、`/music`、`/slideshow`、`/slideshow/:albumId`、`/settings`。
+- [ ] Landing 和 Slideshow 可脱离 AppShell 全屏渲染。
+- [ ] `mobile-draw.html` 作为 `/draw` 响应式形态实现，不新增生产路由。
+- [ ] 所有 UI 文案走 i18n，用户内容不翻译。
+- [ ] 旧版占位文本、调试文本、Open Design 说明文字不进入生产 UI。
+- [ ] 360/390/430/600/820/1024/1366/1440/1920 视口无横向滚动。
+- [ ] Lighthouse Performance ≥ 85，Accessibility ≥ 95。
+- [ ] 前端 `lint`、`type-check`、`test`、`build` 通过。
+
+---
+
+## 6. Phase 2 — 增强期
 
 > 目标: 扩展内容形态，强化"重新发现回忆"的核心差异化体验。
 > 预期产出: v0.2.x ~ v0.4.x
 
-### 5.1 回忆发现增强
+### 6.1 回忆发现增强
 
 | 功能 | 描述 |
 |------|------|
@@ -187,14 +237,14 @@ v0.Y.Z
 | 地图视图 | 基于 EXIF GPS 数据在地图上展示照片分布 |
 | 回忆卡片分享 | 抽卡结果生成精美图片（照片 + 日期 + 文案 + 水印），可保存/分享 |
 
-### 5.2 内容形态扩展
+### 6.2 内容形态扩展
 
 | 功能 | 描述 |
 |------|------|
 | 短视频支持 | 上传和管理短视频，抽卡可抽到视频（自动播放），幻灯片穿插视频 |
 | 照片去重 | 基于文件哈希检测重复照片，上传时提示 / 批量清理 |
 
-### 5.3 照片管理增强
+### 6.3 照片管理增强
 
 | 功能 | 描述 |
 |------|------|
@@ -203,7 +253,7 @@ v0.Y.Z
 | 照片编辑基础 | 旋转、裁剪等基础操作 |
 | 智能分组 | 按拍摄地点、日期自动分组建议 |
 
-### 5.4 音乐体验增强
+### 6.4 音乐体验增强
 
 | 功能 | 描述 |
 |------|------|
@@ -211,7 +261,7 @@ v0.Y.Z
 | 场景联动 | 抽卡/幻灯片场景自动切换对应播放列表 |
 | 音量渐变 | 场景切换时音乐平滑过渡 |
 
-### 5.5 展示与主题
+### 6.5 展示与主题
 
 | 功能 | 描述 |
 |------|------|
@@ -222,12 +272,12 @@ v0.Y.Z
 
 ---
 
-## 6. Phase 3 — 扩展期
+## 7. Phase 3 — 扩展期
 
 > 目标: 从个人工具演进为可分享、可集成的照片体验平台。
 > 预期产出: v0.5.x+，远期目标 v1.0
 
-### 6.1 用户系统
+### 7.1 用户系统
 
 | 功能 | 描述 |
 |------|------|
@@ -235,7 +285,7 @@ v0.Y.Z
 | 多用户支持 | 家庭成员各自的相册和配置 |
 | 访客模式 | 无需登录即可浏览共享相册 |
 
-### 6.2 外部集成
+### 7.2 外部集成
 
 | 功能 | 描述 |
 |------|------|
@@ -243,7 +293,7 @@ v0.Y.Z
 | S3 / WebDAV 存储后端 | 支持远程存储，不仅限本地文件系统 |
 | 自动导入 | 监控文件夹变化，自动导入新照片 |
 
-### 6.3 AI 能力 (实验性)
+### 7.3 AI 能力 (实验性)
 
 | 功能 | 描述 |
 |------|------|
@@ -251,7 +301,7 @@ v0.Y.Z
 | 回忆生成 | 自动组合相关照片生成"回忆"故事 |
 | 音乐匹配 | 根据照片氛围推荐背景音乐 |
 
-### 6.4 平台化
+### 7.4 平台化
 
 | 功能 | 描述 |
 |------|------|
@@ -261,9 +311,9 @@ v0.Y.Z
 
 ---
 
-## 7. 迭代开发流程
+## 8. 迭代开发流程
 
-### 7.1 流程总览
+### 8.1 流程总览
 
 在 MVP 阶段验证的流程基础上，增加**迭代规划**和**回顾**环节:
 
@@ -278,7 +328,7 @@ v0.Y.Z
 └─────────────────────────────────────────────────┘
 ```
 
-### 7.2 迭代规划
+### 8.2 迭代规划
 
 每个迭代开始前:
 
@@ -287,15 +337,15 @@ v0.Y.Z
 3. **定义验收标准** — 每个功能的完成标志是什么
 4. **评估风险** — 识别技术难点或不确定项
 
-产出: 迭代计划文档 (`docs/tasks/<iteration-name>.md`)
+产出: 迭代目录 (`docs/iterations/<version>-<slug>/`)，包含 `spec.md`、`task-plan.md`、`NN-<task>.md`、`dependencies.canvas`、`tasks.base`
 
-### 7.3 执行流程 (沿用 MVP)
+### 8.3 执行流程 (沿用 MVP)
 
 ```
 需求对齐 (Claude Code)
     ↓ 输出: docs/superpowers/specs/<spec>.md
 任务分解 (Claude Code)
-    ↓ 输出: docs/tasks/<plan>.md + docs/tasks/<plan>-NN-<task>.md
+    ↓ 输出: docs/iterations/<version>-<slug>/task-plan.md + docs/iterations/<version>-<slug>/NN-<task>.md
 并行开发 (Codex / Claude Code)
     ↓ 各 feat/<task-slug> 分支独立开发
 集成 (Claude Code)
@@ -304,7 +354,7 @@ v0.Y.Z
     ↓ dev → main (PR) → tag → release
 ```
 
-### 7.4 迭代回顾
+### 8.4 迭代回顾
 
 每个版本发布后:
 
@@ -312,7 +362,7 @@ v0.Y.Z
 - 更新路线图（如有调整）
 - 更新进度追踪文档
 
-### 7.5 分支策略 (沿用)
+### 8.5 分支策略 (沿用)
 
 ```
 main          ← 只接受 dev 的合入（生产就绪）
@@ -320,26 +370,36 @@ main          ← 只接受 dev 的合入（生产就绪）
        └── feat/<task-slug>  ← 功能分支
 ```
 
-### 7.6 进度追踪
+### 8.6 进度追踪
 
 - **路线图级别**: 本文档 (`docs/product-roadmap.md`) — Phase/迭代完成状态
-- **迭代级别**: `docs/tasks/<iteration-name>-progress.md` — 各任务完成状态
+- **迭代级别**: `docs/iterations/<version>-<slug>/tasks.base` 和任务 frontmatter — 各任务完成状态
 - **每次发版后更新路线图中的完成标记**
 
 ---
 
-## 8. 里程碑概览
+## 9. 里程碑概览
 
 ```
 v0.0.1 (MVP)     ← Done ✓
     │
     ├── Phase 1: 打磨期
-    │   ├── 1.1 设计系统 + i18n + HEIC  ← 进行中 (1/7)
-    │   ├── 1.2 核心体验重塑
-    │   ├── 1.3 全页面升级
-    │   ├── 1.4 响应式 & 移动端
-    │   └── 1.5 基础设施
+    │   ├── 1.1 设计系统 + i18n + HEIC  ← Done
+    │   ├── 1.2 核心体验重塑 ← Done
+    │   ├── 1.3 全页面升级 ← Done
+    │   ├── 1.4 响应式 & 移动端 ← Done
+    │   └── 1.5 基础设施 ← Done
     │   └── → v0.1.0
+    │
+    ├── Bridge: UI 重构期
+    │   ├── 1.6 UI 原型重构 ← Next
+    │   │   ├── Design Contract + AppShell
+    │   │   ├── Upload + Albums
+    │   │   ├── Draw + Mobile Gesture
+    │   │   ├── Music + Slideshow
+    │   │   ├── Settings + i18n + Data
+    │   │   └── Fidelity Verification
+    │   └── → v0.1.x UI baseline
     │
     ├── Phase 2: 增强期
     │   ├── 2.1 回忆发现增强
@@ -359,16 +419,18 @@ v0.0.1 (MVP)     ← Done ✓
 
 ---
 
-## 9. 附录
+## 10. 附录
 
-### 9.1 参考文档
+### 10.1 参考文档
 
 - 产品设计: [docs/superpowers/specs/2026-04-06-timesand-mvp-design.md](superpowers/specs/2026-04-06-timesand-mvp-design.md)
 - 发布流程: [docs/superpowers/specs/2026-04-12-release-workflow-design.md](superpowers/specs/2026-04-12-release-workflow-design.md)
-- MVP 任务计划: [docs/tasks/mvp-task-plan.md](tasks/mvp-task-plan.md)
-- MVP 进度: [docs/tasks/mvp-progress.md](tasks/mvp-progress.md)
+- MVP 任务计划: [docs/iterations/v0.0-mvp/task-plan.md](iterations/v0.0-mvp/task-plan.md)
+- MVP 任务视图: [docs/iterations/v0.0-mvp/tasks.base](iterations/v0.0-mvp/tasks.base)
+- UI 重构原型: [docs/assets/ui-refactor/HANDOFF.md](assets/ui-refactor/HANDOFF.md)
+- UI 重构计划: [docs/iterations/v1.6-ui-refactor/task-plan.md](iterations/v1.6-ui-refactor/task-plan.md)
 
-### 9.2 技术栈
+### 10.2 技术栈
 
 | 层 | 选型 |
 |---|---|
@@ -377,17 +439,19 @@ v0.0.1 (MVP)     ← Done ✓
 | 后端 | FastAPI (Python 3.12) + SQLModel + SQLite |
 | 部署 | Docker |
 
-### 9.3 版本历史
+### 10.3 版本历史
 
 | 版本 | 日期 | 内容 |
 |------|------|------|
 | v0.0.1 | 2026-04-12 | MVP — 全部 9 项核心功能 |
 | — | 2026-04-19 | 迭代 1.1 开发中 — Design Tokens 实现进行中 |
+| — | 2026-05-23 | Phase 1 之后插入 1.6 UI 原型重构迭代 |
 
-### 9.4 路线图变更日志
+### 10.4 路线图变更日志
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
 | 2026-04-18 | v1.0 | 初始路线图 |
 | 2026-04-18 | v1.1 | Phase 1 重构为设计系统驱动的整体升级；新增 i18n、HEIC 支持、音效设计、首次体验引导、Demo 数据、备份恢复、性能基线；Phase 2 新增短视频支持、地图视图、回忆卡片分享、照片去重、亮色主题 |
 | 2026-04-19 | v1.2 | 进度同步: v1.1 迭代开始开发，Task 1 Design Tokens 进入 in-progress |
+| 2026-05-23 | v1.3 | Phase 1 与 Phase 2 之间新增 Bridge UI 重构期；新增 `v1.6-ui-refactor` 迭代文档，路线以 `docs/assets/ui-refactor/` HTML 原型为视觉契约 |

@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>设置 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .set-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 36px;
+    }
+
+    .set-side {
+      position: sticky;
+      top: 32px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .set-side a {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      color: var(--fg-soft);
+    }
+    .set-side a:hover { background: var(--surface); color: var(--fg); }
+    .set-side a.is-on {
+      background: var(--surface-2);
+      color: var(--fg);
+      position: relative;
+    }
+    .set-side a.is-on::before {
+      content: ''; position: absolute;
+      left: 0; top: 10px; bottom: 10px;
+      width: 2px; background: var(--accent);
+    }
+    .set-side .label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--muted-2);
+      text-transform: uppercase;
+      padding: 14px 12px 4px;
+    }
+
+    .sect {
+      margin-bottom: 48px;
+      scroll-margin-top: 32px;
+    }
+    .sect-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .sect-h {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 500;
+    }
+    .sect-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* storage */
+    .storage {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 32px;
+      padding: 26px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      align-items: center;
+    }
+    .donut {
+      position: relative;
+      width: 200px; height: 200px;
+      margin: 0 auto;
+    }
+    .donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .donut text { display: none; }
+    .donut-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+    .donut-center .pct {
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 500;
+      color: var(--fg);
+      line-height: 1;
+    }
+    .donut-center .lbl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px 24px;
+    }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 14px 1fr auto;
+      gap: 10px;
+      align-items: baseline;
+    }
+    .legend-row .swatch { width: 12px; height: 12px; border-radius: 3px; align-self: center; }
+    .legend-row .name { font-size: 13px; }
+    .legend-row .meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* data management */
+    .data-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    .data-card {
+      padding: 22px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .data-card.danger {
+      border-color: oklch(35% 0.07 25);
+      background:
+        linear-gradient(135deg, oklch(20% 0.04 25) 0%, var(--surface) 60%);
+    }
+    .data-card.danger .data-eye { color: oklch(78% 0.14 25); }
+
+    .data-eye {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .data-h {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .data-desc { color: var(--fg-soft); font-size: 13.5px; line-height: 1.55; }
+    .data-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .data-stat {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* preferences rows */
+    .pref {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+    }
+    .pref-row {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 22px;
+      align-items: center;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pref-row:last-child { border-bottom: none; }
+    .pref-name { font-weight: 500; font-size: 14.5px; }
+    .pref-help {
+      color: var(--muted);
+      font-size: 12.5px;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .pref-control { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* segmented */
+    .seg {
+      display: inline-flex;
+      background: var(--bg-deep);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .seg button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      letter-spacing: 0.08em;
+    }
+    .seg button.is-on {
+      background: var(--surface-2);
+      color: var(--fg);
+    }
+
+    /* slider */
+    .slider {
+      width: 200px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      position: relative;
+    }
+    .slider .fill { position: absolute; inset: 0 35% 0 0; background: var(--accent); border-radius: 2px; }
+    .slider .knob {
+      position: absolute;
+      width: 16px; height: 16px;
+      background: var(--accent);
+      border-radius: 50%;
+      top: 50%;
+      left: 65%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .slider-row { display: flex; align-items: center; gap: 14px; }
+    .slider-num {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    /* switch */
+    .switch {
+      width: 38px; height: 22px;
+      background: var(--border);
+      border-radius: 22px;
+      position: relative;
+      cursor: pointer;
+      transition: background .2s var(--ease);
+    }
+    .switch::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      background: var(--fg);
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: left .2s var(--ease);
+    }
+    .switch.is-on { background: var(--accent); }
+    .switch.is-on::after { left: 19px; background: var(--bg-deep); }
+
+    .about {
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+    .about-mark {
+      width: 60px; height: 60px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, var(--accent), var(--accent-deep));
+      display: grid; place-items: center;
+      box-shadow: 0 6px 22px var(--accent-glow);
+    }
+    .about-mark svg { width: 28px; height: 28px; }
+    .about-name {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .about-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 880px) {
+      .set-layout { grid-template-columns: 1fr; gap: 22px; }
+      .set-side {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 6px;
+        padding: 8px 0;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .set-side .label { display: none; }
+      .set-side a {
+        flex-shrink: 0;
+        padding: 8px 14px;
+        border-radius: var(--radius-pill);
+        background: var(--surface);
+        font-size: 12.5px;
+      }
+      .set-side a.is-on { background: var(--accent-soft); color: var(--accent); }
+      .set-side a.is-on::before { display: none; }
+      .storage { grid-template-columns: 1fr; padding: 18px; gap: 22px; }
+      .donut { width: 160px; height: 160px; }
+      .legend { grid-template-columns: 1fr; gap: 10px 18px; }
+      .data-row { grid-template-columns: 1fr; gap: 14px; }
+      .pref-row { grid-template-columns: 1fr; gap: 12px; padding: 16px 18px; }
+      .pref-control { justify-content: flex-start; flex-wrap: wrap; }
+      .slider { width: 100%; max-width: 240px; }
+      .sect-h { font-size: 20px; }
+      .sect { margin-bottom: 32px; }
+      .about { grid-template-columns: 50px 1fr; gap: 14px; padding: 18px; }
+      .about-mark { width: 50px; height: 50px; }
+      .about > .btn { grid-column: 1 / -1; justify-self: start; }
+    }
+  </style>
+</head>
+<body data-page="settings">
+
+<div class="app">
+  <aside class="rail" id="shell-rail"></aside>
+
+  <main class="canvas">
+
+    <header class="page-head">
+      <div>
+        <div class="h-eyebrow">SETTINGS</div>
+        <h1 class="h-title">设置</h1>
+        <p class="h-sub">TimeSand 把所有东西都放在 <code style="font-family:var(--font-mono); color:var(--accent);">/data</code> 这一个目录里。你可以随时打包带走。</p>
+      </div>
+      <span class="chip">v1.0.4 · 5 · 18</span>
+    </header>
+
+    <div class="set-layout">
+
+      <nav class="set-side">
+        <div class="label">分组</div>
+        <a href="#storage" class="is-on">存储</a>
+        <a href="#backup">备份与数据</a>
+        <a href="#draw">抽卡与时间权重</a>
+        <a href="#playback">放映与播放</a>
+        <a href="#i18n">外观与语言</a>
+        <a href="#about">关于</a>
+      </nav>
+
+      <div>
+
+        <!-- ====== Storage ====== -->
+        <section class="sect" id="storage">
+          <div class="sect-head">
+            <h2 class="sect-h">存储</h2>
+            <span class="sect-num">64% · 102 / 160 GB</span>
+          </div>
+
+          <div class="storage">
+            <div class="donut">
+              <svg viewBox="0 0 120 120">
+                <!-- background -->
+                <circle cx="60" cy="60" r="48" fill="none" stroke="oklch(28% 0.018 50)" stroke-width="14"/>
+                <!-- segments: stroke-dasharray on circumference 2*pi*48 ≈ 301.6 -->
+                <circle cx="60" cy="60" r="48" fill="none" stroke="var(--accent)" stroke-width="14"
+                        stroke-dasharray="126 302" stroke-dashoffset="0"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="oklch(60% 0.08 30)" stroke-width="14"
+                        stroke-dasharray="42 302" stroke-dashoffset="-126"/>
+                <circle cx="60" cy="60" r="48" fill="none" stroke="oklch(50% 0.04 80)" stroke-width="14"
+                        stroke-dasharray="24 302" stroke-dashoffset="-168"/>
+              </svg>
+              <div class="donut-center">
+                <div>
+                  <div class="pct">64<span style="font-size:18px; color: var(--muted);">%</span></div>
+                  <div class="lbl">已用</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="legend">
+              <div class="legend-row">
+                <span class="swatch" style="background: var(--accent);"></span>
+                <div>
+                  <div class="name">照片原图</div>
+                  <div class="meta num">1,248 张</div>
+                </div>
+                <span class="meta">67.2 GB</span>
+              </div>
+              <div class="legend-row">
+                <span class="swatch" style="background: oklch(60% 0.08 30);"></span>
+                <div>
+                  <div class="name">音乐</div>
+                  <div class="meta num">102 首</div>
+                </div>
+                <span class="meta">22.4 GB</span>
+              </div>
+              <div class="legend-row">
+                <span class="swatch" style="background: oklch(50% 0.04 80);"></span>
+                <div>
+                  <div class="name">缩略图</div>
+                  <div class="meta">自动生成</div>
+                </div>
+                <span class="meta">12.4 GB</span>
+              </div>
+              <div class="legend-row">
+                <span class="swatch" style="background: var(--border);"></span>
+                <div>
+                  <div class="name">剩余</div>
+                  <div class="meta">本机磁盘</div>
+                </div>
+                <span class="meta">58.0 GB</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== Backup ====== -->
+        <section class="sect" id="backup">
+          <div class="sect-head">
+            <h2 class="sect-h">备份与数据</h2>
+            <span class="sect-num">上次导出 · 2026 · 05 · 11</span>
+          </div>
+
+          <div class="data-row">
+            <div class="data-card">
+              <div class="data-eye">EXPORT · 推荐每月一次</div>
+              <div class="data-h">导出全部数据</div>
+              <p class="data-desc">把数据库、原图、音乐打包成一个 zip。可以放在 NAS、移动硬盘、其他机器的 TimeSand 里恢复。</p>
+              <div class="data-foot">
+                <span class="data-stat">大约 · 102 GB · 视磁盘速度 5–10 分钟</span>
+                <button class="btn btn-primary">导出</button>
+              </div>
+            </div>
+
+            <div class="data-card danger">
+              <div class="data-eye">RESTORE · 不可逆</div>
+              <div class="data-h">从备份恢复</div>
+              <p class="data-desc"><strong style="color: oklch(85% 0.14 25);">会替换当前所有数据。</strong>导入前会提示你再次确认，并自动给当前数据做一份临时快照。</p>
+              <div class="data-foot">
+                <span class="data-stat">需要二次确认</span>
+                <button class="btn btn-danger">选择备份文件</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== Draw & time weight ====== -->
+        <section class="sect" id="draw">
+          <div class="sect-head">
+            <h2 class="sect-h">抽卡与时间权重</h2>
+            <span class="sect-num">让"多年以前的今天"更容易浮上来</span>
+          </div>
+
+          <div class="pref">
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">启用时间弱权重</div>
+                <div class="pref-help">关掉就是纯随机。打开时，会按下面的强度让"今天 ±N 天"的旧照片更容易被抽到。</div>
+              </div>
+              <div class="pref-control"><div class="switch is-on"></div></div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">权重强度</div>
+                <div class="pref-help">越大越倾向"多年以前的今天"。默认 +12% 是温和的、几乎察觉不到偏向。</div>
+              </div>
+              <div class="pref-control">
+                <div class="slider-row">
+                  <div class="slider"><div class="fill"></div><div class="knob"></div></div>
+                  <span class="slider-num">+12%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">日期范围</div>
+                <div class="pref-help">"多年以前的今天"前后多少天算作命中。</div>
+              </div>
+              <div class="pref-control">
+                <div class="seg">
+                  <button>± 1d</button>
+                  <button class="is-on">± 3d</button>
+                  <button>± 7d</button>
+                  <button>± 30d</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">抽过的照片</div>
+                <div class="pref-help">下次抽卡是否排除最近抽过的。</div>
+              </div>
+              <div class="pref-control">
+                <div class="seg">
+                  <button class="is-on">7 天内排除</button>
+                  <button>30 天</button>
+                  <button>从不</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== Playback ====== -->
+        <section class="sect" id="playback">
+          <div class="sect-head">
+            <h2 class="sect-h">放映与播放</h2>
+            <span class="sect-num">幻灯片默认行为</span>
+          </div>
+
+          <div class="pref">
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">每张照片停留</div>
+                <div class="pref-help">放映时单张停留时间。</div>
+              </div>
+              <div class="pref-control">
+                <div class="seg">
+                  <button>3s</button>
+                  <button class="is-on">5s</button>
+                  <button>8s</button>
+                  <button>12s</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">过渡动效</div>
+                <div class="pref-help">默认是缓慢的 Ken Burns 推近。</div>
+              </div>
+              <div class="pref-control">
+                <div class="seg">
+                  <button>渐隐</button>
+                  <button class="is-on">推近</button>
+                  <button>左滑</button>
+                  <button>无</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">放映时自动播放音乐</div>
+                <div class="pref-help">如果该相册绑定了播放列表，开始放映时同时播放。</div>
+              </div>
+              <div class="pref-control"><div class="switch is-on"></div></div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">显示拍摄信息</div>
+                <div class="pref-help">日期、地点、机型这些 EXIF。</div>
+              </div>
+              <div class="pref-control"><div class="switch is-on"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== i18n ====== -->
+        <section class="sect" id="i18n">
+          <div class="sect-head">
+            <h2 class="sect-h">外观与语言</h2>
+            <span class="sect-num">主题、字号、界面语言</span>
+          </div>
+
+          <div class="pref">
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">界面语言</div>
+                <div class="pref-help">演示数据（曲名、相册名）只会在首次启动时按这里写入。</div>
+              </div>
+              <div class="pref-control">
+                <div class="seg">
+                  <button class="is-on">中文</button>
+                  <button>English</button>
+                  <button>跟随系统</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">演示数据</div>
+                <div class="pref-help">下次启动时再写入。</div>
+              </div>
+              <div class="pref-control">
+                <button class="btn btn-ghost">清除演示数据</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====== About ====== -->
+        <section class="sect" id="about" style="margin-bottom:24px;">
+          <div class="sect-head">
+            <h2 class="sect-h">关于</h2>
+          </div>
+
+          <div class="about">
+            <div class="about-mark">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                   stroke-linecap="round" stroke-linejoin="round" style="color:var(--bg-deep)">
+                <path d="M6 3h12M6 21h12"/>
+                <path d="M7 3c0 4 5 5.5 5 9s-5 5-5 9"/>
+                <path d="M17 3c0 4-5 5.5-5 9s5 5 5 9"/>
+                <line x1="9" y1="11" x2="15" y2="11"/>
+              </svg>
+            </div>
+            <div>
+              <div class="about-name">TimeSand · v1.0.4</div>
+              <div class="about-meta">MIT · 自托管 · 单容器 · 5 · 18 · 2026</div>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <a class="btn" href="https://github.com">GitHub</a>
+              <a class="btn btn-ghost" href="landing.html">关于</a>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="player" id="shell-player"></footer>
+</div>
+
+<script src="shell.js"></script>
+</body>
+</html>

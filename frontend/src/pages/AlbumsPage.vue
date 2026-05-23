@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { Album } from '../types/album'
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AlbumCard from '../components/AlbumCard.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
 import { createAlbum, listAlbums } from '../services/album'
+
+type SortMode = 'recent' | 'name' | 'count'
 
 const { t } = useI18n()
 const albums = ref<Album[]>([])
@@ -13,9 +15,32 @@ const loading = ref(false)
 const creating = ref(false)
 const errorMessage = ref<string | null>(null)
 const nameValidationMessage = ref<string | null>(null)
+const searchQuery = ref('')
+const sortMode = ref<SortMode>('recent')
 
 const newName = ref('')
 const newDescription = ref('')
+
+const filteredAlbums = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  const source = query
+    ? albums.value.filter(album =>
+        album.name.toLowerCase().includes(query)
+        || (album.description ?? '').toLowerCase().includes(query),
+      )
+    : albums.value
+
+  return [...source].sort((a, b) => {
+    if (sortMode.value === 'name') {
+      return a.name.localeCompare(b.name)
+    }
+    if (sortMode.value === 'count') {
+      return b.photo_count - a.photo_count
+    }
+
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  })
+})
 
 async function loadAlbums(): Promise<void> {
   loading.value = true
@@ -77,54 +102,79 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <header class="space-y-2">
-      <h1 class="text-3xl font-semibold text-ts-accent">
-        {{ $t('album.title') }}
-      </h1>
-      <p class="text-ts-muted">
-        {{ $t('album.description') }}
-      </p>
+  <section class="albums-page">
+    <header class="page-head">
+      <div>
+        <div class="h-eyebrow">
+          {{ $t('album.eyebrow') }}
+        </div>
+        <h1 class="h-title">
+          {{ $t('album.title') }}
+        </h1>
+        <p class="h-sub">
+          {{ $t('album.description') }}
+        </p>
+      </div>
+      <a class="btn btn-primary" href="#album-create-form">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4v16M4 12h16" />
+        </svg>
+        {{ $t('album.newAlbum') }}
+      </a>
     </header>
 
-    <form
-      class="album-create-form grid gap-3 rounded-xl border border-white/10 bg-ts-panel p-4 md:grid-cols-[1fr,2fr,auto]"
-      @submit.prevent="handleCreateAlbum"
+    <div
+      data-testid="albums-toolbar"
+      class="toolbar"
     >
-      <input
-        v-model="newName"
-        type="text"
-        :placeholder="$t('album.namePlaceholder')"
-        class="album-create-input rounded border bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none"
-        :class="nameValidationMessage
-          ? 'border-red-400/70 focus:border-red-300'
-          : 'border-white/15 focus:border-ts-accent'"
-        @input="onNameInput"
-      >
-      <input
-        v-model="newDescription"
-        type="text"
-        :placeholder="$t('album.descPlaceholder')"
-        class="album-create-input rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
-      >
-      <button
-        type="submit"
-        :disabled="creating"
-        class="album-create-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {{ creating ? $t('common.creating') : $t('common.create') }}
-      </button>
-    </form>
+      <label class="toolbar-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="search"
+          :placeholder="$t('album.searchPlaceholder')"
+        >
+      </label>
+      <div class="toolbar-sort" :aria-label="$t('album.sortLabel')">
+        <button
+          type="button"
+          class="sort-pill"
+          :class="{ 'is-on': sortMode === 'recent' }"
+          @click="sortMode = 'recent'"
+        >
+          {{ $t('album.sortRecent') }}
+        </button>
+        <button
+          type="button"
+          class="sort-pill"
+          :class="{ 'is-on': sortMode === 'name' }"
+          @click="sortMode = 'name'"
+        >
+          {{ $t('album.sortName') }}
+        </button>
+        <button
+          type="button"
+          class="sort-pill"
+          :class="{ 'is-on': sortMode === 'count' }"
+          @click="sortMode = 'count'"
+        >
+          {{ $t('album.sortCount') }}
+        </button>
+      </div>
+    </div>
 
-    <p v-if="nameValidationMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+    <p v-if="nameValidationMessage" class="surface-message danger">
       {{ nameValidationMessage }}
     </p>
 
-    <p v-if="errorMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+    <p v-if="errorMessage" class="surface-message danger">
       {{ errorMessage }}
     </p>
 
-    <p v-if="loading" class="text-sm text-ts-muted">
+    <p v-if="loading" class="loading-copy">
       {{ $t('album.loadingAlbums') }}
     </p>
     <TsEmptyState
@@ -133,21 +183,265 @@ onMounted(async () => {
       :description="$t('empty.albums.description')"
     />
 
-    <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div v-else class="albums-grid">
       <RouterLink
-        v-for="album in albums"
+        v-for="album in filteredAlbums"
         :key="album.id"
         :to="`/albums/${album.id}`"
-        class="album-card-link block"
+        class="album-card-link"
       >
         <AlbumCard :album="album" />
       </RouterLink>
+
+      <form
+        id="album-create-form"
+        data-testid="album-add-card"
+        class="album-card add"
+        @submit.prevent="handleCreateAlbum"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <p class="add-title">
+          {{ $t('album.newAlbum') }}
+        </p>
+        <input
+          v-model="newName"
+          type="text"
+          :placeholder="$t('album.namePlaceholder')"
+          class="album-create-input"
+          :class="{ 'is-invalid': nameValidationMessage }"
+          @input="onNameInput"
+        >
+        <input
+          v-model="newDescription"
+          type="text"
+          :placeholder="$t('album.descPlaceholder')"
+          class="album-create-input"
+        >
+        <button
+          type="submit"
+          :disabled="creating"
+          class="btn btn-primary album-create-button"
+        >
+          {{ creating ? $t('common.creating') : $t('common.create') }}
+        </button>
+      </form>
     </div>
   </section>
 </template>
 
 <style scoped>
-@media (max-width: 767px) {
+.albums-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.page-head .btn svg,
+.album-card.add svg,
+.toolbar-search svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.page-head .btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.8;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-pill);
+  background: var(--ts-surface);
+}
+
+.toolbar-search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  color: var(--ts-muted);
+}
+
+.toolbar-search svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.6;
+}
+
+.toolbar-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ts-fg);
+  font-size: 14px;
+}
+
+.toolbar-search input::placeholder {
+  color: var(--ts-muted-2);
+}
+
+.toolbar-sort {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.sort-pill {
+  border: 0;
+  border-radius: var(--ts-radius-pill);
+  background: transparent;
+  color: inherit;
+  padding: 4px 10px;
+}
+
+.sort-pill.is-on {
+  background: var(--ts-surface-2);
+  color: var(--ts-fg);
+}
+
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.album-card-link {
+  display: block;
+  min-height: 100%;
+}
+
+.album-card.add {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  min-height: 100%;
+  padding: 22px;
+  border: 1px dashed var(--ts-border-soft);
+  border-radius: var(--ts-radius-lg);
+  background: transparent;
+  color: var(--ts-muted);
+  transition:
+    color var(--ts-duration-normal) var(--ts-ease),
+    border-color var(--ts-duration-normal) var(--ts-ease);
+}
+
+.album-card.add:hover,
+.album-card.add:focus-within {
+  border-color: var(--ts-accent-soft);
+  color: var(--ts-accent);
+}
+
+.album-card.add svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.6;
+}
+
+.add-title {
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.album-create-input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-pill);
+  outline: none;
+  background: var(--ts-bg-deep);
+  color: var(--ts-fg);
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.album-create-input:focus {
+  border-color: var(--ts-accent);
+}
+
+.album-create-input.is-invalid {
+  border-color: oklch(65% 0.16 25);
+}
+
+.album-create-button {
+  justify-content: center;
+  width: 100%;
+}
+
+.surface-message {
+  border-radius: var(--ts-radius);
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+.surface-message.danger {
+  border: 1px solid oklch(60% 0.18 25 / 55%);
+  background: oklch(30% 0.08 25 / 24%);
+  color: oklch(85% 0.14 25);
+}
+
+.loading-copy {
+  color: var(--ts-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .albums-page {
+    gap: 22px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--ts-radius-lg);
+  }
+
+  .toolbar-search {
+    border: 1px solid var(--ts-border-soft);
+    border-radius: var(--ts-radius-pill);
+    background: var(--ts-bg-deep);
+    padding: 8px 14px;
+  }
+
+  .toolbar-search input {
+    font-size: 16px;
+  }
+
+  .toolbar-sort {
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .sort-pill {
+    flex-shrink: 0;
+    padding: 6px 12px;
+  }
+
+  .albums-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+  }
+
   .album-create-input,
   .album-create-button,
   .album-card-link {
@@ -156,6 +450,12 @@ onMounted(async () => {
 
   .album-create-input {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .albums-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>

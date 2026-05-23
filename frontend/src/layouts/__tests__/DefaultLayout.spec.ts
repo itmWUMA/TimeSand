@@ -1,45 +1,20 @@
 import type { MessageSchema } from '../../i18n/types'
+import { readFileSync } from 'node:fs'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
+import App from '../../App.vue'
+import { useToast } from '../../composables/useToast'
 import en from '../../i18n/locales/en'
 import zhCN from '../../i18n/locales/zh-CN'
 import DefaultLayout from '../DefaultLayout.vue'
 
-vi.mock('vue-router', () => ({
-  useRoute: () => ({
-    path: '/',
-    name: 'home',
-  }),
-}))
-
-type MatchMediaListener = (event: MediaQueryListEvent) => void
-
-let isDesktopViewport = false
-const matchMediaListeners = new Set<MatchMediaListener>()
-
-function emitViewportChange(nextDesktop: boolean): void {
-  isDesktopViewport = nextDesktop
-  const event = { matches: isDesktopViewport } as MediaQueryListEvent
-  for (const listener of matchMediaListeners)
-    listener(event)
-}
-
-vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query: string) => ({
-  media: query,
-  matches: query === '(min-width: 768px)' ? isDesktopViewport : false,
-  onchange: null,
-  addEventListener: (_type: 'change', listener: MatchMediaListener) => matchMediaListeners.add(listener),
-  removeEventListener: (_type: 'change', listener: MatchMediaListener) => matchMediaListeners.delete(listener),
-  addListener: (listener: MatchMediaListener) => matchMediaListeners.add(listener),
-  removeListener: (listener: MatchMediaListener) => matchMediaListeners.delete(listener),
-  dispatchEvent: () => true,
-})))
-
-function createWrapper(locale: 'zh-CN' | 'en' = 'en') {
-  const i18n = createI18n<[MessageSchema], 'zh-CN' | 'en'>({
+function createTestI18n(locale: 'zh-CN' | 'en' = 'en') {
+  return createI18n<[MessageSchema], 'zh-CN' | 'en'>({
     legacy: false,
     locale,
     fallbackLocale: 'en',
@@ -48,115 +23,180 @@ function createWrapper(locale: 'zh-CN' | 'en' = 'en') {
       en,
     },
   })
+}
 
-  return mount(DefaultLayout, {
+async function createWrapper(path = '/draw', locale: 'zh-CN' | 'en' = 'en') {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { template: '<div />' } },
+      { path: '/draw', component: { template: '<div />' } },
+      { path: '/albums', component: { template: '<div />' } },
+      { path: '/albums/:id', component: { template: '<div />' } },
+      { path: '/upload', component: { template: '<div />' } },
+      { path: '/music', component: { template: '<div />' } },
+      { path: '/slideshow', component: { template: '<div />' } },
+      { path: '/settings', component: { template: '<div />' } },
+    ],
+  })
+  await router.push(path)
+  await router.isReady()
+
+  const wrapper = mount(DefaultLayout, {
+    slots: {
+      default: '<div data-testid="layout-slot">Page content</div>',
+    },
     global: {
-      plugins: [createPinia(), i18n],
+      plugins: [createPinia(), createTestI18n(locale), router],
       stubs: {
         RouterLink: {
           props: ['to'],
-          template: '<a :data-to="to"><slot /></a>',
+          template: '<a :data-to="typeof to === \'string\' ? to : to.path"><slot /></a>',
         },
-        MusicPlayer: { template: '<div />' },
       },
     },
   })
+
+  return { wrapper, router }
 }
 
-describe('defaultLayout language switch', () => {
-  const zhLabel = '\u4E2D\u6587'
-
+describe('defaultLayout shell', () => {
   beforeEach(() => {
-    isDesktopViewport = false
-    matchMediaListeners.clear()
-    vi.mocked(matchMedia).mockClear()
     localStorage.clear()
     document.documentElement.lang = ''
   })
 
-  it('renders toggle in sidebar and mobile drawer', async () => {
-    const wrapper = createWrapper()
-    const sidebarButton = wrapper.find('aside button')
-    expect(sidebarButton.exists()).toBe(true)
-    expect(sidebarButton.text()).toContain(`EN / ${zhLabel}`)
+  it('renders the Warm Walnut rail groups and bottom player footprint', async () => {
+    const { wrapper } = await createWrapper()
 
-    const mobileMenuButton = wrapper.find('header > div button')
-    await mobileMenuButton.trigger('click')
-
-    const mobileToggleButton = wrapper.find('[data-testid="mobile-drawer-locale-toggle"]')
-    expect(mobileToggleButton.exists()).toBe(true)
-    expect(mobileToggleButton.text()).toContain(`EN / ${zhLabel}`)
+    expect(wrapper.find('[data-testid="default-layout"]').classes()).toContain('ts-app-shell')
+    expect(wrapper.find('[data-testid="rail-group-memory"]').text()).toContain('Memory')
+    expect(wrapper.find('[data-testid="rail-group-content"]').text()).toContain('Content')
+    expect(wrapper.find('[data-testid="rail-group-other"]').text()).toContain('Other')
+    expect(wrapper.find('[data-testid="shell-player"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="shell-player"]').classes()).toContain('player-fixed')
+    expect(wrapper.find('[data-testid="shell-player-title"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="shell-player-play"]').exists()).toBe(true)
   })
 
-  it('closes drawer when backdrop is clicked', async () => {
-    const wrapper = createWrapper()
-    await wrapper.find('header > div button').trigger('click')
+  it('marks the canonical draw route active', async () => {
+    const { wrapper } = await createWrapper('/draw')
 
-    expect(wrapper.find('[data-testid="mobile-drawer-overlay"]').exists()).toBe(true)
-
-    await wrapper.find('[data-testid="mobile-drawer-backdrop"]').trigger('click')
-    await vi.waitFor(() => {
-      expect(wrapper.find('[data-testid="mobile-drawer-overlay"]').exists()).toBe(false)
-    })
+    expect(wrapper.find('[data-testid="rail-link-draw"]').classes()).toContain('is-active')
   })
 
-  it('closes drawer when navigation item is clicked', async () => {
-    const wrapper = createWrapper()
-    await wrapper.find('header > div button').trigger('click')
+  it('keeps nested album routes active in the albums rail item', async () => {
+    const { wrapper } = await createWrapper('/albums/42')
 
-    const navLinks = wrapper.findAll('[data-testid="mobile-drawer-nav"] a')
-    expect(navLinks.length).toBeGreaterThan(0)
-    expect(navLinks[0]?.attributes('data-to')).toBe('/')
-
-    await navLinks[0]?.trigger('click')
-    await vi.waitFor(() => {
-      expect(wrapper.find('[data-testid="mobile-drawer-overlay"]').exists()).toBe(false)
-    })
+    expect(wrapper.find('[data-testid="rail-link-albums"]').classes()).toContain('is-active')
+    expect(wrapper.find('[data-testid="rail-link-draw"]').classes()).not.toContain('is-active')
   })
 
-  it('does not render mobile drawer when viewport is desktop', () => {
-    emitViewportChange(true)
-    const wrapper = createWrapper()
+  it('toggles locale with segmented controls and persists the selection', async () => {
+    const { wrapper } = await createWrapper('/draw', 'en')
 
-    expect(wrapper.find('[data-testid="mobile-drawer-root"]').exists()).toBe(false)
-  })
-
-  it('auto closes drawer when viewport changes to desktop', async () => {
-    const wrapper = createWrapper()
-    await wrapper.find('header > div button').trigger('click')
-    expect(wrapper.find('[data-testid="mobile-drawer-overlay"]').exists()).toBe(true)
-
-    emitViewportChange(true)
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.find('[data-testid="mobile-drawer-overlay"]').exists()).toBe(false)
-  })
-
-  it('toggles locale and persists to localStorage', async () => {
-    const wrapper = createWrapper('en')
-    const sidebarButton = wrapper.find('aside button')
-    expect(wrapper.text()).toContain(en.nav.cardDraw)
-
-    await sidebarButton.trigger('click')
-
-    expect(sidebarButton.text()).toContain(`${zhLabel} / EN`)
-    expect(localStorage.getItem('ts-locale')).toBe('zh-CN')
-    expect(wrapper.text()).toContain(zhCN.nav.cardDraw)
-    expect(wrapper.text()).not.toContain(en.nav.cardDraw)
-  })
-
-  it('sets html lang on mount', () => {
-    createWrapper('zh-CN')
-    expect(document.documentElement.lang).toBe('zh-CN')
-  })
-
-  it('updates html lang on toggle', async () => {
-    const wrapper = createWrapper('en')
-    const sidebarButton = wrapper.find('aside button')
     expect(document.documentElement.lang).toBe('en')
+    expect(wrapper.find('[data-testid="locale-en"]').classes()).toContain('is-on')
 
-    await sidebarButton.trigger('click')
+    await wrapper.find('[data-testid="locale-zh-CN"]').trigger('click')
 
     expect(document.documentElement.lang).toBe('zh-CN')
+    expect(localStorage.getItem('ts-locale')).toBe('zh-CN')
+    expect(wrapper.find('[data-testid="locale-zh-CN"]').classes()).toContain('is-on')
+    expect(wrapper.text()).toContain(zhCN.nav.cardDraw)
+  })
+
+  it('resets the fixed mobile rail top edge so it does not cover page content', async () => {
+    await createWrapper('/albums/42')
+    const source = readFileSync('src/layouts/DefaultLayout.vue', 'utf8')
+
+    expect(source).toContain('top: auto;')
+  })
+})
+
+describe('app shell selection', () => {
+  it('uses DefaultLayout for normal routes', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/draw', component: { template: '<div>Draw</div>' } },
+      ],
+    })
+    await router.push('/draw')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [createPinia(), createTestI18n(), router],
+        stubs: {
+          DefaultLayout: {
+            template: '<div data-testid="default-layout"><slot /></div>',
+          },
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-testid="default-layout"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Draw')
+  })
+
+  it('lets landing and fullscreen routes opt out of DefaultLayout', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div>Landing</div>' }, meta: { shell: false } },
+      ],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [createPinia(), createTestI18n(), router],
+        stubs: {
+          DefaultLayout: {
+            template: '<div data-testid="default-layout"><slot /></div>',
+          },
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-testid="default-layout"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Landing')
+  })
+
+  it('renders global toasts on routes that opt out of DefaultLayout', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: { template: '<div>Landing</div>' }, meta: { shell: false } },
+      ],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [createPinia(), createTestI18n(), router],
+        stubs: {
+          DefaultLayout: {
+            template: '<div data-testid="default-layout"><slot /></div>',
+          },
+          TsToastProvider: {
+            template: '<div data-testid="toast-provider"><slot /></div>',
+          },
+          TsToast: {
+            props: ['title'],
+            template: '<div data-testid="toast">{{ title }}</div>',
+          },
+        },
+      },
+    })
+
+    useToast().showToast('Network unavailable', undefined, 'error')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="default-layout"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="toast"]').text()).toBe('Network unavailable')
   })
 })

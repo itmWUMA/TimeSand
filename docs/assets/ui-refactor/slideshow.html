@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>放映 · TimeSand</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: #000; overflow: hidden; }
+
+    .ss {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(ellipse at 30% 30%, oklch(28% 0.04 50) 0%, #000 70%);
+    }
+
+    .ss-stage {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* photo plate — letterbox style */
+    .ss-photo {
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'><defs><linearGradient id='lg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23d9b48a'/><stop offset='30%25' stop-color='%23a67a4d'/><stop offset='70%25' stop-color='%23381f10'/><stop offset='100%25' stop-color='%23120a08'/></linearGradient></defs><rect width='1600' height='900' fill='url(%23lg)'/><ellipse cx='800' cy='400' rx='500' ry='40' fill='%23f6ebd6' opacity='0.8'/><rect y='480' width='1600' height='420' fill='%23120a08' opacity='0.92'/><rect y='460' width='1600' height='18' fill='%23f4d49a' opacity='0.4'/></svg>") center / cover no-repeat;
+      animation: ss-zoom 14s ease-in-out infinite alternate;
+    }
+    @keyframes ss-zoom {
+      from { transform: scale(1) translate(0, 0); }
+      to   { transform: scale(1.06) translate(-1%, -0.6%); }
+    }
+
+    /* gradient vignette for legibility of controls */
+    .ss-stage::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 22%, transparent 60%, rgba(0,0,0,0.85) 100%);
+      pointer-events: none;
+    }
+
+    /* top meta */
+    .ss-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 22px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 28px;
+      z-index: 10;
+    }
+    .ss-meta {
+      max-width: 50ch;
+    }
+    .ss-eye {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .ss-cap {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 2.2vw, 32px);
+      font-weight: 500;
+      letter-spacing: -0.005em;
+      line-height: 1.2;
+      color: oklch(96% 0.02 80);
+      text-shadow: 0 2px 16px rgba(0,0,0,0.5);
+    }
+    .ss-place {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: oklch(85% 0.02 70);
+      margin-top: 8px;
+    }
+    .ss-top-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .ss-exit, .ss-pin {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: oklch(15% 0.012 45 / 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid oklch(40% 0.014 50 / 0.5);
+      color: oklch(92% 0.015 70);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .ss-exit svg, .ss-pin svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+    /* film strip thumbnails (bottom) */
+    .ss-bottom {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 24px 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+    .ss-progress {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: oklch(85% 0.02 70);
+    }
+    .ss-bar {
+      flex: 1;
+      height: 2px;
+      background: oklch(40% 0.014 50 / 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .ss-bar > span {
+      position: absolute;
+      inset: 0 76% 0 0;
+      background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+    }
+
+    .ss-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+    }
+    .ss-controls-left {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .ss-strip {
+      display: flex;
+      gap: 6px;
+      max-width: 60%;
+      overflow: hidden;
+    }
+    .ss-strip-thumb {
+      width: 36px; height: 28px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      opacity: 0.5;
+      cursor: pointer;
+      transition: opacity .2s var(--ease), transform .2s var(--ease);
+    }
+    .ss-strip-thumb:hover { opacity: 0.9; transform: translateY(-1px); }
+    .ss-strip-thumb.is-on { opacity: 1; box-shadow: 0 0 0 2px var(--accent); }
+
+    .ss-ctl {
+      display: flex; gap: 14px; align-items: center;
+    }
+    .ss-btn {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: oklch(15% 0.012 45 / 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid oklch(40% 0.014 50 / 0.5);
+      color: oklch(92% 0.015 70);
+      display: grid; place-items: center;
+      cursor: pointer;
+    }
+    .ss-btn:hover { background: oklch(25% 0.018 50 / 0.7); }
+    .ss-btn.play {
+      width: 56px; height: 56px;
+      background: var(--accent);
+      color: var(--bg-deep);
+      border-color: transparent;
+      box-shadow: 0 10px 28px var(--accent-glow);
+    }
+    .ss-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .ss-btn.play svg { fill: currentColor; stroke: none; }
+
+    .ss-music {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: oklch(90% 0.02 70);
+      letter-spacing: 0.04em;
+    }
+    .ss-music-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .ss-counter {
+      position: absolute;
+      bottom: 28px; right: 32px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: oklch(80% 0.02 70);
+      letter-spacing: 0.08em;
+      z-index: 10;
+    }
+    .ss-counter .now { font-family: var(--font-display); font-size: 22px; color: var(--fg); }
+
+    .hint {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      color: oklch(70% 0.02 70 / 0.35);
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    @media (max-width: 720px) {
+      .ss-top { padding: 16px 18px calc(env(safe-area-inset-top, 0px) + 14px); }
+      .ss-eye { font-size: 9.5px; letter-spacing: 0.14em; }
+      .ss-cap { font-size: 18px; max-width: 22ch; }
+      .ss-place { font-size: 10px; letter-spacing: 0.06em; }
+      .ss-top-right { gap: 6px; flex-direction: column; }
+      .ss-exit, .ss-pin { width: 36px; height: 36px; }
+      .ss-bottom { padding: 14px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); gap: 12px; }
+      .ss-progress { font-size: 10px; gap: 10px; }
+      .ss-controls { gap: 14px; }
+      .ss-strip { display: none; }
+      .ss-ctl { gap: 10px; }
+      .ss-btn { width: 38px; height: 38px; }
+      .ss-btn.play { width: 50px; height: 50px; }
+      .ss-music { font-size: 10.5px; max-width: 44vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ss-counter { bottom: auto; top: 16px; right: 18px; font-size: 11px; display: none; }
+      .ss-counter .now { font-size: 16px; }
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body data-page="slideshow">
+
+<div class="ss">
+  <div class="ss-stage">
+
+    <div class="ss-photo"></div>
+
+    <div class="ss-top">
+      <div class="ss-meta">
+        <div class="ss-eye">2019 · 05 · 23 · 17:42 · 青海 · 茶卡盐湖</div>
+        <div class="ss-cap">湖边那阵风把云吹散了。</div>
+        <div class="ss-place">iPhone XS · 1/640s · ƒ/1.8 · ISO 32</div>
+      </div>
+      <div class="ss-top-right">
+        <button class="ss-pin" title="加到「夜窗微光」">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 21s-7-4.5-7-11a7 7 0 1 1 14 0c0 6.5-7 11-7 11z"/>
+          </svg>
+        </button>
+        <button class="ss-pin" title="信息">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M11 12h1v5h1"/></svg>
+        </button>
+        <a class="ss-exit" href="album-detail.html" title="退出">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="hint">SPACE · 暂停 &nbsp;·&nbsp; ← → 切换 &nbsp;·&nbsp; ESC 退出</div>
+
+    <div class="ss-bottom">
+      <div class="ss-progress">
+        <span class="num">04 / 42</span>
+        <div class="ss-bar"><span></span></div>
+        <span class="num">下一张 · 5s</span>
+      </div>
+
+      <div class="ss-controls">
+        <div class="ss-controls-left">
+          <div class="ss-strip">
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(45% 0.07 30), oklch(25% 0.04 25));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(55% 0.08 200), oklch(32% 0.05 220));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(50% 0.07 130), oklch(28% 0.04 150));"></div>
+            <div class="ss-strip-thumb is-on" style="background: linear-gradient(135deg, oklch(70% 0.10 70), oklch(40% 0.05 50));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(58% 0.10 60), oklch(32% 0.05 50));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(50% 0.08 290), oklch(28% 0.05 280));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(50% 0.07 100), oklch(30% 0.04 90));"></div>
+            <div class="ss-strip-thumb" style="background: linear-gradient(135deg, oklch(48% 0.07 360), oklch(28% 0.04 350));"></div>
+          </div>
+        </div>
+
+        <div class="ss-ctl">
+          <button class="ss-btn" title="上一张"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="ss-btn play" title="暂停"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+          <button class="ss-btn" title="下一张"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+
+        <div class="ss-music">
+          <span class="ss-music-dot"></span>
+          <span>夜窗微光 · Window Drift</span>
+          <span style="color: var(--muted-2);">·</span>
+          <span>01:24 / 03:42</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss-counter">
+      <span class="now">04</span> <span style="color: var(--muted-2);">/</span> 42
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
