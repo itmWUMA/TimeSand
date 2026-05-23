@@ -1,7 +1,7 @@
 # TimeSand 前端重构交接文档 (HANDOFF)
 
 > 把这套 HTML 原型迁移成 Vue 3 + Tailwind 真实应用的完整简报。
-> 标 ⚠️ 的字段需要你填实际值；其他可以照搬。
+> 本文件已按 TimeSand 当前 MVP 契约补齐项目相关决策；其他迁移规则可以照搬。
 
 ---
 
@@ -20,14 +20,14 @@
 | 样式 | **Tailwind CSS 3+**，配合 `tailwind.config.js` 自定义 token |
 | 路由 | **Vue Router 4** |
 | 状态 | **Pinia** |
-| 网络 | ⚠️ axios / fetch / 自有 SDK（写明） |
+| 网络 | **axios**（`frontend/src/services/api.ts` 统一实例） |
 | i18n | **vue-i18n 9+** |
 | 图标 | 原型里是 inline SVG，迁移建议 **lucide-vue-next** |
 | 动画 | CSS transitions 为主；Ken Burns / 抽卡转场可用 `@vueuse/motion` 或纯 CSS |
-| 测试 | ⚠️ Vitest + Playwright（建议） |
+| 测试 | **Vitest + @vue/test-utils**；页面视觉验证使用 Chrome DevTools MCP |
 | Lint | ESLint + Prettier + Stylelint |
-| 部署目标 | ⚠️ Web / PWA / Tauri / Electron（写明，影响文件系统 API） |
-| 浏览器范围 | ⚠️ 写明最低支持（建议 iOS Safari 16+、Chrome 110+） |
+| 部署目标 | **Self-hosted Web**，FastAPI/Docker 单容器提供 API 与前端静态文件 |
+| 浏览器范围 | **Chrome 110+、iOS Safari 16+** |
 
 ---
 
@@ -112,7 +112,7 @@ export default {
 
 ## 5. 数据模型（与后端契约）
 
-⚠️ 下面是迁移所需的最小字段集，请用真实接口字段名替换／补全。
+下面是迁移所需的最小字段集，已按当前真实接口字段名补齐。
 
 ### Photo
 ```ts
@@ -183,19 +183,19 @@ interface UserSettings {
 
 | 用途 | 方法 | 路径示例 |
 |---|---|---|
-| 列出相册 | GET | ⚠️ `/api/albums` |
-| 相册详情 | GET | ⚠️ `/api/albums/:id` |
-| 创建/更新相册 | POST/PATCH | ⚠️ `/api/albums` |
-| 列出照片（分页） | GET | ⚠️ `/api/photos?cursor=&albumId=` |
-| 上传照片 | POST | ⚠️ `/api/photos` (multipart) |
-| 抽卡（带权重） | POST | ⚠️ `/api/draw` body: `{ albumId?, excludeIds[] }` |
-| 列出歌单 / 曲目 | GET | ⚠️ `/api/playlists` |
-| 设置读/写 | GET/PATCH | ⚠️ `/api/settings` |
-| 存储用量 | GET | ⚠️ `/api/storage` |
-| 备份导出 | GET | ⚠️ `/api/backup/export` |
-| 备份恢复 | POST | ⚠️ `/api/backup/restore` |
+| 列出相册 | GET | `/api/albums` |
+| 相册详情 | GET | `/api/albums/:id` |
+| 创建/更新相册 | POST/PATCH | `/api/albums`、`/api/albums/:id` |
+| 列出照片（分页） | GET | `/api/photos?page=&page_size=&album_id=` |
+| 上传照片 | POST | `/api/photos` (multipart) |
+| 抽卡（带权重） | POST | `/api/draw` body: `{ album_id?, exclude_ids[], weight_mode?, nearby_days? }` |
+| 列出歌单 / 曲目 | GET | `/api/playlists`、`/api/music` |
+| 设置读/写 | GET/PATCH | 设置默认值在 MVP 由前端 localStorage 持久化；存储用量见下行 |
+| 存储用量 | GET | `/api/settings/storage` |
+| 备份导出 | POST | `/api/backup/export` |
+| 备份恢复 | POST | `/api/backup/import` (multipart) |
 
-请补充：鉴权方式（Bearer? Cookie?）、错误响应结构、分页约定（cursor / page）。
+鉴权方式：MVP 无鉴权。错误响应：FastAPI 标准 `detail` 字段，前端统一在服务层/页面转成 i18n 文案。分页约定：当前 REST 列表使用 `page` / `page_size`，响应包含 `items` 与 `total`。
 
 ---
 
@@ -224,8 +224,8 @@ interface UserSettings {
 | 散开/收回 | 520ms 同上 | stagger 35ms |
 | 路由切换 | 220ms fade | Slideshow 进入用 fade + 微 zoom |
 | Ken Burns | 8s linear，scale 1.0→1.08 + 微 translate | 自动切换默认 5s（可设置） |
-| 上传进度 | 实时；失败显 retry 按钮 | 分片大小 ⚠️（建议 5MB） |
-| HEIC 处理 | ⚠️ 客户端转 JPEG 还是后端做？ | 影响包体 |
+| 上传进度 | 实时；失败显 retry 按钮 | multipart 上传带进度/取消；本迭代不分片 |
+| HEIC 处理 | 后端转换 | 前端通过 multipart 原样上传 |
 | 抽卡键盘 | `Space` 抽下一张、`←/→` 翻历史、`Esc` 散开 | 移动端不显示 kbd 提示 |
 
 ---
@@ -267,7 +267,7 @@ iOS 安全区：所有 fixed 底栏用 `env(safe-area-inset-bottom)` + Tailwind 
 - Lighthouse Performance ≥ 85 / Accessibility ≥ 95。
 
 ### 浏览器/设备覆盖
-⚠️ 写明：iOS Safari 16+ / Chrome 110+ / 桌面 only？
+Chrome 110+ / iOS Safari 16+。
 
 ---
 
@@ -291,17 +291,17 @@ iOS 安全区：所有 fixed 底栏用 `env(safe-area-inset-bottom)` + Tailwind 
 > 你是一名资深 Vue/前端工程师。请把 `D:\...\f8d67f66-...` 这套 HTML 原型迁成 Vue 3 + Vite + Tailwind 应用。
 >
 > - 严格以 `HANDOFF.md` 为准；视觉/交互参考同目录 HTML。
-> - 后端 API 见第 5 节，鉴权方式：⚠️（写实际）。
+> - 后端 API 见第 5 节，鉴权方式：MVP 无鉴权。
 > - 第一步交付 M1：脚手架 + AppShell + 路由 + Tailwind token，**不写任何业务逻辑**。请先把工程结构、`tailwind.config.js`、`AppShell.vue`、空白 10 个路由页给我看，我确认后再做 M2。
 > - 遇到原型里没说清的（动画时长、错误态、空态），列成清单一次性问我，**不要自己猜**。
 
 ---
 
-## 13. 待你补全的字段（⚠️ 索引）
+## 13. 已补全的项目决策
 
-- §1 网络库、部署目标、浏览器范围
-- §5 全部 API 端点 + 鉴权 + 错误结构 + 分页约定
-- §7 HEIC 处理位置、上传分片大小
-- §10 浏览器覆盖范围
+- §1 网络库、部署目标、浏览器范围：已确定为 axios、自托管 Web、Chrome 110+ / iOS Safari 16+。
+- §5 API 端点 + 鉴权 + 错误结构 + 分页约定：已按现有 FastAPI REST 契约填写；MVP 无鉴权。
+- §7 HEIC 处理位置、上传分片大小：HEIC 后端转换；上传使用 multipart 进度/取消，本迭代不做分片。
+- §10 浏览器覆盖范围：Chrome 110+ / iOS Safari 16+。
 
 填完这 4 块，HANDOFF 就能直接发给 AI 开工。

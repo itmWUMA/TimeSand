@@ -5,6 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { listAlbums } from '../../services/album'
 import { exportBackup, importBackup } from '../../services/backup'
 import { getStorageInfo } from '../../services/settings'
+import {
+  DRAW_NEARBY_DAYS_STORAGE_KEY,
+  DRAW_WEIGHT_MODE_STORAGE_KEY,
+  SETTINGS_STORAGE_KEY,
+} from '../../stores/settings'
 import { mountWithI18n } from '../../test-utils'
 import SettingsPage from '../SettingsPage.vue'
 
@@ -46,6 +51,8 @@ describe('settingsPage', () => {
   }
 
   beforeEach(() => {
+    window.localStorage.clear()
+    document.documentElement.lang = 'en'
     soundEffectsMock.isMuted.value = false
     vi.clearAllMocks()
 
@@ -77,7 +84,7 @@ describe('settingsPage', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders storage and data management sections', async () => {
+  it('renders the exported settings section structure with storage data', async () => {
     const wrapper = mountWithI18n(SettingsPage, {
       global: {
         plugins: [createPinia()],
@@ -89,14 +96,75 @@ describe('settingsPage', () => {
 
     expect(wrapper.find('[data-testid="settings-storage-section"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-backup-section"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Storage Info')
-    expect(wrapper.text()).toContain('Data Management')
+    expect(wrapper.find('[data-testid="settings-side-nav"]').exists()).toBe(true)
+    expect(wrapper.find('#storage').exists()).toBe(true)
+    expect(wrapper.find('#backup').exists()).toBe(true)
+    expect(wrapper.find('#draw').exists()).toBe(true)
+    expect(wrapper.find('#playback').exists()).toBe(true)
+    expect(wrapper.find('#i18n').exists()).toBe(true)
+    expect(wrapper.find('#about').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Storage')
+    expect(wrapper.text()).toContain('Backup and Data')
     expect(wrapper.text()).toContain('142')
     expect(wrapper.text()).toContain('23')
-    expect(wrapper.text()).toContain('Language')
-    expect(wrapper.text()).toContain('Card Draw')
-    expect(wrapper.text()).toContain('Sound Effects')
+    expect(wrapper.text()).toContain('500.00 MB')
+    expect(wrapper.find('.pct').text()).toBe('600.00 MB')
+    expect(wrapper.find('.pct').text()).not.toBe('100%')
+
+    const thumbnailRow = wrapper
+      .findAll('.legend-row')
+      .find(row => row.text().includes('Thumbnails'))
+    expect(thumbnailRow?.text()).toContain('142 generated')
+    expect(thumbnailRow?.text()).not.toContain('0 B')
+
+    expect(wrapper.text()).toContain('Package the database, original photos, and music files')
+    expect(wrapper.text()).not.toContain('thumbnails, and music files')
+    expect(wrapper.text()).toContain('Draw and Time Weight')
+    expect(wrapper.text()).toContain('Slideshow and Playback')
+    expect(wrapper.text()).toContain('Appearance and Language')
     expect(listAlbums).toHaveBeenCalledTimes(1)
+
+    wrapper.unmount()
+  })
+
+  it('persists language changes from the settings segmented control', async () => {
+    const wrapper = mountWithI18n(SettingsPage, {
+      global: {
+        plugins: [createPinia()],
+      },
+      attachTo: document.body,
+    })
+
+    await flushPromises()
+
+    await wrapper.get('[data-testid="settings-locale-zh-CN"]').trigger('click')
+    await flushPromises()
+
+    expect(window.localStorage.getItem('ts-locale')).toBe('zh-CN')
+    expect(document.documentElement.lang).toBe('zh-CN')
+    expect(wrapper.get('[data-testid="settings-locale-zh-CN"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('设置')
+
+    wrapper.unmount()
+  })
+
+  it('persists draw and slideshow defaults from segmented controls', async () => {
+    const wrapper = mountWithI18n(SettingsPage, {
+      global: {
+        plugins: [createPinia()],
+      },
+      attachTo: document.body,
+    })
+
+    await flushPromises()
+
+    await wrapper.get('[data-testid="settings-draw-weight-strong"]').trigger('click')
+    await wrapper.get('[data-testid="settings-nearby-days-7"]').trigger('click')
+    await wrapper.get('[data-testid="settings-slideshow-interval-8"]').trigger('click')
+
+    expect(window.localStorage.getItem(DRAW_WEIGHT_MODE_STORAGE_KEY)).toBe('strong')
+    expect(window.localStorage.getItem(DRAW_NEARBY_DAYS_STORAGE_KEY)).toBe('7')
+    expect(window.localStorage.getItem(SETTINGS_STORAGE_KEY)).toBe('8')
 
     wrapper.unmount()
   })
