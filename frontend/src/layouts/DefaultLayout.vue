@@ -260,7 +260,7 @@ onMounted(() => {
 
     <footer
       data-testid="shell-player"
-      class="player"
+      class="player player-fixed"
       aria-label="Global music player"
     >
       <div class="player-now">
@@ -518,7 +518,7 @@ onMounted(() => {
   grid-column: 2;
   grid-row: 1;
   overflow-x: hidden;
-  padding: 32px var(--ts-gutter) 40px;
+  padding: 32px var(--ts-gutter) 124px;
 }
 
 .player {
@@ -531,6 +531,15 @@ onMounted(() => {
   padding: 0 28px;
   border-top: 1px solid var(--ts-border-soft);
   background: var(--ts-bg-deep);
+}
+
+.player-fixed {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 248px;
+  z-index: var(--ts-z-player);
+  height: 84px;
 }
 
 .player-now {
@@ -733,6 +742,10 @@ onMounted(() => {
     justify-content: center;
     padding: 14px 4px 4px;
   }
+
+  .player-fixed {
+    left: 72px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -760,11 +773,13 @@ onMounted(() => {
   }
 
   .canvas {
+    order: 1;
     padding: 16px 16px calc(64px + 60px + env(safe-area-inset-bottom, 0px) + 16px);
   }
 
   .player {
     position: fixed;
+    order: 2;
     right: 0;
     bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     left: 0;
@@ -813,6 +828,7 @@ onMounted(() => {
 
   .rail {
     position: fixed;
+    order: 3;
     top: auto;
     right: 0;
     bottom: 0;
@@ -820,6 +836,8 @@ onMounted(() => {
     z-index: calc(var(--ts-z-player) + 1);
     width: auto;
     height: auto;
+    max-height: calc(60px + env(safe-area-inset-bottom, 0px));
+    flex: none;
     flex-direction: row;
     padding: 4px 4px calc(env(safe-area-inset-bottom, 0px) + 4px);
     border-top: 1px solid var(--ts-border-soft);
