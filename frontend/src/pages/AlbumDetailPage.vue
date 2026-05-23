@@ -4,11 +4,12 @@ import type { Photo } from '../types/photo'
 
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import TagManager from '../components/TagManager.vue'
 import TsLightbox from '../components/TsLightbox.vue'
 import {
   addPhotosToAlbum,
+  deleteAlbum,
   getAlbum,
   removePhotoFromAlbum,
   updateAlbum,
@@ -24,6 +25,7 @@ import {
 import { buildThumbnailUrl } from '../utils/photoUrl'
 
 const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 
 const album = ref<Album | null>(null)
@@ -44,9 +46,45 @@ const selectedPhotoToAdd = ref(0)
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
 const lightboxOrigin = ref<DOMRect | null>(null)
+const deletingAlbum = ref(false)
 
 const albumId = computed(() => Number(route.params.id))
 const PHOTO_PAGE_SIZE = 100
+const albumTotalSizeLabel = computed(() => formatBytes(albumPhotos.value.reduce((total, photo) => total + photo.file_size, 0)))
+const albumDateLabel = computed(() => {
+  const candidates = albumPhotos.value
+    .map(photo => photo.taken_at ?? photo.uploaded_at)
+    .filter(Boolean)
+    .map(value => new Date(value))
+    .filter(date => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime())
+
+  if (candidates.length === 0) {
+    return t('album.unknownDateRange')
+  }
+
+  const first = candidates[0]
+  const last = candidates[candidates.length - 1]
+  if (first.toDateString() === last.toDateString()) {
+    return first.toLocaleDateString()
+  }
+
+  return `${first.toLocaleDateString()} - ${last.toLocaleDateString()}`
+})
+const heroPhoto = computed(() => {
+  if (!album.value?.cover_photo_id) {
+    return albumPhotos.value[0] ?? null
+  }
+
+  return albumPhotos.value.find(photo => photo.id === album.value?.cover_photo_id) ?? albumPhotos.value[0] ?? null
+})
+const heroStyle = computed(() => {
+  if (!heroPhoto.value) {
+    return {}
+  }
+
+  return { backgroundImage: `url("${buildThumbnailUrl(heroPhoto.value)}")` }
+})
 
 const availablePhotosToAdd = computed(() => {
   const albumPhotoIds = new Set(albumPhotos.value.map(photo => photo.id))
@@ -276,169 +314,284 @@ function onAlbumPhotoClick(index: number, event: MouseEvent): void {
   lightboxOpen.value = true
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+  }
+
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
+async function deleteCurrentAlbum(): Promise<void> {
+  if (!album.value || deletingAlbum.value) {
+    return
+  }
+
+  deletingAlbum.value = true
+  errorMessage.value = null
+
+  try {
+    await deleteAlbum(album.value.id)
+    await router.push('/albums')
+  }
+  catch {
+    errorMessage.value = t('album.deleteFailed')
+  }
+  finally {
+    deletingAlbum.value = false
+  }
+}
+
 onMounted(async () => {
   await loadAlbumData()
 })
 </script>
 
 <template>
-  <section class="album-detail-page space-y-6">
-    <header class="space-y-2">
-      <h1 class="text-3xl font-semibold text-ts-accent">
-        {{ album?.name ?? $t('album.detail') }}
-      </h1>
-      <p class="text-ts-muted">
-        {{ $t('album.detailDesc') }}
-      </p>
-      <RouterLink
-        v-if="album"
-        :to="{ path: '/slideshow', query: { album_id: String(album.id) } }"
-        class="album-action-button inline-flex rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black"
-      >
-        {{ $t('album.startSlideshow') }}
-      </RouterLink>
-    </header>
-
-    <p v-if="errorMessage" class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+  <section class="album-detail-page">
+    <p v-if="errorMessage" class="surface-message danger">
       {{ errorMessage }}
     </p>
 
-    <p v-if="loading" class="text-sm text-ts-muted">
+    <p v-if="loading" class="loading-copy">
       {{ $t('album.loadingDetails') }}
     </p>
 
     <template v-else-if="album">
-      <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
-        <h2 class="text-lg font-semibold text-ts-text">
-          {{ $t('album.albumSettings') }}
-        </h2>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label class="space-y-1 text-sm text-ts-muted">
-            {{ $t('album.nameLabel') }}
-            <input
-              v-model="editName"
-              type="text"
-              class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
-            >
-          </label>
-          <label class="space-y-1 text-sm text-ts-muted">
-            {{ $t('album.coverPhoto') }}
-            <select
-              v-model.number="selectedCoverPhotoId"
-              class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
-            >
-              <option :value="0">{{ $t('common.none') }}</option>
-              <option v-for="photo in albumPhotos" :key="photo.id" :value="photo.id">
-                {{ photo.filename }}
-              </option>
-            </select>
-          </label>
-        </div>
+      <nav class="crumb" aria-label="Breadcrumb">
+        <RouterLink to="/albums">
+          {{ $t('album.title') }}
+        </RouterLink>
+        <span>/</span>
+        <span>{{ album.name }}</span>
+      </nav>
 
-        <label class="space-y-1 text-sm text-ts-muted">
-          {{ $t('album.descriptionLabel') }}
-          <textarea
-            v-model="editDescription"
-            rows="2"
-            class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent"
-          />
-        </label>
+      <section class="detail-head">
+        <div class="detail-info">
+          <div class="h-eyebrow">
+            {{ albumDateLabel }}
+          </div>
+          <h1 class="h-title">
+            {{ album.name }}
+          </h1>
+          <p class="h-sub">
+            {{ album.description || $t('album.detailDesc') }}
+          </p>
+
+          <div
+            data-testid="album-detail-stats"
+            class="detail-stats"
+          >
+            <div class="stat">
+              <div class="stat-num num">
+                {{ album.photo_count }}
+              </div>
+              <div class="stat-lbl">
+                {{ $t('album.statPhotos') }}
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-num num">
+                {{ albumTotalSizeLabel }}
+              </div>
+              <div class="stat-lbl">
+                {{ $t('album.statOriginals') }}
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-num num">
+                {{ availableTags.length }}
+              </div>
+              <div class="stat-lbl">
+                {{ $t('album.statTags') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-actions">
+            <RouterLink
+              class="btn btn-primary"
+              :to="{ path: `/slideshow/${album.id}` }"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8V4z" /></svg>
+              {{ $t('album.startSlideshow') }}
+            </RouterLink>
+            <RouterLink
+              class="btn"
+              :to="{ path: '/draw', query: { album_id: String(album.id) } }"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="3" /></svg>
+              {{ $t('album.drawFromAlbum') }}
+            </RouterLink>
+            <button
+              type="button"
+              class="btn"
+              @click="addSelectedPhoto"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6" /></svg>
+              {{ $t('album.addPhotos') }}
+            </button>
+            <button
+              type="button"
+              data-testid="album-delete-button"
+              class="btn btn-danger"
+              :disabled="deletingAlbum"
+              @click="deleteCurrentAlbum"
+            >
+              {{ deletingAlbum ? $t('common.loading') : $t('common.delete') }}
+            </button>
+          </div>
+        </div>
 
         <button
           type="button"
-          :disabled="savingAlbum"
-          class="album-action-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
-          @click="saveAlbum"
+          data-testid="album-detail-hero"
+          class="detail-hero"
+          :style="heroStyle"
+          :aria-label="heroPhoto ? $t('lightbox.openPhoto', { filename: heroPhoto.filename }) : album.name"
+          @click="heroPhoto && onAlbumPhotoClick(Math.max(albumPhotos.findIndex(photo => photo.id === heroPhoto?.id), 0), $event)"
         >
-          {{ savingAlbum ? $t('common.saving') : $t('common.save') }}
+          <span class="detail-hero-cap">
+            <span class="date">{{ albumDateLabel }}</span>
+            <span class="tag">{{ heroPhoto?.mime_type ?? $t('photo.noCoverPhoto') }}</span>
+          </span>
         </button>
       </section>
 
-      <section class="space-y-3 rounded-xl border border-white/10 bg-ts-panel p-4">
-        <h2 class="text-lg font-semibold text-ts-text">
-          {{ $t('album.addPhotos') }}
-        </h2>
-        <div class="flex flex-col gap-3 md:flex-row md:items-center">
-          <select
-            v-model.number="selectedPhotoToAdd"
-            class="album-form-control w-full rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text outline-none focus:border-ts-accent md:max-w-md"
-          >
-            <option :value="0">
-              {{ $t('album.selectPhoto') }}
-            </option>
-            <option v-for="photo in availablePhotosToAdd" :key="photo.id" :value="photo.id">
-              {{ photo.filename }}
-            </option>
-          </select>
+      <section class="management-grid">
+        <form class="control-panel" @submit.prevent="saveAlbum">
+          <h2 class="panel-title">
+            {{ $t('album.albumSettings') }}
+          </h2>
+          <div class="form-grid">
+            <label class="field">
+              <span>{{ $t('album.nameLabel') }}</span>
+              <input
+                v-model="editName"
+                type="text"
+                class="album-form-control"
+              >
+            </label>
+            <label class="field">
+              <span>{{ $t('album.coverPhoto') }}</span>
+              <select
+                v-model.number="selectedCoverPhotoId"
+                class="album-form-control"
+              >
+                <option :value="0">{{ $t('common.none') }}</option>
+                <option v-for="photo in albumPhotos" :key="photo.id" :value="photo.id">
+                  {{ photo.filename }}
+                </option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span>{{ $t('album.descriptionLabel') }}</span>
+            <textarea
+              v-model="editDescription"
+              rows="2"
+              class="album-form-control"
+            />
+          </label>
           <button
-            type="button"
-            :disabled="selectedPhotoToAdd === 0 || updatingPhotos"
-            class="album-action-button rounded border border-ts-accent/60 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
-            @click="addSelectedPhoto"
+            type="submit"
+            :disabled="savingAlbum"
+            class="btn btn-primary album-action-button"
           >
-            {{ $t('album.addToAlbum') }}
+            {{ savingAlbum ? $t('common.saving') : $t('common.save') }}
           </button>
-        </div>
+        </form>
+
+        <section class="control-panel">
+          <h2 class="panel-title">
+            {{ $t('album.addPhotos') }}
+          </h2>
+          <div class="add-row">
+            <select
+              v-model.number="selectedPhotoToAdd"
+              class="album-form-control"
+            >
+              <option :value="0">
+                {{ $t('album.selectPhoto') }}
+              </option>
+              <option v-for="photo in availablePhotosToAdd" :key="photo.id" :value="photo.id">
+                {{ photo.filename }}
+              </option>
+            </select>
+            <button
+              type="button"
+              :disabled="selectedPhotoToAdd === 0 || updatingPhotos"
+              class="btn album-action-button"
+              @click="addSelectedPhoto"
+            >
+              {{ $t('album.addToAlbum') }}
+            </button>
+          </div>
+        </section>
       </section>
 
-      <section class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-ts-accent">
-            {{ $t('album.albumPhotos') }}
-          </h2>
-          <p class="text-sm text-ts-muted">
-            {{ $t('common.items', { count: album.photo_count }) }}
-          </p>
+      <section class="album-photos">
+        <div class="photo-section-head">
+          <div class="h-eyebrow">
+            {{ $t('album.photosEyebrow', { count: album.photo_count }) }}
+          </div>
+          <div class="photo-view-chips">
+            <span class="chip">{{ $t('album.sortRecent') }}</span>
+            <span class="chip accent">{{ $t('album.waterfallView') }}</span>
+          </div>
         </div>
 
         <p
           v-if="albumPhotos.length === 0"
-          class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted"
+          class="empty-copy"
         >
           {{ $t('album.noPhotos') }}
         </p>
 
-        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div v-else class="photo-grid">
           <article
             v-for="(photo, index) in albumPhotos"
             :key="photo.id"
-            class="space-y-3 rounded-xl border border-white/10 bg-ts-panelSoft p-3"
+            class="photo"
+            :class="{ tall: index % 7 === 0, wide: index % 5 === 3 }"
           >
             <button
               type="button"
-              class="album-photo-open-button block w-full cursor-zoom-in rounded-lg"
+              class="album-photo-open-button"
               :aria-label="$t('lightbox.openPhoto', { filename: photo.filename })"
               @click="onAlbumPhotoClick(index, $event)"
             >
               <img
                 :src="buildThumbnailUrl(photo)"
                 :alt="photo.filename"
-                class="aspect-video w-full rounded-lg object-cover"
                 loading="lazy"
               >
+              <span class="photo-meta">{{ photo.filename }}</span>
             </button>
 
-            <div class="album-photo-row flex items-center justify-between gap-2">
-              <p class="truncate text-sm text-ts-text">
-                {{ photo.filename }}
-              </p>
+            <div class="album-photo-tools">
               <button
                 type="button"
-                class="album-photo-remove-button rounded border border-red-400/40 px-2 py-1 text-xs text-red-200 hover:bg-red-500/20"
+                class="album-photo-remove-button"
                 @click="removePhoto(photo.id)"
               >
                 {{ $t('common.remove') }}
               </button>
+              <TagManager
+                class="album-tag-manager"
+                :tags="photoTags[photo.id] ?? []"
+                :available-tags="availableTags"
+                @add-tag="(tagId) => addTagToPhoto(photo.id, Number(tagId))"
+                @remove-tag="(tagId) => removeTagFromPhotoInAlbum(photo.id, Number(tagId))"
+                @create-tag="(tagName) => createAndAddTag(photo.id, String(tagName))"
+              />
             </div>
-
-            <TagManager
-              class="album-tag-manager"
-              :tags="photoTags[photo.id] ?? []"
-              :available-tags="availableTags"
-              @add-tag="(tagId) => addTagToPhoto(photo.id, Number(tagId))"
-              @remove-tag="(tagId) => removeTagFromPhotoInAlbum(photo.id, Number(tagId))"
-              @create-tag="(tagName) => createAndAddTag(photo.id, String(tagName))"
-            />
           </article>
         </div>
       </section>
@@ -455,7 +608,402 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-@media (max-width: 767px) {
+.album-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.crumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.crumb a:hover {
+  color: var(--ts-accent);
+}
+
+.detail-head {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 50px;
+  margin-bottom: 8px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--ts-border-soft);
+}
+
+.detail-info .h-title {
+  font-size: clamp(36px, 4.4vw, 56px);
+}
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.stat {
+  padding: 14px 16px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius);
+  background: var(--ts-surface);
+}
+
+.stat-num {
+  color: var(--ts-fg);
+  font-family: var(--ts-font-display);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.stat-lbl {
+  margin-top: 4px;
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 32px;
+}
+
+.detail-actions svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.btn-danger {
+  border-color: oklch(40% 0.08 25);
+  background: transparent;
+  color: oklch(78% 0.14 25);
+}
+
+.btn-danger:hover {
+  background: oklch(30% 0.08 25 / 40%);
+  color: oklch(85% 0.14 25);
+}
+
+.detail-hero {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  min-height: 260px;
+  border: 0;
+  border-radius: var(--ts-radius-lg);
+  background:
+    radial-gradient(circle at 48% 32%, oklch(78% 0.14 72 / 20%), transparent 38%),
+    linear-gradient(135deg, oklch(35% 0.04 60), oklch(16% 0.02 48));
+  background-position: center;
+  background-size: cover;
+  box-shadow: inset 0 -80px 120px rgb(0 0 0 / 45%);
+}
+
+.detail-hero-cap {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  left: 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-hero-cap .date {
+  color: var(--ts-accent);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.detail-hero-cap .tag {
+  border-radius: 4px;
+  background: oklch(15% 0.012 45 / 60%);
+  color: oklch(85% 0.015 60);
+  backdrop-filter: blur(8px);
+  padding: 5px 10px;
+  font-family: var(--ts-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+}
+
+.management-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-lg);
+  background: var(--ts-surface);
+}
+
+.panel-title {
+  color: var(--ts-fg);
+  font-family: var(--ts-font-display);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ts-muted);
+  font-size: 13px;
+}
+
+.album-form-control {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius);
+  outline: none;
+  background: var(--ts-bg-deep);
+  color: var(--ts-fg);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.album-form-control:focus {
+  border-color: var(--ts-accent);
+}
+
+.add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.album-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.photo-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.photo-view-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.empty-copy,
+.surface-message {
+  border-radius: var(--ts-radius-lg);
+  padding: 18px 20px;
+  font-size: 14px;
+}
+
+.empty-copy {
+  border: 1px solid var(--ts-border-soft);
+  background: var(--ts-surface);
+  color: var(--ts-muted);
+}
+
+.surface-message.danger {
+  border: 1px solid oklch(60% 0.18 25 / 55%);
+  background: oklch(30% 0.08 25 / 24%);
+  color: oklch(85% 0.14 25);
+}
+
+.loading-copy {
+  color: var(--ts-muted);
+  font-size: 14px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-auto-flow: dense;
+  gap: 14px;
+}
+
+.photo {
+  position: relative;
+  overflow: visible;
+}
+
+.album-photo-open-button {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  border: 0;
+  border-radius: var(--ts-radius);
+  background: var(--ts-surface-2);
+  cursor: zoom-in;
+  padding: 0;
+  transition: transform var(--ts-duration-normal) var(--ts-ease);
+}
+
+.album-photo-open-button:hover {
+  transform: scale(1.02);
+}
+
+.photo.tall .album-photo-open-button {
+  aspect-ratio: 3 / 6;
+}
+
+.photo.wide {
+  grid-column: span 2;
+}
+
+.photo.tall {
+  grid-row: span 2;
+}
+
+.photo.wide .album-photo-open-button {
+  aspect-ratio: 6 / 4;
+}
+
+.album-photo-open-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-meta {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  color: oklch(90% 0.02 70);
+  font-family: var(--ts-font-mono);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-align: left;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 60%);
+  opacity: 0;
+  transition: opacity var(--ts-duration-normal) var(--ts-ease);
+}
+
+.album-photo-open-button:hover .photo-meta {
+  opacity: 1;
+}
+
+.album-photo-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.album-photo-remove-button {
+  align-self: flex-start;
+  border: 1px solid oklch(45% 0.1 25 / 70%);
+  border-radius: var(--ts-radius-pill);
+  background: transparent;
+  color: oklch(78% 0.14 25);
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 880px) {
+  .detail-head,
+  .management-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .detail-head {
+    gap: 28px;
+    margin-bottom: 0;
+    padding-bottom: 22px;
+  }
+
+  .detail-info .h-title {
+    font-size: clamp(28px, 7.6vw, 38px);
+  }
+
+  .detail-stats {
+    gap: 8px;
+  }
+
+  .stat {
+    padding: 10px 12px;
+  }
+
+  .stat-num {
+    font-size: 18px;
+  }
+
+  .stat-lbl {
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+  }
+
+  .detail-actions {
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .detail-actions .btn {
+    padding: 9px 14px;
+    font-size: 12.5px;
+  }
+
+  .form-grid,
+  .add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .add-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+  }
+
+  .photo.wide {
+    grid-column: span 2;
+  }
+
+  .photo.tall {
+    grid-row: span 2;
+  }
+
   .album-form-control,
   .album-action-button,
   .album-photo-open-button,
@@ -466,10 +1014,6 @@ onMounted(async () => {
 
   .album-form-control {
     font-size: 16px;
-  }
-
-  .album-photo-row {
-    gap: 12px;
   }
 
   .album-tag-manager :deep(input),
@@ -488,6 +1032,12 @@ onMounted(async () => {
   .album-tag-manager :deep([data-testid^='remove-tag-']) {
     min-width: 44px;
     margin-left: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .photo-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>

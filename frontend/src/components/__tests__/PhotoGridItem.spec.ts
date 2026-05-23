@@ -64,4 +64,16 @@ describe('photoGridItem', () => {
     expect(wrapper.find('[data-testid="photo-skeleton"]').exists()).toBe(false)
     expect(image.classes()).toContain('opacity-100')
   })
+
+  it('uses exported photo tile metadata overlay', () => {
+    const wrapper = mountWithI18n(PhotoGridItem, {
+      props: {
+        photo,
+        index: 0,
+      },
+    })
+
+    expect(wrapper.get('[data-testid="photo-grid-item"]').classes()).toContain('photo-grid-tile')
+    expect(wrapper.find('[data-testid="photo-grid-item-meta"]').exists()).toBe(true)
+  })
 })

@@ -813,6 +813,7 @@ onMounted(() => {
 
   .rail {
     position: fixed;
+    top: auto;
     right: 0;
     bottom: 0;
     left: 0;

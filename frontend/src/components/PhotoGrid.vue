@@ -15,21 +15,25 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="space-y-3">
-    <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-ts-accent">
+  <section class="photo-grid-section">
+    <div class="photo-grid-head">
+      <h2 class="h-eyebrow">
         {{ $t('photo.uploadedPhotos') }}
       </h2>
-      <p class="text-sm text-ts-muted">
+      <p class="chip">
         {{ $t('common.items', { count: photos.length }) }}
       </p>
     </div>
 
-    <p v-if="photos.length === 0" class="rounded-lg border border-white/10 bg-ts-panel px-4 py-5 text-sm text-ts-muted">
+    <p v-if="photos.length === 0" class="photo-grid-empty">
       {{ $t('photo.emptyState') }}
     </p>
 
-    <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+    <div
+      v-else
+      data-testid="photo-grid"
+      class="photo-grid-surface"
+    >
       <PhotoGridItem
         v-for="(photo, index) in photos"
         :key="photo.id"
@@ -40,3 +44,47 @@ const emit = defineEmits<{
     </div>
   </section>
 </template>
+
+<style scoped>
+.photo-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.photo-grid-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.photo-grid-empty {
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-lg);
+  background: var(--ts-surface);
+  color: var(--ts-muted);
+  padding: 22px;
+  font-size: 14px;
+}
+
+.photo-grid-surface {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-auto-flow: dense;
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .photo-grid-surface {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .photo-grid-surface {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+</style>
