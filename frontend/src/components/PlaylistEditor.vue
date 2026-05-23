@@ -23,8 +23,13 @@ watch(
   { immediate: true },
 )
 
-function onDragStart(index: number): void {
+function onDragStart(index: number, event: DragEvent): void {
   dragSourceIndex.value = index
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(localTracks.value[index]?.id ?? ''))
+  }
 }
 
 function onDrop(targetIndex: number): void {
@@ -68,13 +73,38 @@ function onDrop(targetIndex: number): void {
         v-for="(track, index) in localTracks"
         :key="track.id"
         :data-testid="`playlist-track-${track.id}`"
-        draggable="true"
-        class="flex items-center gap-3 rounded border border-white/10 bg-ts-panelSoft px-3 py-2"
-        @dragstart="onDragStart(index)"
+        class="flex items-center gap-3 rounded border border-white/10 bg-ts-panelSoft px-3 py-2 transition"
+        :class="dragSourceIndex === index ? 'border-ts-accent/60 bg-ts-accent/10' : ''"
         @dragover.prevent
         @drop.prevent="onDrop(index)"
         @dragend="dragSourceIndex = null"
       >
+        <button
+          :data-testid="`playlist-track-drag-handle-${track.id}`"
+          type="button"
+          draggable="true"
+          class="grid h-8 w-8 shrink-0 cursor-grab place-items-center rounded border-0 bg-transparent p-0 text-ts-muted transition hover:bg-white/10 hover:text-ts-text active:cursor-grabbing"
+          :aria-label="`Drag ${track.title}`"
+          @dragstart="onDragStart(index, $event)"
+        >
+          <svg
+            class="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="9" cy="5" r="1" />
+            <circle cx="9" cy="12" r="1" />
+            <circle cx="9" cy="19" r="1" />
+            <circle cx="15" cy="5" r="1" />
+            <circle cx="15" cy="12" r="1" />
+            <circle cx="15" cy="19" r="1" />
+          </svg>
+        </button>
         <span class="w-6 text-center text-xs text-ts-muted">{{ index + 1 }}</span>
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-ts-text">
