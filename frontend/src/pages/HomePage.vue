@@ -5,6 +5,7 @@ import type { Photo } from '../types/photo'
 
 import { gsap } from 'gsap'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import CardDeck from '../components/draw/CardDeck.vue'
 import CardPile from '../components/draw/CardPile.vue'
@@ -41,6 +42,7 @@ const SWIPE_ROTATION_FACTOR = 0.05
 const drawStore = useDrawStore()
 const settingsStore = useSettingsStore()
 const route = useRoute()
+const { t } = useI18n()
 const { playlistId, setContext, tracks } = useMusicPlayer()
 const albums = ref<Album[]>([])
 const touchStartX = ref<number | null>(null)
@@ -75,7 +77,6 @@ const particleSeeds: ParticleSeed[] = [
 const {
   ceremonyState,
   activeCard,
-  pileCards,
   drawnCards,
   hasDrawnCards,
   isDrawing,
@@ -98,6 +99,38 @@ const selectedAlbumValue = computed(() =>
 )
 
 const noPhotos = computed(() => hasPhotoStats.value && photoTotal.value === 0)
+const drawnCount = computed(() => drawnCards.value.length)
+const remainingPhotoCount = computed(() => Math.max(photoTotal.value - drawStore.excludeIds.length, 0))
+const formattedPhotoTotal = computed(() => formatCount(photoTotal.value))
+const formattedRemainingCount = computed(() => formatCount(remainingPhotoCount.value))
+const selectedAlbumName = computed(() => {
+  if (drawStore.albumId === null) {
+    return t('draw.allPhotos')
+  }
+
+  return albums.value.find(album => album.id === drawStore.albumId)?.name ?? t('draw.allPhotos')
+})
+const activeCaptureYear = computed(() => {
+  const takenAt = activeCard.value?.photo.taken_at
+  if (!takenAt) {
+    return t('draw.unknownDate')
+  }
+
+  const date = new Date(takenAt)
+  if (Number.isNaN(date.getTime())) {
+    return t('draw.unknownDate')
+  }
+
+  return String(date.getFullYear())
+})
+const weightModeLabel = computed(() => t(`settings.drawWeight.${settingsStore.drawWeightMode}`))
+const nearbyRangeLabel = computed(() => `+/-${settingsStore.drawNearbyDays} d`)
+const todayPanelMemory = computed(() => memoryText.value || t('draw.todayPanelIdle'))
+const todayPanelDescription = computed(() =>
+  memoryText.value
+    ? t('draw.todayPanelBoosted')
+    : t('draw.todayPanelWaiting'),
+)
 const deckGestureX = computed(() => gestureDeltaX.value * 0.2)
 const deckGestureRotation = computed(() => gestureDeltaX.value * 0.01)
 const drawIndicatorOpacity = computed(() =>
@@ -124,6 +157,10 @@ function prefersReducedMotion(): boolean {
   }
 
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function formatCount(value: number): string {
+  return new Intl.NumberFormat().format(value)
 }
 
 async function refreshPhotoTotal(): Promise<void> {
@@ -173,6 +210,47 @@ function onAlbumChange(event: Event): void {
   const target = event.target as HTMLSelectElement
   const nextValue = Number.parseInt(target.value, 10)
   drawStore.setAlbumFilter(Number.isNaN(nextValue) ? null : nextValue)
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  const tagName = target.tagName.toLowerCase()
+  return tagName === 'input'
+    || tagName === 'select'
+    || tagName === 'textarea'
+    || target.isContentEditable
+}
+
+async function handleKeyboardShortcut(event: KeyboardEvent): Promise<void> {
+  if (isEditableKeyboardTarget(event.target)) {
+    return
+  }
+
+  if (event.code === 'Space') {
+    event.preventDefault()
+    await drawNextCard()
+    return
+  }
+
+  if (event.code === 'ArrowLeft') {
+    event.preventDefault()
+    await undoLastCard()
+    return
+  }
+
+  if (event.code === 'ArrowRight') {
+    event.preventDefault()
+    await drawNextCard()
+    return
+  }
+
+  if (event.code === 'Escape' && isScatterOpen.value) {
+    event.preventDefault()
+    await collectScatter()
+  }
 }
 
 function applyGestureTransform(deltaX: number, rotation: number): void {
@@ -359,6 +437,8 @@ function applyDefaultAlbumSelection(): void {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', handleKeyboardShortcut)
+
   try {
     const payload = await listAlbums()
     albums.value = payload.items
@@ -379,6 +459,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcut)
   killCeremony()
   stopParticleDrift()
   resetGesturePreview()
@@ -433,80 +514,62 @@ watch(
 </script>
 
 <template>
-  <section class="mx-auto max-w-6xl space-y-6">
-    <header class="space-y-3">
-      <h1 class="text-3xl font-semibold text-ts-accent">
-        {{ $t('draw.title') }}
-      </h1>
-      <p class="text-sm text-ts-text/80">
-        {{ $t('draw.description') }}
-      </p>
-
-      <div class="flex flex-col gap-3 rounded-xl border border-white/10 bg-ts-panel p-4 md:flex-row md:items-center">
-        <label class="flex items-center gap-2 text-sm text-ts-muted">
-          <span>{{ $t('draw.albumLabel') }}</span>
-          <select
-            :value="selectedAlbumValue"
-            class="rounded border border-white/15 bg-ts-panelSoft px-3 py-2 text-sm text-ts-text focus:border-ts-accent focus:outline-none"
-            @change="onAlbumChange"
-          >
-            <option value="">{{ $t('draw.allPhotos') }}</option>
-            <option
-              v-for="album in albums"
-              :key="album.id"
-              :value="album.id"
-            >
-              {{ album.name }}
-            </option>
-          </select>
-        </label>
-
-        <button
-          type="button"
-          class="rounded border border-ts-accent/70 px-4 py-2 text-sm font-semibold text-ts-accent transition hover:bg-ts-accent hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="isDrawing"
-          @click="drawNextCard()"
-        >
-          {{ isDrawing ? $t('draw.drawing') : $t('draw.drawNext') }}
-        </button>
-
-        <button
-          type="button"
-          class="rounded border px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-          :class="poolEmpty
-            ? 'border-ts-accent text-ts-accent shadow-glow hover:bg-ts-accent/15'
-            : 'border-white/30 text-ts-text/95 hover:border-white/50 hover:bg-white/10'"
-          :disabled="!hasDrawnCards || isDrawing"
-          @click="reshuffle"
-        >
-          {{ $t('draw.reshuffle') }}
-        </button>
-
-        <p class="text-xs text-ts-text/75 md:ml-auto">
-          {{ $t('draw.swipeHint') }}
+  <section data-draw-stage class="draw-stage">
+    <header class="stage-head">
+      <div class="stage-head-left">
+        <div class="h-eyebrow">
+          {{ $t('draw.stageEyebrow') }}
+        </div>
+        <h1 class="h-title">
+          {{ $t('draw.title') }}
+        </h1>
+        <p class="h-sub">
+          {{ $t('draw.description', { count: formattedPhotoTotal }) }}
         </p>
       </div>
+
+      <label data-draw-album-picker class="album-pick">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 14l4-4 5 5 3-3 6 6" />
+        </svg>
+        <span>{{ selectedAlbumName }}</span>
+        <span class="num">· {{ formattedPhotoTotal }}</span>
+        <svg class="chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+        <select
+          :value="selectedAlbumValue"
+          :aria-label="$t('draw.albumLabel')"
+          @change="onAlbumChange"
+        >
+          <option value="">
+            {{ $t('draw.allPhotos') }}
+          </option>
+          <option
+            v-for="album in albums"
+            :key="album.id"
+            :value="album.id"
+          >
+            {{ album.name }}
+          </option>
+        </select>
+      </label>
     </header>
 
     <div
       v-if="poolEmpty"
-      class="flex flex-col items-start gap-2 rounded border border-ts-accent/45 bg-ts-accent/10 px-4 py-3 text-sm text-ts-accent md:flex-row md:items-center"
+      class="draw-alert draw-alert-accent"
     >
-      <p>
-        Card pool is empty. Click Reshuffle to continue drawing.
-      </p>
-      <button
-        type="button"
-        class="rounded border border-ts-accent/80 px-3 py-1.5 text-xs font-semibold text-ts-accent transition hover:bg-ts-accent/20"
-        @click="reshuffle"
-      >
+      <p>{{ $t('draw.poolEmpty') }}</p>
+      <button type="button" class="draw-alert-action" @click="reshuffle">
         {{ $t('draw.reshuffle') }}
       </button>
     </div>
 
     <p
       v-else-if="errorMessage"
-      class="rounded border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+      class="draw-alert draw-alert-danger"
     >
       {{ errorMessage }}
     </p>
@@ -519,20 +582,21 @@ watch(
       action-to="/upload"
     />
 
-    <div
+    <section
       v-else
       ref="ceremonyContainerRef"
-      class="ceremony-container relative overflow-hidden rounded-2xl border border-white/10 bg-ts-panel/70 px-4 py-8 md:px-8"
+      data-draw-arena
+      class="draw-arena ceremony-container"
       :class="ceremonyClass"
     >
       <div class="ceremony-vignette" />
 
-      <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="draw-motes" aria-hidden="true">
         <span
           v-for="(particle, index) in particleSeeds"
           :key="index"
           data-ceremony-particle
-          class="ceremony-particle absolute rounded-full bg-ts-accent"
+          class="ceremony-particle mote"
           :style="{
             'left': particle.left,
             'top': particle.top,
@@ -543,8 +607,43 @@ watch(
         />
       </div>
 
-      <div class="relative mx-auto h-[32rem] max-w-5xl">
-        <div class="absolute inset-0 flex items-center justify-center">
+      <aside data-draw-today-panel class="today-panel">
+        <div class="today-eye">
+          {{ $t('draw.todayEye') }}
+        </div>
+        <div class="today-line">
+          <strong>{{ todayPanelMemory }}</strong>
+          {{ todayPanelDescription }}
+        </div>
+      </aside>
+
+      <aside class="arena-side left" aria-label="Draw session stats">
+        <div class="side-stat">
+          <span class="dot" />
+          {{ $t('draw.remaining') }} <span class="num">{{ formattedRemainingCount }}</span>
+        </div>
+        <div class="side-stat">
+          {{ $t('draw.drawn') }} <span class="num">{{ drawnCount }}</span>
+        </div>
+        <div class="side-stat">
+          {{ $t('draw.source') }} <span class="num">{{ selectedAlbumName }}</span>
+        </div>
+      </aside>
+
+      <aside class="arena-side right" aria-label="Weight metadata">
+        <div class="side-stat">
+          {{ $t('draw.weight') }} · <span class="num">{{ weightModeLabel }}</span>
+        </div>
+        <div class="side-stat">
+          {{ $t('draw.range') }} · <span class="num">{{ nearbyRangeLabel }}</span>
+        </div>
+        <div class="side-stat">
+          {{ $t('draw.depth') }} · <span class="num">{{ activeCaptureYear }}</span>
+        </div>
+      </aside>
+
+      <div class="arena-center">
+        <div class="deck-layer">
           <CardDeck
             :disabled="isDrawing"
             :gesture-x="deckGestureX"
@@ -557,23 +656,17 @@ watch(
           v-if="activeCard"
           ref="activeCardGestureRef"
           data-gesture-wrapper
-          class="absolute inset-0 z-10 flex items-center justify-center"
+          class="active-card-layer"
           @touchstart.passive="handleTouchStart"
           @touchmove.passive="handleTouchMove"
           @touchend.passive="handleTouchEnd"
           @touchcancel.passive="handleTouchCancel"
         >
-          <div class="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em]">
-            <span
-              class="text-ts-accent transition-opacity duration-150"
-              :style="{ opacity: drawIndicatorOpacity }"
-            >
+          <div class="gesture-rail">
+            <span :style="{ opacity: drawIndicatorOpacity }">
               {{ $t('draw.gestureDrawHint') }}
             </span>
-            <span
-              class="text-ts-accent transition-opacity duration-150"
-              :style="{ opacity: undoIndicatorOpacity }"
-            >
+            <span :style="{ opacity: undoIndicatorOpacity }">
               {{ $t('draw.gestureUndoHint') }}
             </span>
           </div>
@@ -586,25 +679,19 @@ watch(
         </div>
       </div>
 
-      <div class="mt-6 flex items-center justify-center">
-        <CardPile :cards="pileCards" @open-scatter="openScatter" />
+      <div
+        data-draw-mobile-gesture-hint
+        class="gesture-hint"
+      >
+        <span>←</span> {{ $t('draw.mobileSwipeLeft') }} · <span>→</span> {{ $t('draw.mobileSwipeRight') }}
       </div>
 
       <div
         v-if="memoryText"
         data-memory-text
-        class="mt-3 flex items-center justify-center gap-1.5 text-lg font-medium text-ts-accent/85 opacity-0"
+        class="memory-line"
       >
-        <svg
-          class="h-4 w-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -612,7 +699,60 @@ watch(
         </svg>
         <span>{{ memoryText }}</span>
       </div>
+    </section>
+
+    <div class="draw-actions">
+      <button
+        type="button"
+        class="draw-btn draw-btn-primary action-main"
+        :disabled="isDrawing || noPhotos"
+        @click="drawNextCard()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 4v16M4 12h16" />
+        </svg>
+        {{ isDrawing ? $t('draw.drawing') : $t('draw.drawNext') }}
+      </button>
+      <button
+        type="button"
+        class="draw-btn"
+        :disabled="!hasDrawnCards || isDrawing"
+        @click="undoLastCard()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
+        </svg>
+        {{ $t('draw.undo') }}
+      </button>
+      <button
+        type="button"
+        class="draw-btn draw-btn-ghost draw-action-scatter"
+        :disabled="!hasDrawnCards || isDrawing"
+        @click="openScatter"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+        </svg>
+        {{ $t('draw.scatter') }}
+      </button>
+
+      <span data-draw-keyboard-hints class="action-hint">
+        <span class="kbd">Space</span> {{ $t('draw.drawShortcut') }}
+        <span class="kbd">←</span> {{ $t('draw.undo') }}
+        <span class="kbd">→</span> {{ $t('draw.drawShortcut') }}
+        <span class="kbd">Esc</span> {{ $t('draw.collect') }}
+      </span>
     </div>
+
+    <CardPile
+      :cards="drawnCards"
+      :total-photos="photoTotal"
+      @open-scatter="openScatter"
+    />
 
     <CardScatter :open="isScatterOpen" :cards="drawnCards" @collect="collectScatter" />
     <TsLightbox
@@ -627,6 +767,427 @@ watch(
 </template>
 
 <style scoped>
+.draw-stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  gap: 28px;
+  max-width: 1180px;
+  margin: 0 auto;
+  min-height: calc(100vh - 200px);
+}
+
+.stage-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.stage-head-left {
+  max-width: 640px;
+}
+
+.h-eyebrow {
+  color: var(--ts-accent);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.h-title {
+  margin: 8px 0 6px;
+  color: var(--ts-fg);
+  font-family: var(--ts-font-display);
+  font-size: clamp(30px, 3.6vw, 48px);
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+.h-sub {
+  max-width: 64ch;
+  color: var(--ts-muted);
+  font-size: 14px;
+}
+
+.album-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 16px;
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-pill);
+  background: var(--ts-surface);
+  color: var(--ts-fg);
+  cursor: pointer;
+  font-size: 13px;
+  transition:
+    background var(--ts-duration-fast) var(--ts-ease),
+    border-color var(--ts-duration-fast) var(--ts-ease);
+}
+
+.album-pick:hover {
+  border-color: var(--ts-muted);
+  background: var(--ts-surface-2);
+}
+
+.album-pick svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.album-pick .chevron {
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+
+.album-pick .num {
+  color: var(--ts-muted);
+}
+
+.album-pick select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.draw-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: var(--ts-radius);
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+.draw-alert-accent {
+  border: 1px solid var(--ts-accent-soft);
+  background: oklch(78% 0.14 72 / 10%);
+  color: var(--ts-accent);
+}
+
+.draw-alert-danger {
+  border: 1px solid oklch(60% 0.18 25 / 45%);
+  background: oklch(60% 0.18 25 / 12%);
+  color: oklch(84% 0.12 25);
+}
+
+.draw-alert-action {
+  flex-shrink: 0;
+  border: 1px solid var(--ts-accent);
+  border-radius: var(--ts-radius-pill);
+  background: transparent;
+  color: var(--ts-accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+}
+
+.draw-arena {
+  position: relative;
+  display: grid;
+  min-height: 540px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-lg);
+  background:
+    radial-gradient(ellipse at center, oklch(22% 0.024 55) 0%, oklch(15% 0.016 50) 70%),
+    var(--ts-bg-deep);
+}
+
+.draw-arena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a36a' stroke-width='0.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 3h12M6 21h12'/><path d='M7 3c0 4 5 5.5 5 9s-5 5-5 9'/><path d='M17 3c0 4-5 5.5-5 9s5 5 5 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(70%, 540px);
+}
+
+.draw-motes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.mote {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--ts-accent);
+  box-shadow: 0 0 8px var(--ts-accent-glow);
+  filter: blur(0.4px);
+  opacity: var(--particle-opacity, 0.3);
+}
+
+.today-panel {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 6;
+  width: min(240px, calc(100% - 44px));
+  padding: 16px 18px;
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius);
+  background: oklch(20% 0.022 52 / 70%);
+  backdrop-filter: blur(10px);
+}
+
+.today-eye {
+  margin-bottom: 6px;
+  color: var(--ts-accent);
+  font-family: var(--ts-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.today-line {
+  color: var(--ts-fg-soft);
+  font-family: var(--ts-font-display);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.today-line strong {
+  color: var(--ts-fg);
+  font-weight: 500;
+}
+
+.arena-side {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transform: translateY(-50%);
+}
+
+.arena-side.left {
+  left: 22px;
+}
+
+.arena-side.right {
+  right: 22px;
+  align-items: flex-end;
+}
+
+.side-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.side-stat .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ts-accent);
+  box-shadow: 0 0 8px var(--ts-accent-glow);
+}
+
+.arena-center {
+  position: relative;
+  width: 100%;
+  min-height: 540px;
+}
+
+.deck-layer,
+.active-card-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck-layer {
+  z-index: 2;
+}
+
+.active-card-layer {
+  z-index: 4;
+  touch-action: pan-y;
+}
+
+.gesture-rail {
+  position: absolute;
+  inset: 18px 24px auto;
+  display: flex;
+  justify-content: space-between;
+  color: var(--ts-accent);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.gesture-hint {
+  position: absolute;
+  right: 0;
+  bottom: 24px;
+  left: 0;
+  z-index: 5;
+  color: var(--ts-muted-2);
+  font-family: var(--ts-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.gesture-hint span {
+  color: var(--ts-accent);
+  font-size: 11px;
+}
+
+.memory-line {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  left: 24px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ts-accent);
+  font-family: var(--ts-font-display);
+  font-size: 15px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.memory-line svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.draw-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 4px 0 0;
+}
+
+.draw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius-pill);
+  background: var(--ts-surface);
+  color: var(--ts-fg);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 18px;
+  transition:
+    background var(--ts-duration-normal) var(--ts-ease),
+    border-color var(--ts-duration-normal) var(--ts-ease),
+    color var(--ts-duration-normal) var(--ts-ease),
+    transform var(--ts-duration-fast) var(--ts-ease);
+}
+
+.draw-btn:hover:not(:disabled) {
+  border-color: var(--ts-muted);
+  background: var(--ts-surface-2);
+}
+
+.draw-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.draw-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.draw-btn-primary {
+  border-color: transparent;
+  background: var(--ts-accent);
+  box-shadow: var(--ts-glow-accent);
+  color: var(--ts-bg-deep);
+  font-weight: 600;
+}
+
+.draw-btn-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--ts-accent);
+  color: var(--ts-bg-deep);
+  transform: translateY(-1px);
+}
+
+.draw-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ts-fg-soft);
+}
+
+.action-main {
+  padding: 16px 38px;
+  font-size: 14.5px;
+  letter-spacing: 0.04em;
+}
+
+.action-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  color: var(--ts-muted-2);
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.kbd {
+  display: inline-grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0 6px;
+  border: 1px solid var(--ts-border);
+  border-radius: 6px;
+  background: var(--ts-surface);
+  color: var(--ts-fg-soft);
+  font-size: 10.5px;
+}
+
 .ceremony-container {
   transition: background-color 0.5s ease, box-shadow 0.5s ease;
 }
@@ -666,5 +1227,78 @@ watch(
 
 .ceremony-container:not(.ceremony-idle) .ceremony-particle {
   opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw-btn,
+  .album-pick,
+  .ceremony-container,
+  .ceremony-vignette {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .draw-stage {
+    gap: 18px;
+  }
+
+  .stage-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .h-title {
+    font-size: clamp(24px, 7.6vw, 34px);
+  }
+
+  .h-sub {
+    font-size: 13.5px;
+  }
+
+  .album-pick {
+    max-width: 100%;
+    padding: 7px 12px 7px 14px;
+    font-size: 12.5px;
+  }
+
+  .draw-arena,
+  .arena-center {
+    min-height: 420px;
+    border-radius: var(--ts-radius);
+  }
+
+  .today-panel,
+  .arena-side {
+    display: none;
+  }
+
+  .draw-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .action-main {
+    min-width: 160px;
+    flex: 1;
+    justify-content: center;
+    padding: 13px 28px;
+  }
+
+  .action-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .draw-arena,
+  .arena-center {
+    min-height: 380px;
+  }
+
+  .draw-action-scatter {
+    display: none;
+  }
 }
 </style>

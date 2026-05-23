@@ -38,4 +38,18 @@ describe('cardPile', () => {
     const image = wrapper.get('img')
     expect(image.attributes('src')).toBe('/api/photos/8/thumbnail?v=memory_thumb.jpg')
   })
+
+  it('renders recent draws as a prototype ribbon and opens scatter from the ribbon', async () => {
+    const wrapper = mountWithI18n(CardPile, {
+      props: { cards },
+    })
+
+    const ribbon = wrapper.get('[data-draw-ribbon]')
+    expect(ribbon.text()).toContain('Recent draws')
+    expect(ribbon.text()).toContain('1 /')
+    expect(wrapper.get('[data-draw-ribbon-card]').attributes('aria-label')).toContain('memory.jpg')
+
+    await ribbon.trigger('click')
+    expect(wrapper.emitted('openScatter')).toHaveLength(1)
+  })
 })
