@@ -465,6 +465,7 @@ const en: MessageSchema = {
     play: 'Play',
     next: 'Next',
     volume: 'Volume',
+    progress: 'Playback progress',
     repeatAll: 'Repeat all',
     repeatOne: 'Repeat one',
     repeatNone: 'Repeat off',

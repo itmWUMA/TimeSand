@@ -93,6 +93,7 @@ const {
   togglePlayPause,
   next,
   prev,
+  seekTo,
   cycleRepeatMode,
   formatTime,
 } = useMusicPlayer()
@@ -134,7 +135,10 @@ const playerSubtitle = computed(() => {
   const artist = currentTrack.value?.artist || t('player.unknownArtist')
   return playlistName.value ? `${artist} - ${playlistName.value}` : artist
 })
-const progressStyle = computed(() => ({ width: `${progressPercent.value}%` }))
+const progressRangeStyle = computed(() => ({
+  backgroundImage: `linear-gradient(90deg, var(--ts-accent-deep), var(--ts-accent) ${progressPercent.value}%, var(--ts-border) ${progressPercent.value}%)`,
+}))
+const progressMax = computed(() => (duration.value > 0 ? duration.value : 0))
 const volumeStyle = computed(() => ({ width: `${Math.round(volume.value * 100)}%` }))
 const repeatLabel = computed(() => {
   if (repeatMode.value === 'one')
@@ -176,6 +180,11 @@ function toggleLocale(nextLocale: Locale): void {
   locale.value = nextLocale
   localStorage.setItem('ts-locale', nextLocale)
   document.documentElement.lang = nextLocale
+}
+
+function onPlayerSeek(event: Event): void {
+  const target = event.target as HTMLInputElement
+  seekTo(Number(target.value))
 }
 
 onMounted(() => {
@@ -332,9 +341,19 @@ onMounted(() => {
         </div>
         <div class="player-progress">
           <span class="num">{{ formatTime(currentTime) }}</span>
-          <div class="player-bar" aria-hidden="true">
-            <div class="player-bar-fill" :style="progressStyle" />
-          </div>
+          <input
+            data-testid="shell-player-progress-range"
+            type="range"
+            min="0"
+            :max="progressMax"
+            step="0.1"
+            :value="currentTime"
+            class="player-bar player-bar-range"
+            :style="progressRangeStyle"
+            :disabled="!canControl"
+            :aria-label="$t('player.progress')"
+            @input="onPlayerSeek"
+          >
           <span class="num">{{ formatTime(duration) }}</span>
         </div>
       </div>
@@ -525,7 +544,7 @@ onMounted(() => {
   grid-column: 2;
   grid-row: 2;
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
   gap: 24px;
   align-items: center;
   padding: 0 28px;
@@ -664,11 +683,42 @@ onMounted(() => {
   background: var(--ts-border);
 }
 
-.player-bar-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: var(--ts-radius-pill);
-  background: linear-gradient(90deg, var(--ts-accent-deep), var(--ts-accent));
+.player-bar-range {
+  height: 12px;
+  min-width: 0;
+  margin: -4.5px 0;
+  border: 0;
+  cursor: pointer;
+  accent-color: var(--ts-accent);
+  appearance: none;
+  overflow: visible;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 3px;
+}
+
+.player-bar-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.player-bar-range::-webkit-slider-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.player-bar-range::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
 }
 
 .player-tools {
@@ -750,7 +800,7 @@ onMounted(() => {
 
 @media (max-width: 860px) {
   .player {
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 200px minmax(0, 1fr);
     gap: 14px;
     padding: 0 18px;
   }

@@ -463,6 +463,7 @@ export default {
     play: '播放',
     next: '下一首',
     volume: '音量',
+    progress: '播放进度',
     repeatAll: '循环全部',
     repeatOne: '单曲循环',
     repeatNone: '关闭循环',
