@@ -7,6 +7,7 @@ import { mountWithI18n } from '../src/test-utils'
 
 const routes = [
   { path: '/', component: { template: '<div>Home</div>' } },
+  { path: '/draw', component: { template: '<div>Draw</div>' } },
   { path: '/albums', component: { template: '<div>Albums</div>' } },
   { path: '/albums/:id', component: { template: '<div>Album Detail</div>' } },
   { path: '/upload', component: { template: '<div>Upload</div>' } },

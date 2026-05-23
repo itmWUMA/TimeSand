@@ -1,5 +1,6 @@
 import { flushPromises } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { mountWithI18n } from '../../test-utils'
 import AlbumsPage from '../AlbumsPage.vue'
 
@@ -11,6 +12,15 @@ vi.mock('../../services/album', () => ({
 const albumApi = await import('../../services/album')
 
 describe('albumsPage', () => {
+  function createTestRouter() {
+    return createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/upload', component: { template: '<div />' } },
+      ],
+    })
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(albumApi.listAlbums).mockResolvedValue({
@@ -20,8 +30,13 @@ describe('albumsPage', () => {
   })
 
   it('shows validation error when creating album with empty name', async () => {
+    const router = createTestRouter()
+    await router.push('/upload')
+    await router.isReady()
+
     const wrapper = mountWithI18n(AlbumsPage, {
       global: {
+        plugins: [router],
         stubs: {
           RouterLink: true,
         },
