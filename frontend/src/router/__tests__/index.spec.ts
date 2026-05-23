@@ -23,6 +23,7 @@ describe('router', () => {
   it('keeps the landing and slideshow routes outside the app shell', () => {
     expect(routeByName('landing')?.meta.shell).toBe(false)
     expect(routeByName('slideshow')?.meta.shell).toBe(false)
+    expect(routeByName('slideshow-album')?.meta.shell).toBe(false)
   })
 
   it('keeps /slideshow and /slideshow/:albumId compatibility routes', () => {
@@ -30,20 +31,11 @@ describe('router', () => {
     expect(routeByName('slideshow-album')?.path).toBe('/slideshow/:albumId')
   })
 
-  it('redirects /slideshow/:albumId to the existing query contract', () => {
+  it('renders /slideshow/:albumId directly for fullscreen album slideshows', () => {
     const route = routes.find(item => item.name === 'slideshow-album')
 
     expect(route).toBeDefined()
-    expect(typeof route?.redirect).toBe('function')
-
-    const redirect = route?.redirect
-    if (typeof redirect !== 'function') {
-      throw new TypeError('slideshow-album redirect is missing')
-    }
-
-    expect(redirect({ params: { albumId: '42' } } as never, {} as never)).toEqual({
-      path: '/slideshow',
-      query: { album_id: '42' },
-    })
+    expect(route?.redirect).toBeUndefined()
+    expect(route?.component).toBeDefined()
   })
 })

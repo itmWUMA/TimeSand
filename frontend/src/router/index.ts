@@ -22,10 +22,8 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/slideshow/:albumId',
     name: 'slideshow-album',
-    redirect: to => ({
-      path: '/slideshow',
-      query: { album_id: String(to.params.albumId) },
-    }),
+    component: SlideshowPage,
+    meta: { shell: false },
   },
   { path: '/slideshow', name: 'slideshow', component: SlideshowPage, meta: { shell: false } },
   { path: '/settings', name: 'settings', component: SettingsPage },

@@ -73,6 +73,7 @@ describe('defaultLayout shell', () => {
     expect(wrapper.find('[data-testid="rail-group-content"]').text()).toContain('Content')
     expect(wrapper.find('[data-testid="rail-group-other"]').text()).toContain('Other')
     expect(wrapper.find('[data-testid="shell-player"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="shell-player"]').classes()).toContain('player-fixed')
     expect(wrapper.find('[data-testid="shell-player-title"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="shell-player-play"]').exists()).toBe(true)
   })
