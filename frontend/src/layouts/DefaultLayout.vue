@@ -94,6 +94,7 @@ const {
   next,
   prev,
   seekTo,
+  setVolume,
   cycleRepeatMode,
   formatTime,
 } = useMusicPlayer()
@@ -139,7 +140,10 @@ const progressRangeStyle = computed(() => ({
   backgroundImage: `linear-gradient(90deg, var(--ts-accent-deep), var(--ts-accent) ${progressPercent.value}%, var(--ts-border) ${progressPercent.value}%)`,
 }))
 const progressMax = computed(() => (duration.value > 0 ? duration.value : 0))
-const volumeStyle = computed(() => ({ width: `${Math.round(volume.value * 100)}%` }))
+const volumePercent = computed(() => Math.round(volume.value * 100))
+const volumeRangeStyle = computed(() => ({
+  backgroundImage: `linear-gradient(to right, var(--ts-fg-soft) ${volumePercent.value}%, var(--ts-border) ${volumePercent.value}%)`,
+}))
 const repeatLabel = computed(() => {
   if (repeatMode.value === 'one')
     return t('player.repeatOne')
@@ -185,6 +189,11 @@ function toggleLocale(nextLocale: Locale): void {
 function onPlayerSeek(event: Event): void {
   const target = event.target as HTMLInputElement
   seekTo(Number(target.value))
+}
+
+function onVolumeChange(event: Event): void {
+  const target = event.target as HTMLInputElement
+  setVolume(Number(target.value) / 100)
 }
 
 onMounted(() => {
@@ -364,9 +373,18 @@ onMounted(() => {
             <path d="M11 5L6 9H2v6h4l5 4V5z" />
             <path d="M19 12c0-2-1-4-3-5" />
           </svg>
-          <div class="player-vol-bar" aria-hidden="true">
-            <span :style="volumeStyle" />
-          </div>
+          <input
+            data-testid="shell-player-volume"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            :value="volumePercent"
+            class="player-bar-range player-vol-range"
+            :style="volumeRangeStyle"
+            :aria-label="$t('player.volume')"
+            @input="onVolumeChange"
+          >
         </div>
       </div>
     </footer>
@@ -745,20 +763,43 @@ onMounted(() => {
   stroke-width: 1.6;
 }
 
-.player-vol-bar {
-  position: relative;
+.player-vol-range {
   width: 80px;
-  height: 3px;
-  overflow: hidden;
-  border-radius: var(--ts-radius-pill);
-  background: var(--ts-border);
+  background-color: transparent;
+  accent-color: var(--ts-fg);
 }
 
-.player-vol-bar span {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: var(--ts-radius-pill);
-  background: var(--ts-fg-soft);
+.player-vol-range::-webkit-slider-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  appearance: none;
+  background: var(--ts-fg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+  cursor: pointer;
+  transition: transform 0.15s var(--ts-ease);
+}
+
+.player-vol-range:hover::-webkit-slider-thumb,
+.player-vol-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+.player-vol-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ts-fg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+  cursor: pointer;
+  transition: transform 0.15s var(--ts-ease);
+}
+
+.player-vol-range:hover::-moz-range-thumb,
+.player-vol-range:focus-visible::-moz-range-thumb {
+  transform: scale(1.2);
 }
 
 @media (max-width: 1100px) {
