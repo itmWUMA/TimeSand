@@ -255,7 +255,9 @@ function runOpenAnimation(): void {
     defaults: { ease: 'power2.out' },
     onComplete: () => {
       contentVisible.value = true
-      cleanupClone()
+      nextTick(() => {
+        cleanupClone()
+      })
       isAnimating.value = false
     },
   })
@@ -273,6 +275,7 @@ function runOpenAnimation(): void {
 
   if (activeOriginKind === 'card') {
     openTimeline.to(clone, {
+      transformOrigin: 'center',
       keyframes: [
         { scale: 1.02, duration: 0.08, ease: 'power1.out' },
         { scale: 1, duration: 0.08, ease: 'power1.inOut' },
