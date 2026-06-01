@@ -4,7 +4,7 @@ from datetime import datetime
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
@@ -14,15 +14,16 @@ from app.models.music import AlbumPlaylist, Playlist
 from app.models.photo import Photo
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
+ALBUM_NAME_MAX_LENGTH = 80
 
 
 class AlbumCreateRequest(BaseModel):
-    name: str = Field(max_length=255)
+    name: str
     description: str | None = None
 
 
 class AlbumUpdateRequest(BaseModel):
-    name: str = Field(max_length=255)
+    name: str
     description: str | None = None
     cover_photo_id: int | None = None
 
@@ -68,6 +69,11 @@ def normalize_album_name(name: str) -> str:
     normalized = name.strip()
     if not normalized:
         raise HTTPException(status_code=400, detail="Album name is required")
+    if len(normalized) > ALBUM_NAME_MAX_LENGTH:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Album name must be {ALBUM_NAME_MAX_LENGTH} characters or fewer",
+        )
 
     return normalized
 

@@ -22,6 +22,7 @@ import {
   listTags,
   removeTagFromPhoto,
 } from '../services/tag'
+import { ALBUM_NAME_MAX_LENGTH } from '../utils/albumValidation'
 import { buildThumbnailUrl } from '../utils/photoUrl'
 
 const route = useRoute()
@@ -41,6 +42,7 @@ const errorMessage = ref<string | null>(null)
 
 const editName = ref('')
 const editDescription = ref('')
+const editNameValidationMessage = ref<string | null>(null)
 const selectedCoverPhotoId = ref(0)
 const selectedPhotoToAdd = ref(0)
 const lightboxOpen = ref(false)
@@ -50,6 +52,7 @@ const deletingAlbum = ref(false)
 
 const albumId = computed(() => Number(route.params.id))
 const PHOTO_PAGE_SIZE = 100
+const editNameLength = computed(() => editName.value.length)
 const albumTotalSizeLabel = computed(() => formatBytes(albumPhotos.value.reduce((total, photo) => total + photo.file_size, 0)))
 const albumDateLabel = computed(() => {
   const candidates = albumPhotos.value
@@ -186,12 +189,24 @@ async function saveAlbum(): Promise<void> {
     return
   }
 
+  const name = editName.value.trim()
+  if (!name) {
+    editNameValidationMessage.value = t('album.nameRequired')
+    return
+  }
+
+  if (name.length > ALBUM_NAME_MAX_LENGTH) {
+    editNameValidationMessage.value = t('album.nameTooLong', { max: ALBUM_NAME_MAX_LENGTH })
+    return
+  }
+
   savingAlbum.value = true
   errorMessage.value = null
+  editNameValidationMessage.value = null
 
   try {
     const updated = await updateAlbum(album.value.id, {
-      name: editName.value,
+      name,
       description: editDescription.value.trim() || null,
       cover_photo_id: selectedCoverPhotoId.value || null,
     })
@@ -207,6 +222,21 @@ async function saveAlbum(): Promise<void> {
   finally {
     savingAlbum.value = false
   }
+}
+
+function onEditNameInput(): void {
+  const name = editName.value.trim()
+  if (!name) {
+    editNameValidationMessage.value = null
+    return
+  }
+
+  if (name.length > ALBUM_NAME_MAX_LENGTH) {
+    editNameValidationMessage.value = t('album.nameTooLong', { max: ALBUM_NAME_MAX_LENGTH })
+    return
+  }
+
+  editNameValidationMessage.value = null
 }
 
 async function addSelectedPhoto(): Promise<void> {
@@ -474,9 +504,17 @@ onMounted(async () => {
               <span>{{ $t('album.nameLabel') }}</span>
               <input
                 v-model="editName"
+                data-testid="album-detail-name-input"
                 type="text"
+                :maxlength="ALBUM_NAME_MAX_LENGTH + 20"
                 class="album-form-control"
+                :class="{ 'is-invalid': editNameValidationMessage }"
+                @input="onEditNameInput"
               >
+              <span class="field-feedback" :class="{ danger: editNameValidationMessage }">
+                <span>{{ editNameValidationMessage ?? $t('album.nameLimitHint', { max: ALBUM_NAME_MAX_LENGTH }) }}</span>
+                <span>{{ editNameLength }} / {{ ALBUM_NAME_MAX_LENGTH }}</span>
+              </span>
             </label>
             <label class="field">
               <span>{{ $t('album.coverPhoto') }}</span>
@@ -797,6 +835,22 @@ onMounted(async () => {
 
 .album-form-control:focus {
   border-color: var(--ts-accent);
+}
+
+.album-form-control.is-invalid {
+  border-color: oklch(65% 0.16 25);
+}
+
+.field-feedback {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ts-muted);
+  font-size: 11px;
+}
+
+.field-feedback.danger {
+  color: oklch(85% 0.14 25);
 }
 
 .add-row {

@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import AlbumCard from '../components/AlbumCard.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
 import { createAlbum, listAlbums } from '../services/album'
+import { ALBUM_NAME_MAX_LENGTH } from '../utils/albumValidation'
 
 type SortMode = 'recent' | 'name' | 'count'
 
@@ -20,6 +21,7 @@ const sortMode = ref<SortMode>('recent')
 
 const newName = ref('')
 const newDescription = ref('')
+const newNameLength = computed(() => newName.value.length)
 
 const filteredAlbums = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -69,6 +71,11 @@ async function handleCreateAlbum(): Promise<void> {
     return
   }
 
+  if (name.length > ALBUM_NAME_MAX_LENGTH) {
+    nameValidationMessage.value = t('album.nameTooLong', { max: ALBUM_NAME_MAX_LENGTH })
+    return
+  }
+
   nameValidationMessage.value = null
   creating.value = true
   errorMessage.value = null
@@ -91,7 +98,18 @@ async function handleCreateAlbum(): Promise<void> {
 }
 
 function onNameInput(): void {
-  if (newName.value.trim()) {
+  const name = newName.value.trim()
+  if (!name) {
+    nameValidationMessage.value = null
+    return
+  }
+
+  if (name.length > ALBUM_NAME_MAX_LENGTH) {
+    nameValidationMessage.value = t('album.nameTooLong', { max: ALBUM_NAME_MAX_LENGTH })
+    return
+  }
+
+  if (name) {
     nameValidationMessage.value = null
   }
 }
@@ -166,10 +184,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <p v-if="nameValidationMessage" class="surface-message danger">
-      {{ nameValidationMessage }}
-    </p>
-
     <p v-if="errorMessage" class="surface-message danger">
       {{ errorMessage }}
     </p>
@@ -192,42 +206,49 @@ onMounted(async () => {
       >
         <AlbumCard :album="album" />
       </RouterLink>
-
-      <form
-        id="album-create-form"
-        data-testid="album-add-card"
-        class="album-card add"
-        @submit.prevent="handleCreateAlbum"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        <p class="add-title">
-          {{ $t('album.newAlbum') }}
-        </p>
-        <input
-          v-model="newName"
-          type="text"
-          :placeholder="$t('album.namePlaceholder')"
-          class="album-create-input"
-          :class="{ 'is-invalid': nameValidationMessage }"
-          @input="onNameInput"
-        >
-        <input
-          v-model="newDescription"
-          type="text"
-          :placeholder="$t('album.descPlaceholder')"
-          class="album-create-input"
-        >
-        <button
-          type="submit"
-          :disabled="creating"
-          class="btn btn-primary album-create-button"
-        >
-          {{ creating ? $t('common.creating') : $t('common.create') }}
-        </button>
-      </form>
     </div>
+
+    <form
+      v-if="!loading"
+      id="album-create-form"
+      data-testid="album-add-card"
+      class="album-card add"
+      @submit.prevent="handleCreateAlbum"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      <p class="add-title">
+        {{ $t('album.newAlbum') }}
+      </p>
+      <input
+        v-model="newName"
+        data-testid="album-name-input"
+        type="text"
+        :maxlength="ALBUM_NAME_MAX_LENGTH + 20"
+        :placeholder="$t('album.namePlaceholder')"
+        class="album-create-input"
+        :class="{ 'is-invalid': nameValidationMessage }"
+        @input="onNameInput"
+      >
+      <div class="field-feedback" :class="{ danger: nameValidationMessage }">
+        <span>{{ nameValidationMessage ?? $t('album.nameLimitHint', { max: ALBUM_NAME_MAX_LENGTH }) }}</span>
+        <span>{{ newNameLength }} / {{ ALBUM_NAME_MAX_LENGTH }}</span>
+      </div>
+      <input
+        v-model="newDescription"
+        type="text"
+        :placeholder="$t('album.descPlaceholder')"
+        class="album-create-input"
+      >
+      <button
+        type="submit"
+        :disabled="creating"
+        class="btn btn-primary album-create-button"
+      >
+        {{ creating ? $t('common.creating') : $t('common.create') }}
+      </button>
+    </form>
   </section>
 </template>
 
@@ -330,7 +351,8 @@ onMounted(async () => {
   align-content: center;
   justify-items: center;
   gap: 10px;
-  min-height: 100%;
+  max-width: 420px;
+  min-height: 280px;
   padding: 22px;
   border: 1px dashed var(--ts-border-soft);
   border-radius: var(--ts-radius-lg);
@@ -378,6 +400,19 @@ onMounted(async () => {
 
 .album-create-input.is-invalid {
   border-color: oklch(65% 0.16 25);
+}
+
+.field-feedback {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  color: var(--ts-muted);
+  font-size: 11px;
+}
+
+.field-feedback.danger {
+  color: oklch(85% 0.14 25);
 }
 
 .album-create-button {
