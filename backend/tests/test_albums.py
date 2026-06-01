@@ -166,8 +166,8 @@ def test_remove_missing_photo_association_returns_404(client: TestClient) -> Non
     }
 
 
-def test_album_name_rejects_more_than_255_characters(client: TestClient) -> None:
-    long_name = "a" * 256
+def test_album_name_rejects_more_than_80_characters(client: TestClient) -> None:
+    long_name = "a" * 81
 
     create_response = client.post(
         "/api/albums",
@@ -187,3 +187,20 @@ def test_album_name_rejects_more_than_255_characters(client: TestClient) -> None
     update_payload = update_response.json()
     assert update_payload["error"] == "validation_error"
     assert "name" in update_payload["message"]
+
+
+def test_album_name_is_trimmed_before_saving(client: TestClient) -> None:
+    create_response = client.post(
+        "/api/albums",
+        json={"name": "  Trimmed Album  ", "description": None},
+    )
+
+    assert create_response.status_code == 201
+    assert create_response.json()["name"] == "Trimmed Album"
+
+    update_response = client.put(
+        f"/api/albums/{create_response.json()['id']}",
+        json={"name": "  Updated Album  ", "description": None, "cover_photo_id": None},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["name"] == "Updated Album"

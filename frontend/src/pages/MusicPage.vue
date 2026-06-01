@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import MusicUploader from '../components/MusicUploader.vue'
 import TsEmptyState from '../components/TsEmptyState.vue'
+import { TsDialog } from '../components/ui'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
 import { deleteMusic, listMusic, uploadMusic } from '../services/music'
 import { addTrackToPlaylist, createPlaylist, deletePlaylist, getPlaylist, listPlaylists, removeTrackFromPlaylist, updatePlaylist } from '../services/playlist'
@@ -14,6 +15,9 @@ const playlists = ref<Playlist[]>([])
 const selectedPlaylist = ref<Playlist | null>(null)
 const selectedPlaylistId = ref<number | null>(null)
 const { currentTrack, playlistId, play, setPlaylist } = useMusicPlayer()
+type PendingMusicAction
+  = | { kind: 'removeTrack', playlistId: number, track: Music }
+    | { kind: 'deleteTrack', track: Music }
 
 const loadingTracks = ref(false)
 const uploading = ref(false)
@@ -22,6 +26,7 @@ const errorMessage = ref<string | null>(null)
 const newPlaylistName = ref('')
 const newPlaylistInput = ref<HTMLInputElement | null>(null)
 const dragSourceIndex = ref<number | null>(null)
+const pendingMusicAction = ref<PendingMusicAction | null>(null)
 const { t } = useI18n()
 
 const playlistPalettes = [
@@ -68,6 +73,28 @@ const selectedPlaylistUpdated = computed(() => {
   catch {
     return rawDate
   }
+})
+const confirmationTitle = computed(() => {
+  if (pendingMusicAction.value?.kind === 'deleteTrack') {
+    return t('music.deleteTrackDialogTitle')
+  }
+  return t('music.removeTrackDialogTitle')
+})
+const confirmationDescription = computed(() => {
+  const action = pendingMusicAction.value
+  if (action?.kind === 'deleteTrack') {
+    return t('music.deleteTrackConfirm', { title: action.track.title })
+  }
+  if (action?.kind === 'removeTrack') {
+    return t('music.removeTrackConfirm', { title: action.track.title })
+  }
+  return ''
+})
+const confirmationButtonLabel = computed(() => {
+  if (pendingMusicAction.value?.kind === 'deleteTrack') {
+    return t('common.delete')
+  }
+  return t('common.remove')
 })
 
 function formatDuration(value: number | null): string {
@@ -253,14 +280,22 @@ async function addTrack(musicId: number): Promise<void> {
   }
 }
 
-async function removeTrack(musicId: number): Promise<void> {
+function requestRemoveTrack(track: Music): void {
   if (selectedPlaylistId.value == null) {
     return
   }
 
+  pendingMusicAction.value = {
+    kind: 'removeTrack',
+    playlistId: selectedPlaylistId.value,
+    track,
+  }
+}
+
+async function removeTrack(playlistIdToUpdate: number, musicId: number): Promise<void> {
   errorMessage.value = null
   try {
-    await removeTrackFromPlaylist(selectedPlaylistId.value, musicId)
+    await removeTrackFromPlaylist(playlistIdToUpdate, musicId)
     await loadPlaylists()
     await loadSelectedPlaylist()
   }
@@ -305,6 +340,13 @@ async function reorderTracks(trackIds: number[]): Promise<void> {
   }
 }
 
+function requestRemoveMusic(track: Music): void {
+  pendingMusicAction.value = {
+    kind: 'deleteTrack',
+    track,
+  }
+}
+
 async function removeMusic(musicId: number): Promise<void> {
   errorMessage.value = null
   try {
@@ -315,6 +357,26 @@ async function removeMusic(musicId: number): Promise<void> {
   }
   catch {
     errorMessage.value = t('music.deleteTrackFailed')
+  }
+}
+
+function onConfirmationOpenChange(open: boolean): void {
+  if (!open) {
+    pendingMusicAction.value = null
+  }
+}
+
+async function confirmPendingMusicAction(): Promise<void> {
+  const action = pendingMusicAction.value
+  pendingMusicAction.value = null
+
+  if (action?.kind === 'removeTrack') {
+    await removeTrack(action.playlistId, action.track.id)
+    return
+  }
+
+  if (action?.kind === 'deleteTrack') {
+    await removeMusic(action.track.id)
   }
 }
 
@@ -523,9 +585,10 @@ onMounted(async () => {
             <span class="track-length num">{{ formatDuration(track.duration) }}</span>
             <button
               type="button"
+              :data-testid="`remove-track-${track.id}`"
               class="track-remove"
               :aria-label="$t('music.removeTrackLabel', { title: track.title })"
-              @click="removeTrack(track.id)"
+              @click="requestRemoveTrack(track)"
             >
               {{ $t('common.remove') }}
             </button>
@@ -566,7 +629,12 @@ onMounted(async () => {
               >
                 {{ selectedTrackIds.has(track.id) ? $t('common.added') : $t('common.add') }}
               </button>
-              <button type="button" class="library-delete" @click="removeMusic(track.id)">
+              <button
+                type="button"
+                :data-testid="`delete-music-${track.id}`"
+                class="library-delete"
+                @click="requestRemoveMusic(track)"
+              >
                 {{ $t('common.delete') }}
               </button>
             </div>
@@ -574,6 +642,33 @@ onMounted(async () => {
         </section>
       </section>
     </div>
+
+    <TsDialog
+      :open="pendingMusicAction !== null"
+      :title="confirmationTitle"
+      :description="confirmationDescription"
+      @update:open="onConfirmationOpenChange"
+    >
+      <div class="confirm-actions">
+        <button
+          type="button"
+          data-testid="music-confirm-cancel"
+          class="btn btn-ghost"
+          @click="pendingMusicAction = null"
+        >
+          {{ $t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          data-testid="music-confirm-submit"
+          class="btn"
+          :class="pendingMusicAction?.kind === 'deleteTrack' ? 'btn-danger' : 'btn-primary'"
+          @click="confirmPendingMusicAction"
+        >
+          {{ confirmationButtonLabel }}
+        </button>
+      </div>
+    </TsDialog>
   </section>
 </template>
 
@@ -929,16 +1024,32 @@ onMounted(async () => {
   padding: 0 10px;
 }
 
-.track-remove,
+.track-remove {
+  border: 1px solid var(--ts-border-soft);
+  background: transparent;
+  color: var(--ts-muted);
+}
+
+.track-remove:hover {
+  border-color: var(--ts-border);
+  background: var(--ts-surface-2);
+  color: var(--ts-fg-soft);
+}
+
 .library-delete {
   border: 1px solid oklch(60% 0.18 25 / 45%);
   background: transparent;
   color: oklch(78% 0.14 25);
 }
 
-.track-remove:hover,
 .library-delete:hover {
   background: oklch(30% 0.08 25 / 40%);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .empty-hint {

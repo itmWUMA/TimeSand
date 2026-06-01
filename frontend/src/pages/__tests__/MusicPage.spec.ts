@@ -1,5 +1,5 @@
 import { flushPromises } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import { mountWithI18n } from '../../test-utils'
 import MusicPage from '../MusicPage.vue'
@@ -42,6 +42,15 @@ vi.mock('vue-router', () => ({
 
 const musicApi = await import('../../services/music')
 const playlistApi = await import('../../services/playlist')
+
+function getBodyButton(testId: string): HTMLButtonElement {
+  const button = document.body.querySelector<HTMLButtonElement>(`[data-testid="${testId}"]`)
+  if (!button) {
+    throw new Error(`Missing button ${testId}`)
+  }
+
+  return button
+}
 
 describe('musicPage', () => {
   beforeEach(() => {
@@ -122,6 +131,10 @@ describe('musicPage', () => {
     })
   })
 
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
   it('syncs selected playlist to global player', async () => {
     const wrapper = mountWithI18n(MusicPage)
     await flushPromises()
@@ -144,5 +157,47 @@ describe('musicPage', () => {
     expect(wrapper.find('[data-testid="playlist-hero"]').text()).toContain('Default Playlist')
     expect(wrapper.find('[data-testid="music-track-table"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="music-library-panel"]').text()).toContain('Gentle Drift')
+  })
+
+  it('requires confirmation before permanently deleting a library track', async () => {
+    const wrapper = mountWithI18n(MusicPage, { attachTo: document.body })
+    await flushPromises()
+
+    const deleteButton = wrapper.get('[data-testid="delete-music-1"]')
+
+    expect(deleteButton.classes()).toContain('library-delete')
+
+    await deleteButton.trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Delete "Gentle Drift" permanently? This cannot be undone.')
+
+    getBodyButton('music-confirm-cancel').click()
+    await flushPromises()
+
+    expect(musicApi.deleteMusic).not.toHaveBeenCalled()
+  })
+
+  it('confirms playlist removal with muted remove styling', async () => {
+    const wrapper = mountWithI18n(MusicPage, { attachTo: document.body })
+    await flushPromises()
+
+    await wrapper.get('[data-testid="playlist-item-2"]').trigger('click')
+    await flushPromises()
+
+    const removeButton = wrapper.get('[data-testid="remove-track-1"]')
+
+    expect(removeButton.classes()).toContain('track-remove')
+    expect(removeButton.classes()).not.toContain('library-delete')
+
+    await removeButton.trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Remove "Gentle Drift" from this playlist?')
+
+    getBodyButton('music-confirm-cancel').click()
+    await flushPromises()
+
+    expect(playlistApi.removeTrackFromPlaylist).not.toHaveBeenCalled()
   })
 })
