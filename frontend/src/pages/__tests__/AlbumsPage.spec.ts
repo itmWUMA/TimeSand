@@ -41,6 +41,31 @@ describe('albumsPage', () => {
     })
   })
 
+  it('keeps the album creation form reachable when the album list is empty', async () => {
+    vi.mocked(albumApi.listAlbums).mockResolvedValue({
+      items: [],
+      total: 0,
+    })
+
+    const router = createTestRouter()
+    await router.push('/upload')
+    await router.isReady()
+
+    const wrapper = mountWithI18n(AlbumsPage, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterLink: routerLinkStub,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="album-add-card"]').exists()).toBe(true)
+    expect(wrapper.find('#album-create-form').exists()).toBe(true)
+    expect(wrapper.get('a[href="#album-create-form"]').text()).toContain('New Album')
+  })
+
   it('shows validation error when creating album with empty name', async () => {
     const router = createTestRouter()
     await router.push('/upload')
@@ -61,6 +86,30 @@ describe('albumsPage', () => {
 
     expect(vi.mocked(albumApi.createAlbum)).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('Album name is required')
+  })
+
+  it('prevents creating albums over the name length limit', async () => {
+    const router = createTestRouter()
+    await router.push('/upload')
+    await router.isReady()
+
+    const wrapper = mountWithI18n(AlbumsPage, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterLink: routerLinkStub,
+        },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.get('[data-testid="album-name-input"]').setValue('a'.repeat(81))
+    await wrapper.get('form').trigger('submit.prevent')
+    await wrapper.vm.$nextTick()
+
+    expect(vi.mocked(albumApi.createAlbum)).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Album name must be 80 characters or fewer')
+    expect(wrapper.text()).toContain('81 / 80')
   })
 
   it('renders exported album toolbar and add album surface with real album cards', async () => {

@@ -202,4 +202,32 @@ describe('albumDetailPage', () => {
     expect(albumApi.deleteAlbum).toHaveBeenCalledWith(1)
     expect(routerPushSpy).toHaveBeenCalledWith('/albums')
   })
+
+  it('prevents saving album names over the length limit', async () => {
+    vi.mocked(photoApi.listPhotos)
+      .mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: 100,
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        page_size: 100,
+      })
+
+    const wrapper = mountPage()
+    await flushPromises()
+    await flushPromises()
+
+    await wrapper.get('[data-testid="album-detail-name-input"]').setValue('a'.repeat(81))
+    await wrapper.get('form').trigger('submit.prevent')
+    await wrapper.vm.$nextTick()
+
+    expect(albumApi.updateAlbum).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Album name must be 80 characters or fewer')
+    expect(wrapper.text()).toContain('81 / 80')
+  })
 })
