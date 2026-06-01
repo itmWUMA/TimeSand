@@ -1,8 +1,26 @@
 import type { Photo } from '../../types/photo'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mountWithI18n } from '../../test-utils'
 import TsLightbox from '../TsLightbox.vue'
+
+const timelineTweens: Array<Record<string, unknown>> = []
+
+vi.mock('gsap', () => ({
+  gsap: {
+    killTweensOf: vi.fn(),
+    set: vi.fn(),
+    to: vi.fn(),
+    timeline: vi.fn((options?: { onComplete?: () => void }) => ({
+      kill: vi.fn(),
+      to: vi.fn((_target: unknown, vars: Record<string, unknown>) => {
+        timelineTweens.push(vars)
+        options?.onComplete?.()
+        return undefined
+      }),
+    })),
+  },
+}))
 
 const photos: Photo[] = [
   {
@@ -37,6 +55,8 @@ const photos: Photo[] = [
 
 afterEach(() => {
   document.body.innerHTML = ''
+  timelineTweens.length = 0
+  vi.restoreAllMocks()
 })
 
 describe('tsLightbox', () => {
@@ -118,5 +138,36 @@ describe('tsLightbox', () => {
 
     const text = wrapper.get('[data-testid="lightbox-exif"]').text()
     expect(text).toContain('Unknown')
+  })
+
+  it('does not add a separate card-origin scale bounce after the open transform', async () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 800, 600),
+    )
+
+    mountWithI18n(TsLightbox, {
+      props: {
+        open: true,
+        photos,
+        initialIndex: 0,
+        originKind: 'card',
+        originRect: new DOMRect(120, 80, 280, 360),
+      },
+      global: {
+        stubs: {
+          teleport: true,
+        },
+      },
+    })
+
+    await Promise.resolve()
+
+    expect(timelineTweens).not.toContainEqual(
+      expect.objectContaining({
+        keyframes: expect.arrayContaining([
+          expect.objectContaining({ scale: expect.any(Number) }),
+        ]),
+      }),
+    )
   })
 })

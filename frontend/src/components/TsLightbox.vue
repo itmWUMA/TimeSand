@@ -272,16 +272,6 @@ function runOpenAnimation(): void {
   if (!preloaded) {
     openTimeline.to(clone, { filter: 'blur(0px)', duration: 0.15, ease: 'power1.out' })
   }
-
-  if (activeOriginKind === 'card') {
-    openTimeline.to(clone, {
-      transformOrigin: 'center',
-      keyframes: [
-        { scale: 1.02, duration: 0.08, ease: 'power1.out' },
-        { scale: 1, duration: 0.08, ease: 'power1.inOut' },
-      ],
-    })
-  }
 }
 
 function finalizeClose(emitModelUpdate: boolean): void {
