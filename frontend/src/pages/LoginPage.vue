@@ -257,6 +257,7 @@ async function handleSubmit(): Promise<void> {
   background: radial-gradient(circle, oklch(38% 0.06 60 / 55%) 0%, transparent 55%);
   filter: blur(20px);
   transform: translate(-50%, -50%);
+  animation: glow-breathe 10s ease-in-out infinite alternate;
 }
 
 .login-bg::after {
@@ -268,6 +269,7 @@ async function handleSubmit(): Promise<void> {
   height: 520px;
   background: radial-gradient(circle, oklch(60% 0.12 65 / 18%) 0%, transparent 60%);
   transform: translate(-50%, -50%);
+  animation: glow-shift 14s ease-in-out infinite alternate;
 }
 
 .grain {
@@ -278,6 +280,22 @@ async function handleSubmit(): Promise<void> {
   border-radius: 50%;
   background: oklch(85% 0.06 75 / 55%);
   box-shadow: 0 0 6px 1px oklch(75% 0.1 70 / 35%);
+  animation: grain-drift 12s ease-in-out infinite alternate;
+}
+
+.grain:nth-child(3n) {
+  animation-duration: 16s;
+  animation-delay: -4s;
+}
+
+.grain:nth-child(3n+1) {
+  animation-duration: 20s;
+  animation-delay: -8s;
+}
+
+.grain:nth-child(5n) {
+  animation-duration: 10s;
+  animation-delay: -2s;
 }
 
 .login-topbar {
@@ -693,10 +711,66 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
+@keyframes grain-drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+
+  25% {
+    transform: translate(8px, -12px);
+    opacity: 0.9;
+  }
+
+  50% {
+    transform: translate(-6px, -4px);
+    opacity: 0.6;
+  }
+
+  75% {
+    transform: translate(4px, 10px);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translate(-2px, 6px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes glow-breathe {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes glow-shift {
+  0% {
+    transform: translate(-50%, -50%) scale(1) translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.06) translate(12px, -8px);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.03) translate(-8px, 6px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .submit,
   .state-label svg,
-  .submit[data-state="failure"] {
+  .submit[data-state="failure"],
+  .grain,
+  .login-bg::before,
+  .login-bg::after {
     animation: none;
     transition: none;
   }
