@@ -34,7 +34,9 @@ from app.core.errors import (
     validation_exception_handler,
 )
 from app.core.logging import get_logger, setup_logging
-from app.models.music import Playlist
+from app.models.album import Album, Tag
+from app.models.music import Music, Playlist
+from app.models.photo import Photo
 from app.models.user import User, UserRole
 from app.services.demo_service import seed_demo_data
 from app.services.photo_service import ensure_storage_directories
@@ -54,9 +56,17 @@ def ensure_data_directories() -> None:
 
 def ensure_default_playlist() -> None:
     with Session(database_module.engine) as session:
-        default_playlist = session.exec(select(Playlist).where(Playlist.is_default)).first()
+        admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+        if admin is None:
+            return
+
+        default_playlist = session.exec(
+            select(Playlist).where(Playlist.is_default, Playlist.owner_id == admin.id)
+        ).first()
         if default_playlist is None:
-            session.add(Playlist(name="Default Playlist", is_default=True))
+            session.add(
+                Playlist(name="Default Playlist", is_default=True, owner_id=admin.id)
+            )
             session.commit()
 
 
@@ -81,6 +91,26 @@ def ensure_initial_admin_user() -> None:
             role=UserRole.ADMIN,
         )
         logger.info("auth_admin_created", username=settings.admin_username)
+
+
+def backfill_existing_data() -> None:
+    with Session(database_module.engine) as session:
+        admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+        if admin is None:
+            return
+
+        models = [Photo, Album, Music, Playlist, Tag]
+        backfilled = False
+        for model in models:
+            rows = session.exec(select(model).where(model.owner_id.is_(None))).all()
+            for row in rows:
+                row.owner_id = admin.id
+                session.add(row)
+                backfilled = True
+
+        if backfilled:
+            session.commit()
+            logger.info("data_backfilled", admin_id=admin.id)
 
 
 def resolve_frontend_dist() -> Path | None:
@@ -121,6 +151,7 @@ async def lifespan(_: FastAPI):
     run_migrations()
     ensure_storage_directories()
     ensure_initial_admin_user()
+    backfill_existing_data()
     ensure_default_playlist()
     if settings.enable_demo_seed:
         with Session(database_module.engine) as session:

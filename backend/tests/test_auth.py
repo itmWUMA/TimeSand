@@ -19,6 +19,19 @@ def create_user(
     role: str = UserRole.ADMIN,
     is_active: bool = True,
 ) -> User:
+    from app.models.user import Session as UserSession
+    from app.models.user import UserSetting
+
+    existing = session.exec(select(User).where(User.username == username)).first()
+    if existing is not None:
+        for user_session in session.exec(select(UserSession).where(UserSession.user_id == existing.id)).all():
+            session.delete(user_session)
+        setting = session.get(UserSetting, existing.id)
+        if setting is not None:
+            session.delete(setting)
+        session.delete(existing)
+        session.commit()
+
     user = User(
         username=username,
         display_name=display_name,
@@ -39,7 +52,14 @@ def login(client: TestClient, username: str = "admin", password: str = "timesand
     )
 
 
-def test_login_returns_503_when_system_uninitialized(client: TestClient) -> None:
+def test_login_returns_503_when_system_uninitialized(client: TestClient, session: Session) -> None:
+    # Remove all users to simulate uninitialized system
+    for user_session in session.exec(select(UserSession)).all():
+        session.delete(user_session)
+    for user in session.exec(select(User)).all():
+        session.delete(user)
+    session.commit()
+
     response = client.post(
         "/api/auth/login",
         json={"username": "admin", "password": "timesand123"},

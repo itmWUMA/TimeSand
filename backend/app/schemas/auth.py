@@ -41,5 +41,9 @@ class UpdateUserRequest(BaseModel):
     is_active: bool | None = None
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=64)
+
+
 class OkResponse(BaseModel):
     ok: bool

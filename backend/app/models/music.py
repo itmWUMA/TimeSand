@@ -20,6 +20,7 @@ class Music(SQLModel, table=True):
     mime_type: str
     uploaded_at: datetime = Field(default_factory=utc_now, index=True)
     is_demo: bool = False
+    owner_id: int = Field(foreign_key="user.id", index=True)
 
 
 class Playlist(SQLModel, table=True):
@@ -27,6 +28,7 @@ class Playlist(SQLModel, table=True):
     name: str
     is_default: bool = False
     created_at: datetime = Field(default_factory=utc_now)
+    owner_id: int = Field(foreign_key="user.id", index=True)
 
 
 class PlaylistMusic(SQLModel, table=True):

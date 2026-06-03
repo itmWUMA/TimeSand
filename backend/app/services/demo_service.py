@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 from app.models.album import Album, PhotoAlbum, PhotoTag
 from app.models.music import AlbumPlaylist, Music, Playlist, PlaylistMusic
 from app.models.photo import Photo
+from app.models.user import User, UserRole
 from app.services import music_service, photo_service
 
 DEMO_DATA_DIR = Path(__file__).resolve().parent.parent / "demo_data"
@@ -44,6 +45,12 @@ def seed_demo_data(session: Session) -> None:
     if existing_photo_id is not None:
         return
 
+    admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+    if admin is None:
+        return
+
+    owner_id = admin.id
+
     metadata = _load_metadata()
     today = date.today()
     created_photos: list[Photo] = []
@@ -52,6 +59,7 @@ def seed_demo_data(session: Session) -> None:
     demo_album = Album(
         name=DEMO_ALBUM_NAME,
         description=DEMO_ALBUM_DESCRIPTION,
+        owner_id=owner_id,
     )
     session.add(demo_album)
     session.flush()
@@ -60,6 +68,7 @@ def seed_demo_data(session: Session) -> None:
         for photo_meta in metadata["photos"]:
             photo = _create_demo_photo(photo_meta, today=today)
             photo.is_demo = True
+            photo.owner_id = owner_id
             session.add(photo)
             session.flush()
             created_photos.append(photo)
@@ -67,13 +76,14 @@ def seed_demo_data(session: Session) -> None:
             if photo.id is not None and demo_album.id is not None:
                 session.add(PhotoAlbum(photo_id=photo.id, album_id=demo_album.id))
 
-        demo_playlist = Playlist(name=DEMO_PLAYLIST_NAME, is_default=False)
+        demo_playlist = Playlist(name=DEMO_PLAYLIST_NAME, is_default=False, owner_id=owner_id)
         session.add(demo_playlist)
         session.flush()
 
         for position, music_meta in enumerate(metadata["music"]):
             track = _create_demo_track(music_meta)
             track.is_demo = True
+            track.owner_id = owner_id
             session.add(track)
             session.flush()
             created_tracks.append(track)

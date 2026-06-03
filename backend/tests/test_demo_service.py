@@ -10,9 +10,11 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.core.config import settings
+from app.core.security import hash_password
 from app.models.album import Album
 from app.models.music import Music, Playlist
 from app.models.photo import Photo
+from app.models.user import User, UserRole
 from app.services import demo_service
 
 
@@ -27,6 +29,24 @@ def write_demo_audio(path: Path, duration_seconds: int = 1) -> None:
         wav_file.setsampwidth(2)
         wav_file.setframerate(44_100)
         wav_file.writeframes(b"\x00\x00" * 44_100 * duration_seconds)
+
+
+def create_test_admin(session: Session) -> User:
+    existing = session.exec(select(User).where(User.username == "admin")).first()
+    if existing is not None:
+        return existing
+
+    admin = User(
+        username="admin",
+        display_name="Admin",
+        password_hash=hash_password("testpassword123"),
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    session.add(admin)
+    session.commit()
+    session.refresh(admin)
+    return admin
 
 
 def prepare_demo_fixture(demo_data_dir: Path) -> None:
@@ -67,6 +87,7 @@ def test_seed_creates_demo_data(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    create_test_admin(session)
     demo_data_dir = tmp_path / "demo_data"
     prepare_demo_fixture(demo_data_dir)
     monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
@@ -106,6 +127,7 @@ def test_seed_creates_demo_data(
 
 
 def test_seed_is_idempotent(session: Session, tmp_path: Path, monkeypatch) -> None:
+    create_test_admin(session)
     demo_data_dir = tmp_path / "demo_data"
     prepare_demo_fixture(demo_data_dir)
     monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
@@ -121,6 +143,7 @@ def test_seed_is_idempotent(session: Session, tmp_path: Path, monkeypatch) -> No
 
 
 def test_seed_skips_when_photos_exist(session: Session, tmp_path: Path, monkeypatch) -> None:
+    create_test_admin(session)
     demo_data_dir = tmp_path / "demo_data"
     prepare_demo_fixture(demo_data_dir)
     monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
@@ -135,6 +158,7 @@ def test_seed_skips_when_photos_exist(session: Session, tmp_path: Path, monkeypa
             height=1,
             mime_type="image/jpeg",
             is_demo=False,
+            owner_id=1,
         ),
     )
     session.commit()
@@ -148,6 +172,7 @@ def test_seed_skips_when_photos_exist(session: Session, tmp_path: Path, monkeypa
 
 
 def test_cleanup_removes_demo_data(session: Session, tmp_path: Path, monkeypatch) -> None:
+    create_test_admin(session)
     demo_data_dir = tmp_path / "demo_data"
     prepare_demo_fixture(demo_data_dir)
     monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
@@ -179,17 +204,18 @@ def test_cleanup_removes_demo_data(session: Session, tmp_path: Path, monkeypatch
 
 
 def test_delete_demo_endpoint(
-    client: TestClient,
+    auth_client: TestClient,
     session: Session,
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    create_test_admin(session)
     demo_data_dir = tmp_path / "demo_data"
     prepare_demo_fixture(demo_data_dir)
     monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
     demo_service.seed_demo_data(session)
 
-    response = client.delete("/api/demo")
+    response = auth_client.delete("/api/demo")
 
     assert response.status_code == 200
     assert response.json() == {"removed": 9}

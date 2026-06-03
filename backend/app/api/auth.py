@@ -23,6 +23,7 @@ from app.schemas.auth import (
     OkResponse,
     PasswordChangeRequest,
     RegisterUserRequest,
+    UpdateProfileRequest,
     UserResponse,
 )
 
@@ -144,6 +145,23 @@ def logout(
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(get_current_user)) -> UserResponse:
     return to_user_response(user)
+
+
+@router.put("/me", response_model=UserResponse)
+def update_profile(
+    payload: UpdateProfileRequest,
+    user: User = Depends(get_current_user),
+    session: DbSession = Depends(get_session),
+) -> UserResponse:
+    db_user = session.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    db_user.display_name = payload.display_name.strip()
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return to_user_response(db_user)
 
 
 @router.put("/password", response_model=OkResponse)

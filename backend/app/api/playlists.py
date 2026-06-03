@@ -7,8 +7,10 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
+from app.core.auth import get_current_active_user
 from app.core.database import get_session
 from app.models.music import AlbumPlaylist, Music, Playlist, PlaylistMusic
+from app.models.user import User
 
 router = APIRouter(prefix="/api/playlists", tags=["playlists"])
 
@@ -50,17 +52,21 @@ def normalize_playlist_name(value: str) -> str:
     return normalized
 
 
-def get_playlist_or_404(playlist_id: int, session: Session) -> Playlist:
+def get_playlist_or_404(playlist_id: int, session: Session, current_user: User) -> Playlist:
     playlist = session.get(Playlist, playlist_id)
     if playlist is None:
         raise HTTPException(status_code=404, detail="Playlist not found")
+    if playlist.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return playlist
 
 
-def get_music_or_404(music_id: int, session: Session) -> Music:
+def get_music_or_404(music_id: int, session: Session, current_user: User) -> Music:
     track = session.get(Music, music_id)
     if track is None:
         raise HTTPException(status_code=404, detail="Music not found")
+    if track.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
     return track
 
 
@@ -106,12 +112,16 @@ def compact_playlist_positions(session: Session, playlist_id: int) -> None:
         session.add(link)
 
 
-def assert_music_ids_exist(track_ids: list[int], session: Session) -> None:
+def assert_music_ids_exist(track_ids: list[int], session: Session, current_user: User) -> None:
     if not track_ids:
         return
 
     unique_ids = list(dict.fromkeys(track_ids))
-    existing_ids = set(session.exec(select(Music.id).where(Music.id.in_(unique_ids))).all())
+    existing_ids = set(
+        session.exec(
+            select(Music.id).where(Music.id.in_(unique_ids), Music.owner_id == current_user.id)
+        ).all()
+    )
     missing_ids = [music_id for music_id in unique_ids if music_id not in existing_ids]
     if missing_ids:
         raise HTTPException(status_code=404, detail="Music not found")
@@ -120,9 +130,14 @@ def assert_music_ids_exist(track_ids: list[int], session: Session) -> None:
 @router.post("", response_model=PlaylistResponse, status_code=201)
 def create_playlist(
     request: PlaylistCreateRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> PlaylistResponse:
-    playlist = Playlist(name=normalize_playlist_name(request.name), is_default=False)
+    playlist = Playlist(
+        name=normalize_playlist_name(request.name),
+        is_default=False,
+        owner_id=current_user.id,
+    )
     session.add(playlist)
     session.commit()
     session.refresh(playlist)
@@ -131,9 +146,14 @@ def create_playlist(
 
 
 @router.get("", response_model=ListPlaylistsResponse)
-def list_playlists(session: Session = Depends(get_session)) -> ListPlaylistsResponse:
+def list_playlists(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> ListPlaylistsResponse:
     playlists = session.exec(
-        select(Playlist).order_by(Playlist.is_default.desc(), Playlist.id.desc())
+        select(Playlist)
+        .where(Playlist.owner_id == current_user.id)
+        .order_by(Playlist.is_default.desc(), Playlist.id.desc())
     ).all()
     return ListPlaylistsResponse(
         items=[serialize_playlist(session, playlist, include_tracks=False) for playlist in playlists]
@@ -141,8 +161,12 @@ def list_playlists(session: Session = Depends(get_session)) -> ListPlaylistsResp
 
 
 @router.get("/{playlist_id}", response_model=PlaylistResponse)
-def get_playlist(playlist_id: int, session: Session = Depends(get_session)) -> PlaylistResponse:
-    playlist = get_playlist_or_404(playlist_id, session)
+def get_playlist(
+    playlist_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> PlaylistResponse:
+    playlist = get_playlist_or_404(playlist_id, session, current_user)
     return serialize_playlist(session, playlist, include_tracks=True)
 
 
@@ -150,12 +174,13 @@ def get_playlist(playlist_id: int, session: Session = Depends(get_session)) -> P
 def update_playlist(
     playlist_id: int,
     request: PlaylistUpdateRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> PlaylistResponse:
-    playlist = get_playlist_or_404(playlist_id, session)
+    playlist = get_playlist_or_404(playlist_id, session, current_user)
 
     new_order = list(dict.fromkeys(request.track_ids))
-    assert_music_ids_exist(new_order, session)
+    assert_music_ids_exist(new_order, session, current_user)
 
     session.exec(delete(PlaylistMusic).where(PlaylistMusic.playlist_id == playlist_id))
     for position, music_id in enumerate(new_order):
@@ -170,8 +195,12 @@ def update_playlist(
 
 
 @router.delete("/{playlist_id}", response_model=OkResponse)
-def delete_playlist(playlist_id: int, session: Session = Depends(get_session)) -> OkResponse:
-    playlist = get_playlist_or_404(playlist_id, session)
+def delete_playlist(
+    playlist_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    playlist = get_playlist_or_404(playlist_id, session, current_user)
     if playlist.is_default:
         raise HTTPException(status_code=400, detail="Default playlist cannot be deleted")
 
@@ -187,10 +216,11 @@ def delete_playlist(playlist_id: int, session: Session = Depends(get_session)) -
 def add_track_to_playlist(
     playlist_id: int,
     request: PlaylistTrackRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    get_playlist_or_404(playlist_id, session)
-    get_music_or_404(request.music_id, session)
+    get_playlist_or_404(playlist_id, session, current_user)
+    get_music_or_404(request.music_id, session, current_user)
 
     existing_link = session.exec(
         select(PlaylistMusic).where(
@@ -222,9 +252,10 @@ def add_track_to_playlist(
 def remove_track_from_playlist(
     playlist_id: int,
     music_id: int,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    get_playlist_or_404(playlist_id, session)
+    get_playlist_or_404(playlist_id, session, current_user)
 
     link = session.exec(
         select(PlaylistMusic).where(

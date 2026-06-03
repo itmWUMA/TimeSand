@@ -26,6 +26,11 @@ export async function changePassword(payload: PasswordChangeRequest): Promise<vo
   await api.put('/auth/password', payload)
 }
 
+export async function updateProfile(payload: { display_name: string }): Promise<User> {
+  const response = await api.put<User>('/auth/me', payload)
+  return response.data
+}
+
 export async function registerUser(payload: RegisterUserRequest): Promise<User> {
   const response = await api.post<User>('/auth/register', payload)
   return response.data

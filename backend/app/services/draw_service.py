@@ -81,10 +81,11 @@ def month_day_ordinal(value: date) -> int:
 def query_draw_pool(
     session: Session,
     *,
+    current_user_id: int,
     album_id: int | None = None,
     exclude_ids: list[int] | None = None,
 ) -> list[Photo]:
-    query = select(Photo)
+    query = select(Photo).where(Photo.owner_id == current_user_id)
 
     if album_id is not None:
         query = query.join(PhotoAlbum, PhotoAlbum.photo_id == Photo.id).where(
@@ -134,17 +135,21 @@ def choose_weighted_photo(
 def draw_photo(
     session: Session,
     *,
+    current_user_id: int,
     album_id: int | None = None,
     exclude_ids: list[int] | None = None,
     today: date | None = None,
     weight_mode: DrawWeightMode = "standard",
     nearby_days: int = 3,
 ) -> tuple[Photo, str | None]:
-    if album_id is not None and session.get(Album, album_id) is None:
-        raise AlbumNotFoundError
+    if album_id is not None:
+        album = session.get(Album, album_id)
+        if album is None or album.owner_id != current_user_id:
+            raise AlbumNotFoundError
 
     candidates = query_draw_pool(
         session,
+        current_user_id=current_user_id,
         album_id=album_id,
         exclude_ids=exclude_ids,
     )
@@ -157,12 +162,14 @@ def draw_photo(
         )
 
     if exclude_ids:
-        unfiltered_candidates = query_draw_pool(session, album_id=album_id, exclude_ids=None)
+        unfiltered_candidates = query_draw_pool(
+            session, current_user_id=current_user_id, album_id=album_id, exclude_ids=None
+        )
         if unfiltered_candidates:
             raise DrawPoolEmptyError
 
     raise NoAvailablePhotosError
 
 
-def count_available_photos(session: Session) -> int:
-    return len(query_draw_pool(session))
+def count_available_photos(session: Session, *, current_user_id: int) -> int:
+    return len(query_draw_pool(session, current_user_id=current_user_id))

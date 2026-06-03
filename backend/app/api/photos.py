@@ -8,9 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy import Select, delete, func
 from sqlmodel import Session, select
 
+from app.core.auth import get_current_active_user
 from app.core.database import get_session
 from app.models.album import Album, PhotoAlbum, PhotoTag, utc_now
 from app.models.photo import Photo
+from app.models.user import User
 from app.services import photo_service
 from app.services.photo_service import InvalidImageFileError, InvalidPhotoUploadError
 
@@ -37,8 +39,12 @@ class DeletePhotoResponse(BaseModel):
     ok: bool
 
 
-def build_filtered_photos_query(album_id: int | None, tag_id: int | None) -> Select[tuple[Photo]]:
-    query = select(Photo)
+def build_filtered_photos_query(
+    album_id: int | None,
+    tag_id: int | None,
+    current_user: User,
+) -> Select[tuple[Photo]]:
+    query = select(Photo).where(Photo.owner_id == current_user.id)
 
     if album_id is not None:
         query = query.join(PhotoAlbum, PhotoAlbum.photo_id == Photo.id).where(
@@ -56,10 +62,12 @@ def build_filtered_photos_query(album_id: int | None, tag_id: int | None) -> Sel
     return query
 
 
-def get_photo_or_404(photo_id: int, session: Session) -> Photo:
+def get_photo_or_404(photo_id: int, session: Session, current_user: User) -> Photo:
     photo = session.get(Photo, photo_id)
     if photo is None:
         raise HTTPException(status_code=404, detail="Photo not found")
+    if photo.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     return photo
 
@@ -83,7 +91,8 @@ async def read_upload_file_with_limit(upload_file: UploadFile, max_bytes: int | 
 @router.post("/upload", response_model=UploadPhotosResponse, status_code=201)
 async def upload_photos(
     files: list[UploadFile] | None = File(default=None),
-    session: Session = Depends(get_session)
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
 ) -> UploadPhotosResponse:
     uploaded: list[Photo] = []
     invalid_image_detected = False
@@ -95,7 +104,7 @@ async def upload_photos(
                 photo = photo_service.create_photo_from_upload(
                     filename=upload_file.filename,
                     mime_type=upload_file.content_type,
-                    data=file_bytes
+                    data=file_bytes,
                 )
             except InvalidPhotoUploadError as exc:
                 if isinstance(exc, InvalidImageFileError):
@@ -104,6 +113,7 @@ async def upload_photos(
             finally:
                 await upload_file.close()
 
+            photo.owner_id = current_user.id
             session.add(photo)
             uploaded.append(photo)
 
@@ -131,12 +141,15 @@ def list_photos(
     page_size: int = Query(default=20, ge=1, le=100),
     album_id: int | None = Query(default=None, ge=1),
     tag_id: int | None = Query(default=None, ge=1),
-    session: Session = Depends(get_session)
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
 ) -> ListPhotosResponse:
-    base_query = build_filtered_photos_query(album_id=album_id, tag_id=tag_id)
+    base_query = build_filtered_photos_query(album_id=album_id, tag_id=tag_id, current_user=current_user)
 
     if album_id is None and tag_id is None:
-        total = session.exec(select(func.count()).select_from(Photo)).one()
+        total = session.exec(
+            select(func.count()).select_from(Photo).where(Photo.owner_id == current_user.id)
+        ).one()
     else:
         total = session.exec(
             select(func.count()).select_from(base_query.order_by(None).subquery())
@@ -152,13 +165,21 @@ def list_photos(
 
 
 @router.get("/{photo_id}", response_model=Photo)
-def get_photo(photo_id: int, session: Session = Depends(get_session)) -> Photo:
-    return get_photo_or_404(photo_id, session)
+def get_photo(
+    photo_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> Photo:
+    return get_photo_or_404(photo_id, session, current_user)
 
 
 @router.delete("/{photo_id}", response_model=DeletePhotoResponse)
-def delete_photo(photo_id: int, session: Session = Depends(get_session)) -> DeletePhotoResponse:
-    photo = get_photo_or_404(photo_id, session)
+def delete_photo(
+    photo_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> DeletePhotoResponse:
+    photo = get_photo_or_404(photo_id, session, current_user)
 
     albums = session.exec(select(Album).where(Album.cover_photo_id == photo_id)).all()
     for album in albums:
@@ -177,8 +198,12 @@ def delete_photo(photo_id: int, session: Session = Depends(get_session)) -> Dele
 
 
 @router.get("/{photo_id}/file")
-def get_photo_file(photo_id: int, session: Session = Depends(get_session)) -> FileResponse:
-    photo = get_photo_or_404(photo_id, session)
+def get_photo_file(
+    photo_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> FileResponse:
+    photo = get_photo_or_404(photo_id, session, current_user)
     file_path = photo_service.get_original_path(photo.file_path)
 
     if not file_path.exists():
@@ -188,13 +213,17 @@ def get_photo_file(photo_id: int, session: Session = Depends(get_session)) -> Fi
         path=file_path,
         media_type=photo.mime_type,
         filename=photo.filename,
-        headers=PHOTO_CACHE_HEADERS
+        headers=PHOTO_CACHE_HEADERS,
     )
 
 
 @router.get("/{photo_id}/thumbnail")
-def get_photo_thumbnail(photo_id: int, session: Session = Depends(get_session)) -> FileResponse:
-    photo = get_photo_or_404(photo_id, session)
+def get_photo_thumbnail(
+    photo_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> FileResponse:
+    photo = get_photo_or_404(photo_id, session, current_user)
     thumbnail_path = photo_service.get_thumbnail_path(photo.thumbnail_path)
 
     if not thumbnail_path.exists():
@@ -204,5 +233,5 @@ def get_photo_thumbnail(photo_id: int, session: Session = Depends(get_session)) 
         path=thumbnail_path,
         media_type=photo.mime_type,
         filename=Path(photo.thumbnail_path).name,
-        headers=PHOTO_CACHE_HEADERS
+        headers=PHOTO_CACHE_HEADERS,
     )

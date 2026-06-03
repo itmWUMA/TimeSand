@@ -57,8 +57,8 @@ def build_heic_bytes(width: int = 800, height: int = 600, with_exif: bool = True
     return buffer.getvalue()
 
 
-def upload_photo(client: TestClient) -> dict:
-    response = client.post(
+def upload_photo(auth_client: TestClient) -> dict:
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.jpg", build_jpeg_bytes(), "image/jpeg"))]
     )
@@ -67,8 +67,8 @@ def upload_photo(client: TestClient) -> dict:
     return response.json()["photos"][0]
 
 
-def create_album(client: TestClient, name: str = "Album") -> dict:
-    response = client.post(
+def create_album(auth_client: TestClient, name: str = "Album") -> dict:
+    response = auth_client.post(
         "/api/albums",
         json={"name": name, "description": None},
     )
@@ -76,16 +76,16 @@ def create_album(client: TestClient, name: str = "Album") -> dict:
     return response.json()
 
 
-def add_photos_to_album(client: TestClient, album_id: int, photo_ids: list[int]) -> None:
-    response = client.post(
+def add_photos_to_album(auth_client: TestClient, album_id: int, photo_ids: list[int]) -> None:
+    response = auth_client.post(
         f"/api/albums/{album_id}/photos",
         json={"photo_ids": photo_ids},
     )
     assert response.status_code == 200
 
 
-def test_upload_single_creates_files_and_db_record(client: TestClient) -> None:
-    response = client.post(
+def test_upload_single_creates_files_and_db_record(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.jpg", build_jpeg_bytes(), "image/jpeg"))]
     )
@@ -110,8 +110,8 @@ def test_upload_single_creates_files_and_db_record(client: TestClient) -> None:
         assert max(image.size) <= 400
 
 
-def test_upload_multiple_files(client: TestClient) -> None:
-    response = client.post(
+def test_upload_multiple_files(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/photos/upload",
         files=[
             ("files", ("photo-1.jpg", build_jpeg_bytes(), "image/jpeg")),
@@ -123,8 +123,8 @@ def test_upload_multiple_files(client: TestClient) -> None:
     assert len(response.json()["photos"]) == 2
 
 
-def test_upload_rejects_non_image(client: TestClient) -> None:
-    response = client.post(
+def test_upload_rejects_non_image(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("notes.txt", b"plain text", "text/plain"))]
     )
@@ -137,10 +137,10 @@ def test_upload_rejects_non_image(client: TestClient) -> None:
     }
 
 
-def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_upload_rejects_oversized_file(auth_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(photos_api, "MAX_UPLOAD_BYTES", 1024)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("too-large.jpg", build_jpeg_bytes(), "image/jpeg"))]
     )
@@ -153,10 +153,10 @@ def test_upload_rejects_oversized_file(client: TestClient, monkeypatch: pytest.M
     }
 
 
-def test_upload_heic_converts_to_jpeg(client: TestClient) -> None:
+def test_upload_heic_converts_to_jpeg(auth_client: TestClient) -> None:
     heic_data = build_heic_bytes()
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.heic", heic_data, "image/heic"))]
     )
@@ -172,10 +172,10 @@ def test_upload_heic_converts_to_jpeg(client: TestClient) -> None:
     assert photo["height"] == 600
 
 
-def test_upload_heic_preserves_exif(client: TestClient) -> None:
+def test_upload_heic_preserves_exif(auth_client: TestClient) -> None:
     heic_data = build_heic_bytes(with_exif=True)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("exif.heic", heic_data, "image/heic"))]
     )
@@ -185,10 +185,10 @@ def test_upload_heic_preserves_exif(client: TestClient) -> None:
     assert photo["taken_at"] is not None
 
 
-def test_upload_heif_mime_type_accepted(client: TestClient) -> None:
+def test_upload_heif_mime_type_accepted(auth_client: TestClient) -> None:
     heic_data = build_heic_bytes(with_exif=False)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.heif", heic_data, "image/heif"))]
     )
@@ -198,10 +198,10 @@ def test_upload_heif_mime_type_accepted(client: TestClient) -> None:
     assert photo["mime_type"] == "image/jpeg"
 
 
-def test_upload_heic_sequence_mime_type_accepted(client: TestClient) -> None:
+def test_upload_heic_sequence_mime_type_accepted(auth_client: TestClient) -> None:
     heic_data = build_heic_bytes(with_exif=False)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.heic", heic_data, "image/heic-sequence"))]
     )
@@ -212,10 +212,10 @@ def test_upload_heic_sequence_mime_type_accepted(client: TestClient) -> None:
     assert photo["file_path"].endswith(".jpg")
 
 
-def test_upload_heic_octet_stream_with_extension_accepted(client: TestClient) -> None:
+def test_upload_heic_octet_stream_with_extension_accepted(auth_client: TestClient) -> None:
     heic_data = build_heic_bytes(with_exif=False)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("IMG_1205.HEIC", heic_data, "application/octet-stream"))]
     )
@@ -269,12 +269,12 @@ def test_run_migrations_creates_data_directory(
     test_engine.dispose()
 
 
-def test_get_photos_returns_paginated_response(client: TestClient) -> None:
-    upload_photo(client)
-    upload_photo(client)
-    upload_photo(client)
+def test_get_photos_returns_paginated_response(auth_client: TestClient) -> None:
+    upload_photo(auth_client)
+    upload_photo(auth_client)
+    upload_photo(auth_client)
 
-    response = client.get("/api/photos", params={"page": 1, "page_size": 2})
+    response = auth_client.get("/api/photos", params={"page": 1, "page_size": 2})
 
     assert response.status_code == 200
     payload = response.json()
@@ -284,11 +284,11 @@ def test_get_photos_returns_paginated_response(client: TestClient) -> None:
     assert payload["page_size"] == 2
 
 
-def test_get_photo_by_id_and_404(client: TestClient) -> None:
-    photo = upload_photo(client)
+def test_get_photo_by_id_and_404(auth_client: TestClient) -> None:
+    photo = upload_photo(auth_client)
 
-    get_response = client.get(f"/api/photos/{photo['id']}")
-    missing_response = client.get("/api/photos/999999")
+    get_response = auth_client.get(f"/api/photos/{photo['id']}")
+    missing_response = auth_client.get("/api/photos/999999")
 
     assert get_response.status_code == 200
     assert get_response.json()["id"] == photo["id"]
@@ -300,11 +300,11 @@ def test_get_photo_by_id_and_404(client: TestClient) -> None:
     }
 
 
-def test_get_file_and_thumbnail(client: TestClient) -> None:
-    photo = upload_photo(client)
+def test_get_file_and_thumbnail(auth_client: TestClient) -> None:
+    photo = upload_photo(auth_client)
 
-    file_response = client.get(f"/api/photos/{photo['id']}/file")
-    thumbnail_response = client.get(f"/api/photos/{photo['id']}/thumbnail")
+    file_response = auth_client.get(f"/api/photos/{photo['id']}/file")
+    thumbnail_response = auth_client.get(f"/api/photos/{photo['id']}/thumbnail")
 
     assert file_response.status_code == 200
     assert thumbnail_response.status_code == 200
@@ -320,8 +320,8 @@ def test_get_file_and_thumbnail(client: TestClient) -> None:
     assert len(thumbnail_response.content) > 0
 
 
-def test_delete_photo_removes_db_record_and_files(client: TestClient) -> None:
-    photo = upload_photo(client)
+def test_delete_photo_removes_db_record_and_files(auth_client: TestClient) -> None:
+    photo = upload_photo(auth_client)
 
     original = settings.data_dir / "photos" / "originals" / photo["file_path"]
     thumbnail = settings.data_dir / "photos" / "thumbnails" / photo["thumbnail_path"]
@@ -329,38 +329,38 @@ def test_delete_photo_removes_db_record_and_files(client: TestClient) -> None:
     assert original.exists()
     assert thumbnail.exists()
 
-    delete_response = client.delete(f"/api/photos/{photo['id']}")
+    delete_response = auth_client.delete(f"/api/photos/{photo['id']}")
 
     assert delete_response.status_code == 200
     assert delete_response.json() == {"ok": True}
     assert not original.exists()
     assert not thumbnail.exists()
 
-    get_response = client.get(f"/api/photos/{photo['id']}")
+    get_response = auth_client.get(f"/api/photos/{photo['id']}")
     assert get_response.status_code == 404
 
 
-def test_delete_photo_cleans_album_links_and_counts(client: TestClient) -> None:
-    target_photo = upload_photo(client)
-    retained_photo = upload_photo(client)
-    first_album = create_album(client, "Album One")
-    second_album = create_album(client, "Album Two")
+def test_delete_photo_cleans_album_links_and_counts(auth_client: TestClient) -> None:
+    target_photo = upload_photo(auth_client)
+    retained_photo = upload_photo(auth_client)
+    first_album = create_album(auth_client, "Album One")
+    second_album = create_album(auth_client, "Album Two")
 
-    add_photos_to_album(client, first_album["id"], [target_photo["id"], retained_photo["id"]])
-    add_photos_to_album(client, second_album["id"], [target_photo["id"]])
+    add_photos_to_album(auth_client, first_album["id"], [target_photo["id"], retained_photo["id"]])
+    add_photos_to_album(auth_client, second_album["id"], [target_photo["id"]])
 
-    delete_response = client.delete(f"/api/photos/{target_photo['id']}")
+    delete_response = auth_client.delete(f"/api/photos/{target_photo['id']}")
 
     assert delete_response.status_code == 200
     assert delete_response.json() == {"ok": True}
 
-    first_album_payload = client.get(f"/api/albums/{first_album['id']}").json()
-    second_album_payload = client.get(f"/api/albums/{second_album['id']}").json()
-    first_album_photo_list = client.get(
+    first_album_payload = auth_client.get(f"/api/albums/{first_album['id']}").json()
+    second_album_payload = auth_client.get(f"/api/albums/{second_album['id']}").json()
+    first_album_photo_list = auth_client.get(
         "/api/photos",
         params={"album_id": first_album["id"], "page_size": 100},
     ).json()
-    second_album_photo_list = client.get(
+    second_album_photo_list = auth_client.get(
         "/api/photos",
         params={"album_id": second_album["id"], "page_size": 100},
     ).json()
@@ -372,12 +372,12 @@ def test_delete_photo_cleans_album_links_and_counts(client: TestClient) -> None:
     assert {item["id"] for item in first_album_photo_list["items"]} == {retained_photo["id"]}
 
 
-def test_delete_photo_clears_cover_photo_reference(client: TestClient) -> None:
-    cover_photo = upload_photo(client)
-    album = create_album(client, "Cover Album")
-    add_photos_to_album(client, album["id"], [cover_photo["id"]])
+def test_delete_photo_clears_cover_photo_reference(auth_client: TestClient) -> None:
+    cover_photo = upload_photo(auth_client)
+    album = create_album(auth_client, "Cover Album")
+    add_photos_to_album(auth_client, album["id"], [cover_photo["id"]])
 
-    set_cover_response = client.put(
+    set_cover_response = auth_client.put(
         f"/api/albums/{album['id']}",
         json={
             "name": album["name"],
@@ -387,21 +387,21 @@ def test_delete_photo_clears_cover_photo_reference(client: TestClient) -> None:
     )
     assert set_cover_response.status_code == 200
 
-    delete_response = client.delete(f"/api/photos/{cover_photo['id']}")
+    delete_response = auth_client.delete(f"/api/photos/{cover_photo['id']}")
     assert delete_response.status_code == 200
 
-    album_payload = client.get(f"/api/albums/{album['id']}").json()
+    album_payload = auth_client.get(f"/api/albums/{album['id']}").json()
     assert album_payload["cover_photo_id"] is None
     assert album_payload["cover_photo"] is None
 
 
-def test_upload_returns_400_when_thumbnail_generation_fails(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_upload_returns_400_when_thumbnail_generation_fails(auth_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     def fail_thumbnail(*_args, **_kwargs):
         raise ValueError("broken tiny image")
 
     monkeypatch.setattr(Image.Image, "thumbnail", fail_thumbnail)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("tiny.jpg", build_jpeg_bytes(width=1, height=1, with_exif=False), "image/jpeg"))],
     )
@@ -414,13 +414,13 @@ def test_upload_returns_400_when_thumbnail_generation_fails(client: TestClient, 
     }
 
 
-def test_upload_returns_400_when_exif_extraction_fails(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_upload_returns_400_when_exif_extraction_fails(auth_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     def fail_extract(*_args, **_kwargs):
         raise ValueError("invalid exif payload")
 
     monkeypatch.setattr(photo_service, "extract_exif_metadata", fail_extract)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("tiny.jpg", build_jpeg_bytes(width=1, height=1, with_exif=False), "image/jpeg"))],
     )

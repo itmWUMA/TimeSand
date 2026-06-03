@@ -17,7 +17,8 @@ def test_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     data_dir = tmp_path / "data"
     monkeypatch.setattr(settings, "data_dir", data_dir)
     monkeypatch.setattr(settings, "enable_demo_seed", False)
-    monkeypatch.setattr(settings, "admin_password", None)
+    monkeypatch.setattr(settings, "admin_password", "testpassword123")
+    monkeypatch.setattr(settings, "admin_username", "admin")
     return data_dir
 
 
@@ -51,4 +52,15 @@ def session(test_engine) -> Generator[Session, None, None]:
 @pytest.fixture
 def client(test_engine) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def auth_client(test_engine) -> Generator[TestClient, None, None]:
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/auth/login",
+            json={"username": "admin", "password": "testpassword123"},
+        )
+        assert response.status_code == 200
         yield test_client

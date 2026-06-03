@@ -58,6 +58,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateDisplayName(displayName: string): Promise<User> {
+    const updated = await authService.updateProfile({ display_name: displayName })
+    setUser(updated)
+    return updated
+  }
+
   async function logout(): Promise<void> {
     try {
       await authService.logout()
@@ -78,6 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuth,
     fetchMe,
     login,
+    updateDisplayName,
     logout,
   }
 })

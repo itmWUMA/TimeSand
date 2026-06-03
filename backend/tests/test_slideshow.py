@@ -15,6 +15,7 @@ def create_photo(
     name: str,
     taken_at: datetime | None,
     uploaded_at: datetime,
+    owner_id: int = 1,
 ) -> Photo:
     photo = Photo(
         filename=f"{name}.jpg",
@@ -26,6 +27,7 @@ def create_photo(
         taken_at=taken_at,
         uploaded_at=uploaded_at,
         mime_type="image/jpeg",
+        owner_id=owner_id,
     )
     session.add(photo)
     session.commit()
@@ -33,15 +35,15 @@ def create_photo(
     return photo
 
 
-def create_album(session: Session, name: str = "Memories") -> Album:
-    album = Album(name=name, description=None)
+def create_album(session: Session, name: str = "Memories", owner_id: int = 1) -> Album:
+    album = Album(name=name, description=None, owner_id=owner_id)
     session.add(album)
     session.commit()
     session.refresh(album)
     return album
 
 
-def test_get_slideshow_photos_returns_array(client: TestClient, session: Session) -> None:
+def test_get_slideshow_photos_returns_array(auth_client: TestClient, session: Session) -> None:
     first = create_photo(
         session,
         name="first",
@@ -55,7 +57,7 @@ def test_get_slideshow_photos_returns_array(client: TestClient, session: Session
         uploaded_at=datetime(2026, 1, 2, 12, 0, tzinfo=timezone.utc),
     )
 
-    response = client.get("/api/slideshow/photos")
+    response = auth_client.get("/api/slideshow/photos")
 
     assert response.status_code == 200
     payload = response.json()
@@ -63,7 +65,7 @@ def test_get_slideshow_photos_returns_array(client: TestClient, session: Session
     assert {item["id"] for item in payload["photos"]} == {first.id, second.id}
 
 
-def test_get_slideshow_photos_filters_by_album(client: TestClient, session: Session) -> None:
+def test_get_slideshow_photos_filters_by_album(auth_client: TestClient, session: Session) -> None:
     in_album = create_photo(
         session,
         name="in-album",
@@ -81,7 +83,7 @@ def test_get_slideshow_photos_filters_by_album(client: TestClient, session: Sess
     session.add(PhotoAlbum(photo_id=in_album.id or 0, album_id=album.id or 0))
     session.commit()
 
-    response = client.get("/api/slideshow/photos", params={"album_id": album.id})
+    response = auth_client.get("/api/slideshow/photos", params={"album_id": album.id})
 
     assert response.status_code == 200
     payload = response.json()
@@ -89,7 +91,7 @@ def test_get_slideshow_photos_filters_by_album(client: TestClient, session: Sess
     assert all(item["id"] != outside_album.id for item in payload["photos"])
 
 
-def test_get_slideshow_photos_chronological_order(client: TestClient, session: Session) -> None:
+def test_get_slideshow_photos_chronological_order(auth_client: TestClient, session: Session) -> None:
     latest = create_photo(
         session,
         name="latest",
@@ -109,7 +111,7 @@ def test_get_slideshow_photos_chronological_order(client: TestClient, session: S
         uploaded_at=datetime(2026, 2, 1, 0, 0, tzinfo=timezone.utc),
     )
 
-    response = client.get(
+    response = auth_client.get(
         "/api/slideshow/photos",
         params={"order": "chronological", "limit": 10},
     )
@@ -123,7 +125,7 @@ def test_get_slideshow_photos_chronological_order(client: TestClient, session: S
     ]
 
 
-def test_get_slideshow_photos_respects_limit(client: TestClient, session: Session) -> None:
+def test_get_slideshow_photos_respects_limit(auth_client: TestClient, session: Session) -> None:
     for index in range(8):
         create_photo(
             session,
@@ -132,7 +134,7 @@ def test_get_slideshow_photos_respects_limit(client: TestClient, session: Sessio
             uploaded_at=datetime(2026, 1, 1, 0, index, tzinfo=timezone.utc),
         )
 
-    response = client.get(
+    response = auth_client.get(
         "/api/slideshow/photos",
         params={"order": "chronological", "limit": 5},
     )
@@ -142,8 +144,8 @@ def test_get_slideshow_photos_respects_limit(client: TestClient, session: Sessio
     assert len(payload["photos"]) == 5
 
 
-def test_get_slideshow_photos_returns_empty_list_when_no_match(client: TestClient) -> None:
-    response = client.get("/api/slideshow/photos")
+def test_get_slideshow_photos_returns_empty_list_when_no_match(auth_client: TestClient) -> None:
+    response = auth_client.get("/api/slideshow/photos")
 
     assert response.status_code == 200
     assert response.json() == {"photos": []}

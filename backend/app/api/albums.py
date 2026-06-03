@@ -8,10 +8,12 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
+from app.core.auth import get_current_active_user
 from app.core.database import get_session
 from app.models.album import Album, PhotoAlbum, utc_now
 from app.models.music import AlbumPlaylist, Playlist
 from app.models.photo import Photo
+from app.models.user import User
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
 ALBUM_NAME_MAX_LENGTH = 80
@@ -57,10 +59,12 @@ class SetAlbumPlaylistRequest(BaseModel):
     playlist_id: int
 
 
-def get_album_or_404(album_id: int, session: Session) -> Album:
+def get_album_or_404(album_id: int, session: Session, current_user: User) -> Album:
     album = session.get(Album, album_id)
     if album is None:
         raise HTTPException(status_code=404, detail="Album not found")
+    if album.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     return album
 
@@ -84,7 +88,7 @@ def get_album_photo_count(session: Session, album_id: int) -> int:
     ).one()
 
 
-def resolve_album_cover_photo_id(session: Session, album: Album) -> int | None:
+def resolve_album_cover_photo_id(session: Session, album: Album, current_user: User) -> int | None:
     if album.id is None:
         return None
 
@@ -106,15 +110,15 @@ def resolve_album_cover_photo_id(session: Session, album: Album) -> int | None:
     ).first()
 
 
-def serialize_album(session: Session, album: Album) -> AlbumResponse:
-    resolved_cover_photo_id = resolve_album_cover_photo_id(session, album)
+def serialize_album(session: Session, album: Album, current_user: User) -> AlbumResponse:
+    resolved_cover_photo_id = resolve_album_cover_photo_id(session, album, current_user)
     playlist_id = session.exec(
         select(AlbumPlaylist.playlist_id).where(AlbumPlaylist.album_id == (album.id or 0))
     ).first()
     cover_photo = None
     if resolved_cover_photo_id is not None:
         cover = session.get(Photo, resolved_cover_photo_id)
-        if cover is not None:
+        if cover is not None and cover.owner_id == current_user.id:
             version = quote(cover.thumbnail_path, safe="")
             cover_photo = f"/api/photos/{resolved_cover_photo_id}/thumbnail?v={version}"
     photo_count = get_album_photo_count(session, album.id or 0)
@@ -135,47 +139,61 @@ def serialize_album(session: Session, album: Album) -> AlbumResponse:
 @router.post("", response_model=AlbumResponse, status_code=201)
 def create_album(
     request: AlbumCreateRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> AlbumResponse:
     album = Album(
         name=normalize_album_name(request.name),
         description=request.description,
+        owner_id=current_user.id,
     )
     session.add(album)
     session.commit()
     session.refresh(album)
 
-    return serialize_album(session, album)
+    return serialize_album(session, album, current_user)
 
 
 @router.get("", response_model=ListAlbumsResponse)
-def list_albums(session: Session = Depends(get_session)) -> ListAlbumsResponse:
-    albums = session.exec(select(Album).order_by(Album.id.desc())).all()
-    total = session.exec(select(func.count()).select_from(Album)).one()
+def list_albums(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> ListAlbumsResponse:
+    albums = session.exec(
+        select(Album).where(Album.owner_id == current_user.id).order_by(Album.id.desc())
+    ).all()
+    total = session.exec(
+        select(func.count()).select_from(Album).where(Album.owner_id == current_user.id)
+    ).one()
 
     return ListAlbumsResponse(
-        items=[serialize_album(session, album) for album in albums],
+        items=[serialize_album(session, album, current_user) for album in albums],
         total=total,
     )
 
 
 @router.get("/{album_id}", response_model=AlbumResponse)
-def get_album(album_id: int, session: Session = Depends(get_session)) -> AlbumResponse:
-    album = get_album_or_404(album_id, session)
-    return serialize_album(session, album)
+def get_album(
+    album_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> AlbumResponse:
+    album = get_album_or_404(album_id, session, current_user)
+    return serialize_album(session, album, current_user)
 
 
 @router.put("/{album_id}", response_model=AlbumResponse)
 def update_album(
     album_id: int,
     request: AlbumUpdateRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> AlbumResponse:
-    album = get_album_or_404(album_id, session)
+    album = get_album_or_404(album_id, session, current_user)
 
     if request.cover_photo_id is not None:
         photo = session.get(Photo, request.cover_photo_id)
-        if photo is None:
+        if photo is None or photo.owner_id != current_user.id:
             raise HTTPException(status_code=404, detail="Photo not found")
 
         cover_link = session.exec(
@@ -196,12 +214,16 @@ def update_album(
     session.commit()
     session.refresh(album)
 
-    return serialize_album(session, album)
+    return serialize_album(session, album, current_user)
 
 
 @router.delete("/{album_id}", response_model=OkResponse)
-def delete_album(album_id: int, session: Session = Depends(get_session)) -> OkResponse:
-    album = get_album_or_404(album_id, session)
+def delete_album(
+    album_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    album = get_album_or_404(album_id, session, current_user)
 
     session.exec(delete(AlbumPlaylist).where(AlbumPlaylist.album_id == album_id))
     session.exec(delete(PhotoAlbum).where(PhotoAlbum.album_id == album_id))
@@ -215,16 +237,19 @@ def delete_album(album_id: int, session: Session = Depends(get_session)) -> OkRe
 def add_photos_to_album(
     album_id: int,
     request: AddAlbumPhotosRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    get_album_or_404(album_id, session)
+    get_album_or_404(album_id, session, current_user)
 
     requested_ids = list(dict.fromkeys(request.photo_ids))
     if not requested_ids:
         return OkResponse(ok=True)
 
     existing_photo_ids = set(
-        session.exec(select(Photo.id).where(Photo.id.in_(requested_ids))).all()
+        session.exec(
+            select(Photo.id).where(Photo.id.in_(requested_ids), Photo.owner_id == current_user.id)
+        ).all()
     )
     missing_ids = [photo_id for photo_id in requested_ids if photo_id not in existing_photo_ids]
     if missing_ids:
@@ -252,9 +277,10 @@ def add_photos_to_album(
 def remove_photo_from_album(
     album_id: int,
     photo_id: int,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    album = get_album_or_404(album_id, session)
+    album = get_album_or_404(album_id, session, current_user)
 
     link = session.exec(
         select(PhotoAlbum).where(
@@ -280,12 +306,13 @@ def remove_photo_from_album(
 def set_album_playlist(
     album_id: int,
     request: SetAlbumPlaylistRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    get_album_or_404(album_id, session)
+    get_album_or_404(album_id, session, current_user)
 
     playlist = session.get(Playlist, request.playlist_id)
-    if playlist is None:
+    if playlist is None or playlist.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Playlist not found")
 
     existing = session.exec(
@@ -304,9 +331,10 @@ def set_album_playlist(
 @router.delete("/{album_id}/playlist", response_model=OkResponse)
 def clear_album_playlist(
     album_id: int,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> OkResponse:
-    get_album_or_404(album_id, session)
+    get_album_or_404(album_id, session, current_user)
 
     existing = session.exec(
         select(AlbumPlaylist).where(AlbumPlaylist.album_id == album_id)

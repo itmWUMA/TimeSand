@@ -6,8 +6,10 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func
 from sqlmodel import Session, select
 
+from app.core.auth import get_current_active_user
 from app.core.database import get_session
 from app.models.music import Music, PlaylistMusic
+from app.models.user import User
 from app.services import music_service
 from app.services.music_service import InvalidMusicUploadError
 
@@ -35,10 +37,12 @@ class OkResponse(BaseModel):
     ok: bool
 
 
-def get_music_or_404(music_id: int, session: Session) -> Music:
+def get_music_or_404(music_id: int, session: Session, current_user: User) -> Music:
     music = session.get(Music, music_id)
     if music is None:
         raise HTTPException(status_code=404, detail="Music not found")
+    if music.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
     return music
 
@@ -62,6 +66,7 @@ async def read_upload_file_with_limit(upload_file: UploadFile, max_bytes: int | 
 @router.post("/upload", response_model=UploadMusicResponse, status_code=201)
 async def upload_music(
     files: list[UploadFile] | None = File(default=None),
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> UploadMusicResponse:
     uploaded: list[Music] = []
@@ -80,6 +85,7 @@ async def upload_music(
             finally:
                 await upload_file.close()
 
+            track.owner_id = current_user.id
             session.add(track)
             uploaded.append(track)
 
@@ -103,11 +109,15 @@ async def upload_music(
 def list_music(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> ListMusicResponse:
-    total = session.exec(select(func.count()).select_from(Music)).one()
+    total = session.exec(
+        select(func.count()).select_from(Music).where(Music.owner_id == current_user.id)
+    ).one()
     items = session.exec(
         select(Music)
+        .where(Music.owner_id == current_user.id)
         .order_by(Music.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -116,13 +126,21 @@ def list_music(
 
 
 @router.get("/{music_id}", response_model=Music)
-def get_music(music_id: int, session: Session = Depends(get_session)) -> Music:
-    return get_music_or_404(music_id, session)
+def get_music(
+    music_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> Music:
+    return get_music_or_404(music_id, session, current_user)
 
 
 @router.delete("/{music_id}", response_model=OkResponse)
-def delete_music(music_id: int, session: Session = Depends(get_session)) -> OkResponse:
-    track = get_music_or_404(music_id, session)
+def delete_music(
+    music_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> OkResponse:
+    track = get_music_or_404(music_id, session, current_user)
 
     music_service.delete_music_file(track)
     session.exec(delete(PlaylistMusic).where(PlaylistMusic.music_id == music_id))
@@ -133,8 +151,12 @@ def delete_music(music_id: int, session: Session = Depends(get_session)) -> OkRe
 
 
 @router.get("/{music_id}/file")
-def get_music_file(music_id: int, session: Session = Depends(get_session)) -> FileResponse:
-    track = get_music_or_404(music_id, session)
+def get_music_file(
+    music_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> FileResponse:
+    track = get_music_or_404(music_id, session, current_user)
     file_path = music_service.get_music_path(track.file_path)
 
     if not file_path.exists():

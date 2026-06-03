@@ -6,9 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session
 
+from app.core.auth import get_current_active_user
 from app.core.database import get_session
 from app.core.logging import get_logger
 from app.models.photo import Photo
+from app.models.user import User
 from app.services import draw_service
 from app.services.draw_service import AlbumNotFoundError, DrawPoolEmptyError, NoAvailablePhotosError
 
@@ -47,11 +49,13 @@ class DrawResetResponse(BaseModel):
 @router.post("", response_model=DrawResponse | DrawPoolEmptyResponse)
 def draw_card(
     request: DrawRequest,
+    current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session),
 ) -> DrawResponse | DrawPoolEmptyResponse:
     try:
         photo, weight_reason = draw_service.draw_photo(
             session,
+            current_user_id=current_user.id,
             album_id=request.album_id,
             exclude_ids=request.exclude_ids,
             weight_mode=request.weight_mode,
@@ -77,5 +81,10 @@ def draw_card(
 
 
 @router.post("/reset", response_model=DrawResetResponse)
-def reset_draw(session: Session = Depends(get_session)) -> DrawResetResponse:
-    return DrawResetResponse(ok=True, total_available=draw_service.count_available_photos(session))
+def reset_draw(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session),
+) -> DrawResetResponse:
+    return DrawResetResponse(
+        ok=True, total_available=draw_service.count_available_photos(session, current_user_id=current_user.id)
+    )

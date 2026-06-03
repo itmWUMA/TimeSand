@@ -1,13 +1,25 @@
 <script setup lang="ts">
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
+import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 
 import TsToast from './components/ui/TsToast.vue'
 import TsToastProvider from './components/ui/TsToastProvider.vue'
 import { useToast } from './composables/useToast'
 import DefaultLayout from './layouts/DefaultLayout.vue'
+import { useAuthStore } from './stores/auth'
+import { useSettingsStore } from './stores/settings'
 
 const { toasts, dismissToast } = useToast()
+const auth = useAuthStore()
+const settingsStore = useSettingsStore()
+
+onMounted(async () => {
+  await auth.fetchMe()
+  if (auth.isAuthenticated) {
+    await settingsStore.loadFromBackend()
+  }
+})
 
 function routeUsesShell(route: RouteLocationNormalizedLoaded): boolean {
   return route.meta.shell !== false

@@ -5,10 +5,11 @@ import re
 
 from fastapi.testclient import TestClient
 import pytest
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.album import Album, PhotoAlbum
 from app.models.photo import Photo
+from app.models.user import User, UserRole
 from app.services import draw_service
 
 
@@ -18,6 +19,19 @@ def create_photo(
     filename: str,
     taken_at: datetime | None = None,
 ) -> Photo:
+    admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+    if admin is None:
+        admin = User(
+            username="admin",
+            display_name="Admin",
+            password_hash="fake",
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
+        session.add(admin)
+        session.commit()
+        session.refresh(admin)
+
     photo = Photo(
         filename=filename,
         file_path=f"{filename}.jpg",
@@ -27,6 +41,7 @@ def create_photo(
         height=1080,
         taken_at=taken_at,
         mime_type="image/jpeg",
+        owner_id=admin.id,
     )
     session.add(photo)
     session.commit()
@@ -34,13 +49,13 @@ def create_photo(
     return photo
 
 
-def test_draw_returns_valid_photo(client: TestClient, session: Session) -> None:
+def test_draw_returns_valid_photo(auth_client: TestClient, session: Session) -> None:
     photo_ids = {
         create_photo(session, filename=f"photo-{index}").id or 0
         for index in range(10)
     }
 
-    response = client.post("/api/draw", json={"exclude_ids": []})
+    response = auth_client.post("/api/draw", json={"exclude_ids": []})
 
     assert response.status_code == 200
     payload = response.json()
@@ -63,21 +78,22 @@ def test_draw_returns_valid_photo(client: TestClient, session: Session) -> None:
     assert payload["weight_reason"] is None
 
 
-def test_draw_with_all_excluded_returns_pool_empty(client: TestClient, session: Session) -> None:
+def test_draw_with_all_excluded_returns_pool_empty(auth_client: TestClient, session: Session) -> None:
     first = create_photo(session, filename="first")
     second = create_photo(session, filename="second")
 
-    response = client.post("/api/draw", json={"exclude_ids": [first.id, second.id]})
+    response = auth_client.post("/api/draw", json={"exclude_ids": [first.id, second.id]})
 
     assert response.status_code == 200
     assert response.json() == {"pool_empty": True}
 
 
-def test_draw_with_album_filter_returns_only_album_photo(client: TestClient, session: Session) -> None:
+def test_draw_with_album_filter_returns_only_album_photo(auth_client: TestClient, session: Session) -> None:
     in_album = create_photo(session, filename="in-album")
     create_photo(session, filename="out-of-album")
 
-    album = Album(name="Travel")
+    admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+    album = Album(name="Travel", owner_id=admin.id if admin else 1)
     session.add(album)
     session.commit()
     session.refresh(album)
@@ -85,7 +101,7 @@ def test_draw_with_album_filter_returns_only_album_photo(client: TestClient, ses
     session.add(PhotoAlbum(photo_id=in_album.id or 0, album_id=album.id or 0))
     session.commit()
 
-    response = client.post(
+    response = auth_client.post(
         "/api/draw",
         json={"album_id": album.id, "exclude_ids": []},
     )
@@ -94,8 +110,8 @@ def test_draw_with_album_filter_returns_only_album_photo(client: TestClient, ses
     assert response.json()["photo"]["id"] == in_album.id
 
 
-def test_draw_with_nonexistent_album_returns_404(client: TestClient) -> None:
-    response = client.post("/api/draw", json={"album_id": 999999, "exclude_ids": []})
+def test_draw_with_nonexistent_album_returns_404(auth_client: TestClient) -> None:
+    response = auth_client.post("/api/draw", json={"album_id": 999999, "exclude_ids": []})
 
     assert response.status_code == 404
     assert response.json() == {
@@ -105,13 +121,14 @@ def test_draw_with_nonexistent_album_returns_404(client: TestClient) -> None:
     }
 
 
-def test_draw_with_empty_album_returns_404(client: TestClient, session: Session) -> None:
-    album = Album(name="Empty")
+def test_draw_with_empty_album_returns_404(auth_client: TestClient, session: Session) -> None:
+    admin = session.exec(select(User).where(User.role == UserRole.ADMIN)).first()
+    album = Album(name="Empty", owner_id=admin.id if admin else 1)
     session.add(album)
     session.commit()
     session.refresh(album)
 
-    response = client.post("/api/draw", json={"album_id": album.id, "exclude_ids": []})
+    response = auth_client.post("/api/draw", json={"album_id": album.id, "exclude_ids": []})
 
     assert response.status_code == 404
     assert response.json() == {
@@ -121,11 +138,11 @@ def test_draw_with_empty_album_returns_404(client: TestClient, session: Session)
     }
 
 
-def test_draw_reset_returns_total_available(client: TestClient, session: Session) -> None:
+def test_draw_reset_returns_total_available(auth_client: TestClient, session: Session) -> None:
     create_photo(session, filename="first")
     create_photo(session, filename="second")
 
-    response = client.post("/api/draw/reset")
+    response = auth_client.post("/api/draw/reset")
 
     assert response.status_code == 200
     assert response.json() == {"ok": True, "total_available": 2}
@@ -222,20 +239,20 @@ def test_calculate_draw_weight_with_nearby_days_seven_matches_far_days() -> None
     assert (five_days_weight, five_days_reason) == (1.5, "5_years_ago_nearby")
 
 
-def test_draw_rejects_invalid_weight_mode(client: TestClient) -> None:
-    response = client.post("/api/draw", json={"weight_mode": "invalid"})
+def test_draw_rejects_invalid_weight_mode(auth_client: TestClient) -> None:
+    response = auth_client.post("/api/draw", json={"weight_mode": "invalid"})
 
     assert response.status_code == 422
 
 
 @pytest.mark.parametrize("nearby_days", [0, 8])
-def test_draw_rejects_out_of_range_nearby_days(client: TestClient, nearby_days: int) -> None:
-    response = client.post("/api/draw", json={"nearby_days": nearby_days})
+def test_draw_rejects_out_of_range_nearby_days(auth_client: TestClient, nearby_days: int) -> None:
+    response = auth_client.post("/api/draw", json={"nearby_days": nearby_days})
 
     assert response.status_code == 422
 
 
-def test_draw_weight_reason_format(client: TestClient, session: Session, monkeypatch) -> None:
+def test_draw_weight_reason_format(auth_client: TestClient, session: Session, monkeypatch) -> None:
     target = create_photo(
         session,
         filename="anniversary",
@@ -250,7 +267,7 @@ def test_draw_weight_reason_format(client: TestClient, session: Session, monkeyp
 
     monkeypatch.setattr(draw_service.random, "choices", choose_highest_weight)
 
-    response = client.post("/api/draw", json={"exclude_ids": []})
+    response = auth_client.post("/api/draw", json={"exclude_ids": []})
 
     assert response.status_code == 200
     payload = response.json()
