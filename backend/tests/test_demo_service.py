@@ -49,6 +49,20 @@ def create_test_admin(session: Session) -> User:
     return admin
 
 
+def create_test_member(session: Session) -> User:
+    member = User(
+        username="member",
+        display_name="Member",
+        password_hash=hash_password("testpassword123"),
+        role=UserRole.MEMBER,
+        is_active=True,
+    )
+    session.add(member)
+    session.commit()
+    session.refresh(member)
+    return member
+
+
 def prepare_demo_fixture(demo_data_dir: Path) -> None:
     demo_data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -219,3 +233,28 @@ def test_delete_demo_endpoint(
 
     assert response.status_code == 200
     assert response.json() == {"removed": 9}
+
+
+def test_delete_demo_endpoint_rejects_member(
+    client: TestClient,
+    session: Session,
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    create_test_admin(session)
+    create_test_member(session)
+    demo_data_dir = tmp_path / "demo_data"
+    prepare_demo_fixture(demo_data_dir)
+    monkeypatch.setattr(demo_service, "DEMO_DATA_DIR", demo_data_dir)
+    demo_service.seed_demo_data(session)
+    login_response = client.post(
+        "/api/auth/login",
+        json={"username": "member", "password": "testpassword123"},
+    )
+    assert login_response.status_code == 200
+
+    response = client.delete("/api/demo")
+
+    assert response.status_code == 403
+    assert len(session.exec(select(Photo).where(Photo.is_demo.is_(True))).all()) == 8
+    assert len(session.exec(select(Music).where(Music.is_demo.is_(True))).all()) == 1

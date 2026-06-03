@@ -84,20 +84,12 @@ def run_migrations() -> None:
     try:
         revisions = _pending_revisions(alembic_cfg)
     except ResolutionError as exc:
-        logger.warning(
+        logger.error(
             "migration_revision_not_found",
             error=str(exc),
-            detail="Updating alembic_version table directly to current head",
+            detail="Database alembic_version references a missing revision; manual repair is required",
         )
-        script = ScriptDirectory.from_config(alembic_cfg)
-        target_revision = script.get_current_head()
-        with engine.begin() as connection:
-            connection.execute(
-                text("UPDATE alembic_version SET version_num = :version"),
-                {"version": target_revision},
-            )
-        logger.info("migration_completed")
-        return
+        raise RuntimeError("Database migration revision is missing") from exc
 
     if not revisions:
         logger.info("migration_skipped", reason="already_at_latest")

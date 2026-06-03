@@ -271,6 +271,17 @@ def test_run_migrations_is_idempotent_and_logs_skip(
     assert "migration_skipped" in [event for event, _ in logger.events]
 
 
+def test_run_migrations_fails_when_current_revision_is_missing(migration_engine) -> None:
+    with migration_engine.begin() as connection:
+        connection.execute(text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)"))
+        connection.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES ('missing_revision')"),
+        )
+
+    with pytest.raises(RuntimeError, match="Database migration revision is missing"):
+        database.run_migrations()
+
+
 def test_run_migrations_stamps_existing_pre_alembic_database(
     migration_engine,
     monkeypatch: pytest.MonkeyPatch,
