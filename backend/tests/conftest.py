@@ -17,6 +17,7 @@ def test_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     data_dir = tmp_path / "data"
     monkeypatch.setattr(settings, "data_dir", data_dir)
     monkeypatch.setattr(settings, "enable_demo_seed", False)
+    monkeypatch.setattr(settings, "admin_password", None)
     return data_dir
 
 

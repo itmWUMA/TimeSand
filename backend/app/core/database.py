@@ -7,6 +7,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from alembic.script.revision import ResolutionError
 from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlmodel import Session, create_engine
@@ -80,7 +81,24 @@ def run_migrations() -> None:
         logger.info("migration_completed")
         return
 
-    revisions = _pending_revisions(alembic_cfg)
+    try:
+        revisions = _pending_revisions(alembic_cfg)
+    except ResolutionError as exc:
+        logger.warning(
+            "migration_revision_not_found",
+            error=str(exc),
+            detail="Updating alembic_version table directly to current head",
+        )
+        script = ScriptDirectory.from_config(alembic_cfg)
+        target_revision = script.get_current_head()
+        with engine.begin() as connection:
+            connection.execute(
+                text("UPDATE alembic_version SET version_num = :version"),
+                {"version": target_revision},
+            )
+        logger.info("migration_completed")
+        return
+
     if not revisions:
         logger.info("migration_skipped", reason="already_at_latest")
         logger.info("migration_completed")

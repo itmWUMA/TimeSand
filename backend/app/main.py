@@ -13,6 +13,8 @@ from sqlmodel import Session, select
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.albums import router as albums_router
+from app.api.auth import create_user_with_settings
+from app.api.auth import router as auth_router
 from app.api.backup import router as backup_router
 from app.api.demo import router as demo_router
 from app.api.draw import router as draw_router
@@ -22,6 +24,7 @@ from app.api.photos import router as photos_router
 from app.api.settings import router as settings_router
 from app.api.slideshow import router as slideshow_router
 from app.api.tags import router as tags_router
+from app.api.users import router as users_router
 from app.core import database as database_module
 from app.core.config import settings
 from app.core.database import run_migrations
@@ -32,6 +35,7 @@ from app.core.errors import (
 )
 from app.core.logging import get_logger, setup_logging
 from app.models.music import Playlist
+from app.models.user import User, UserRole
 from app.services.demo_service import seed_demo_data
 from app.services.photo_service import ensure_storage_directories
 
@@ -54,6 +58,29 @@ def ensure_default_playlist() -> None:
         if default_playlist is None:
             session.add(Playlist(name="Default Playlist", is_default=True))
             session.commit()
+
+
+def ensure_initial_admin_user() -> None:
+    with Session(database_module.engine) as session:
+        if session.exec(select(User)).first() is not None:
+            return
+
+        if not settings.admin_password:
+            logger.warning("auth_uninitialized", reason="missing_admin_password")
+            return
+
+        if len(settings.admin_password) < 8:
+            logger.warning("auth_uninitialized", reason="admin_password_too_short")
+            return
+
+        create_user_with_settings(
+            session,
+            username=settings.admin_username,
+            display_name=settings.admin_username,
+            password=settings.admin_password,
+            role=UserRole.ADMIN,
+        )
+        logger.info("auth_admin_created", username=settings.admin_username)
 
 
 def resolve_frontend_dist() -> Path | None:
@@ -93,6 +120,7 @@ async def lifespan(_: FastAPI):
     ensure_data_directories()
     run_migrations()
     ensure_storage_directories()
+    ensure_initial_admin_user()
     ensure_default_playlist()
     if settings.enable_demo_seed:
         with Session(database_module.engine) as session:
@@ -152,6 +180,8 @@ def create_app(frontend_dist: Path | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(photos_router)
+    app.include_router(auth_router)
+    app.include_router(users_router)
     app.include_router(albums_router)
     app.include_router(tags_router)
     app.include_router(music_router)
