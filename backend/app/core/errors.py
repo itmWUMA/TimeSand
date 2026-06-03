@@ -41,7 +41,7 @@ def resolve_error_code(status_code: int) -> str:
 
 
 def resolve_message(status_code: int, detail: Any) -> str:
-    if status_code >= 500:
+    if status_code >= 500 and status_code != 503:
         return DEFAULT_MESSAGE_MAP[500]
 
     if isinstance(detail, str):

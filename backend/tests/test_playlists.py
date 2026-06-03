@@ -18,8 +18,8 @@ def build_wav_bytes(duration_seconds: int = 1) -> bytes:
         return file_path.read_bytes()
 
 
-def upload_track(client: TestClient, filename: str) -> dict:
-    response = client.post(
+def upload_track(auth_client: TestClient, filename: str) -> dict:
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", (filename, build_wav_bytes(), "audio/wav"))],
     )
@@ -27,14 +27,14 @@ def upload_track(client: TestClient, filename: str) -> dict:
     return response.json()["tracks"][0]
 
 
-def create_album(client: TestClient, name: str = "Album For Playlist") -> dict:
-    response = client.post("/api/albums", json={"name": name, "description": "testing"})
+def create_album(auth_client: TestClient, name: str = "Album For Playlist") -> dict:
+    response = auth_client.post("/api/albums", json={"name": name, "description": "testing"})
     assert response.status_code == 201
     return response.json()
 
 
-def test_default_playlist_exists_after_startup(client: TestClient) -> None:
-    response = client.get("/api/playlists")
+def test_default_playlist_exists_after_startup(auth_client: TestClient) -> None:
+    response = auth_client.get("/api/playlists")
 
     assert response.status_code == 200
     items = response.json()["items"]
@@ -43,25 +43,25 @@ def test_default_playlist_exists_after_startup(client: TestClient) -> None:
     assert items[0]["name"] == "Default Playlist"
 
 
-def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
-    first = upload_track(client, "first.wav")
-    second = upload_track(client, "second.wav")
-    third = upload_track(client, "third.wav")
+def test_playlist_crud_with_track_ordering(auth_client: TestClient) -> None:
+    first = upload_track(auth_client, "first.wav")
+    second = upload_track(auth_client, "second.wav")
+    third = upload_track(auth_client, "third.wav")
 
-    create_response = client.post("/api/playlists", json={"name": "Chill Vibes"})
+    create_response = auth_client.post("/api/playlists", json={"name": "Chill Vibes"})
     assert create_response.status_code == 201
     playlist = create_response.json()
     playlist_id = playlist["id"]
 
     for track in (first, second, third):
-        add_response = client.post(
+        add_response = auth_client.post(
             f"/api/playlists/{playlist_id}/tracks",
             json={"music_id": track["id"]},
         )
         assert add_response.status_code == 200
         assert add_response.json() == {"ok": True}
 
-    detail_response = client.get(f"/api/playlists/{playlist_id}")
+    detail_response = auth_client.get(f"/api/playlists/{playlist_id}")
     assert detail_response.status_code == 200
     assert [item["id"] for item in detail_response.json()["tracks"]] == [
         first["id"],
@@ -69,7 +69,7 @@ def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
         third["id"],
     ]
 
-    reorder_response = client.put(
+    reorder_response = auth_client.put(
         f"/api/playlists/{playlist_id}",
         json={
             "name": "Reordered Playlist",
@@ -84,11 +84,11 @@ def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
         second["id"],
     ]
 
-    remove_response = client.delete(f"/api/playlists/{playlist_id}/tracks/{first['id']}")
+    remove_response = auth_client.delete(f"/api/playlists/{playlist_id}/tracks/{first['id']}")
     assert remove_response.status_code == 200
     assert remove_response.json() == {"ok": True}
 
-    detail_after_remove = client.get(f"/api/playlists/{playlist_id}")
+    detail_after_remove = auth_client.get(f"/api/playlists/{playlist_id}")
     assert detail_after_remove.status_code == 200
     assert [item["id"] for item in detail_after_remove.json()["tracks"]] == [
         third["id"],
@@ -96,16 +96,16 @@ def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
     ]
     assert detail_after_remove.json()["track_count"] == 2
 
-    list_response = client.get("/api/playlists")
+    list_response = auth_client.get("/api/playlists")
     assert list_response.status_code == 200
     listed = next(item for item in list_response.json()["items"] if item["id"] == playlist_id)
     assert listed["track_count"] == 2
 
-    delete_response = client.delete(f"/api/playlists/{playlist_id}")
+    delete_response = auth_client.delete(f"/api/playlists/{playlist_id}")
     assert delete_response.status_code == 200
     assert delete_response.json() == {"ok": True}
 
-    missing = client.get(f"/api/playlists/{playlist_id}")
+    missing = auth_client.get(f"/api/playlists/{playlist_id}")
     assert missing.status_code == 404
     assert missing.json() == {
         "error": "not_found",
@@ -114,12 +114,12 @@ def test_playlist_crud_with_track_ordering(client: TestClient) -> None:
     }
 
 
-def test_cannot_delete_default_playlist(client: TestClient) -> None:
-    list_response = client.get("/api/playlists")
+def test_cannot_delete_default_playlist(auth_client: TestClient) -> None:
+    list_response = auth_client.get("/api/playlists")
     assert list_response.status_code == 200
 
     default_playlist = next(item for item in list_response.json()["items"] if item["is_default"])
-    response = client.delete(f"/api/playlists/{default_playlist['id']}")
+    response = auth_client.delete(f"/api/playlists/{default_playlist['id']}")
 
     assert response.status_code == 400
     assert response.json() == {
@@ -129,39 +129,39 @@ def test_cannot_delete_default_playlist(client: TestClient) -> None:
     }
 
 
-def test_album_playlist_association_set_and_clear(client: TestClient) -> None:
-    album = create_album(client)
-    playlist_response = client.post("/api/playlists", json={"name": "Album Binding"})
+def test_album_playlist_association_set_and_clear(auth_client: TestClient) -> None:
+    album = create_album(auth_client)
+    playlist_response = auth_client.post("/api/playlists", json={"name": "Album Binding"})
     assert playlist_response.status_code == 201
     playlist_id = playlist_response.json()["id"]
 
-    set_response = client.put(
+    set_response = auth_client.put(
         f"/api/albums/{album['id']}/playlist",
         json={"playlist_id": playlist_id},
     )
     assert set_response.status_code == 200
     assert set_response.json() == {"ok": True}
 
-    album_detail = client.get(f"/api/albums/{album['id']}")
+    album_detail = auth_client.get(f"/api/albums/{album['id']}")
     assert album_detail.status_code == 200
     assert album_detail.json()["playlist_id"] == playlist_id
 
-    clear_response = client.delete(f"/api/albums/{album['id']}/playlist")
+    clear_response = auth_client.delete(f"/api/albums/{album['id']}/playlist")
     assert clear_response.status_code == 200
     assert clear_response.json() == {"ok": True}
 
-    album_after_clear = client.get(f"/api/albums/{album['id']}")
+    album_after_clear = auth_client.get(f"/api/albums/{album['id']}")
     assert album_after_clear.status_code == 200
     assert album_after_clear.json()["playlist_id"] is None
 
 
-def test_remove_missing_track_association_returns_404(client: TestClient) -> None:
-    track = upload_track(client, "lonely.wav")
-    create_response = client.post("/api/playlists", json={"name": "No Track Link"})
+def test_remove_missing_track_association_returns_404(auth_client: TestClient) -> None:
+    track = upload_track(auth_client, "lonely.wav")
+    create_response = auth_client.post("/api/playlists", json={"name": "No Track Link"})
     assert create_response.status_code == 201
     playlist_id = create_response.json()["id"]
 
-    remove_response = client.delete(f"/api/playlists/{playlist_id}/tracks/{track['id']}")
+    remove_response = auth_client.delete(f"/api/playlists/{playlist_id}/tracks/{track['id']}")
 
     assert remove_response.status_code == 404
     assert remove_response.json() == {

@@ -22,8 +22,16 @@ describe('router', () => {
 
   it('keeps the landing and slideshow routes outside the app shell', () => {
     expect(routeByName('landing')?.meta.shell).toBe(false)
+    expect(routeByName('login')?.meta.shell).toBe(false)
     expect(routeByName('slideshow')?.meta.shell).toBe(false)
     expect(routeByName('slideshow-album')?.meta.shell).toBe(false)
+  })
+
+  it('registers login and marks application routes as protected', () => {
+    expect(routeByName('login')?.path).toBe('/login')
+    expect(routeByName('draw')?.meta.requiresAuth).toBe(true)
+    expect(routeByName('albums')?.meta.requiresAuth).toBe(true)
+    expect(routeByName('settings')?.meta.requiresAuth).toBe(true)
   })
 
   it('keeps /slideshow and /slideshow/:albumId compatibility routes', () => {

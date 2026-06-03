@@ -1,4 +1,4 @@
-ARG IMAGE_REGISTRY=docker.m.daocloud.io/
+ARG IMAGE_REGISTRY=""
 
 FROM ${IMAGE_REGISTRY}oven/bun:1 AS frontend-build
 WORKDIR /app/frontend

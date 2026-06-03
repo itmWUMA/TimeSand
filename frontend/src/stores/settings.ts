@@ -1,5 +1,6 @@
 import type { DrawWeightMode } from '../types/draw'
 import { defineStore } from 'pinia'
+import { getUserSettings, updateUserSettings } from '../services/settings'
 import { DEFAULT_DRAW_NEARBY_DAYS, DEFAULT_DRAW_WEIGHT_MODE, DRAW_WEIGHT_MODES } from '../types/draw'
 
 export const SLIDESHOW_INTERVAL_OPTIONS = [3, 5, 8, 10, 15] as const
@@ -176,6 +177,31 @@ export const useSettingsStore = defineStore('settings', {
       const normalized = normalizeDrawDefaultAlbumId(albumId)
       this.drawDefaultAlbumId = normalized
       persistDefaultAlbumId(normalized)
+    },
+    async loadFromBackend(): Promise<void> {
+      try {
+        const settings = await getUserSettings()
+        this.slideshowIntervalSeconds = normalizeInterval(settings.slideshow_interval_seconds)
+        this.drawWeightMode = normalizeWeightMode(settings.draw_weight_mode)
+        this.drawNearbyDays = normalizeNearbyDays(settings.draw_date_range_days)
+        this.drawDefaultAlbumId = normalizeDrawDefaultAlbumId(settings.draw_default_album_id)
+      }
+      catch {
+        // Backend settings not available; fall back to localStorage values already in state
+      }
+    },
+    async saveToBackend(): Promise<void> {
+      try {
+        await updateUserSettings({
+          slideshow_interval_seconds: this.slideshowIntervalSeconds,
+          draw_weight_mode: this.drawWeightMode,
+          draw_date_range_days: this.drawNearbyDays,
+          draw_default_album_id: this.drawDefaultAlbumId,
+        })
+      }
+      catch {
+        // Ignore backend save errors; localStorage still has the value
+      }
     },
   },
 })

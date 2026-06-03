@@ -8,12 +8,12 @@
 		{"id":"b1a2c3d4e5f60005","type":"text","x":930,"y":200,"width":280,"height":80,"text":"## 1.4 Responsive & Mobile\nNavigation + touch gestures\n**Done**","color":"4"},
 		{"id":"b1a2c3d4e5f60006","type":"text","x":1240,"y":200,"width":280,"height":80,"text":"## 1.5 Infrastructure\nCI/CD + Alembic + Backup\n**Done**","color":"4"},
 		{"id":"b1a2c3d4e5f60015","type":"group","x":-30,"y":440,"width":630,"height":140,"label":"Bridge — UI Refactor (v0.1.x UI baseline)","color":"5"},
-		{"id":"b1a2c3d4e5f60016","type":"text","x":0,"y":470,"width":280,"height":80,"text":"## 1.6 UI Refactor\nHTML prototype → Vue/Tailwind\n**Next**","color":"5"},
+		{"id":"b1a2c3d4e5f60016","type":"text","x":0,"y":470,"width":280,"height":80,"text":"## 1.6 UI Refactor\nHTML prototype → Vue/Tailwind\n**Done**","color":"5"},
 		{"id":"b1a2c3d4e5f60017","type":"text","x":310,"y":470,"width":260,"height":80,"text":"## Source\n`docs/assets/ui-refactor`\nWarm Walnut contract","color":"5"},
-		{"id":"b1a2c3d4e5f60020","type":"group","x":-30,"y":660,"width":940,"height":120,"label":"Phase 2 — Enhancement (v0.2.x ~ v0.4.x)","color":"2"},
-		{"id":"b1a2c3d4e5f60021","type":"text","x":0,"y":680,"width":280,"height":80,"text":"## Phase 2\nMemory discovery, Video, Search,\nMusic upgrade, Light theme","color":"2"},
+		{"id":"b1a2c3d4e5f60020","type":"group","x":-30,"y":660,"width":1100,"height":120,"label":"Phase 2 — Enhancement (v0.2.x ~ v0.4.x)","color":"2"},
+		{"id":"b1a2c3d4e5f60021","type":"text","x":0,"y":680,"width":360,"height":80,"text":"## Phase 2\nAuth + Multi-user, Memory discovery,\nVideo, Search, Music, Light theme","color":"2"},
 		{"id":"b1a2c3d4e5f60030","type":"group","x":-30,"y":860,"width":630,"height":120,"label":"Phase 3 — Expansion (v0.5.x+ → v1.0)","color":"6"},
-		{"id":"b1a2c3d4e5f60031","type":"text","x":0,"y":880,"width":280,"height":80,"text":"## Phase 3\nAuth, Multi-user, External integrations,\nAI, PWA, Plugin system","color":"6"}
+		{"id":"b1a2c3d4e5f60031","type":"text","x":0,"y":880,"width":280,"height":80,"text":"## Phase 3\nExternal integrations,\nAI, PWA, Plugin system","color":"6"}
 	],
 	"edges":[
 		{"id":"f1a2c3d4e5f60001","fromNode":"b1a2c3d4e5f60001","fromSide":"bottom","toNode":"b1a2c3d4e5f60002","toSide":"top","toEnd":"arrow","label":"next"},

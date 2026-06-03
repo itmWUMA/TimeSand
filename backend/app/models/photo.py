@@ -23,3 +23,4 @@ class Photo(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=utc_now, index=True)
     mime_type: str
     is_demo: bool = False
+    owner_id: int = Field(foreign_key="user.id", index=True)

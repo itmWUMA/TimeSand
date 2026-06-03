@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
+import { useAuthStore } from '../stores/auth'
 
 type Locale = 'zh-CN' | 'en'
 type IconName = 'spark' | 'album' | 'film' | 'upload' | 'music' | 'gear' | 'info'
@@ -79,6 +80,8 @@ const ShellIcon = defineComponent({
 })
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 const { locale, t } = useI18n()
 const {
   currentTrack,
@@ -196,6 +199,11 @@ function onVolumeChange(event: Event): void {
   setVolume(Number(target.value) / 100)
 }
 
+async function logout(): Promise<void> {
+  await auth.logout()
+  await router.push('/login')
+}
+
 onMounted(() => {
   document.documentElement.lang = locale.value
 })
@@ -249,6 +257,31 @@ onMounted(() => {
       </nav>
 
       <div class="rail-foot">
+        <div
+          v-if="auth.user"
+          class="user-chip"
+          data-testid="shell-user"
+        >
+          <span class="user-avatar" aria-hidden="true">
+            {{ auth.user.display_name.slice(0, 1).toUpperCase() }}
+          </span>
+          <span class="user-meta">
+            <span class="user-name">{{ auth.user.display_name }}</span>
+            <span class="user-role">{{ auth.user.role }}</span>
+          </span>
+          <button
+            type="button"
+            class="logout-btn"
+            :aria-label="$t('auth.logout')"
+            @click="logout"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17l5-5-5-5" />
+              <path d="M15 12H3" />
+              <path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" />
+            </svg>
+          </button>
+        </div>
         <div class="lang-toggle" role="group" :aria-label="$t('settings.language')">
           <button
             data-testid="locale-zh-CN"
@@ -521,11 +554,87 @@ onMounted(() => {
 
 .rail-foot {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: space-between;
+  gap: 12px;
   margin-top: 10px;
   padding: 14px 8px 4px;
   border-top: 1px solid var(--ts-border-soft);
+}
+
+.user-chip {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 28px;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ts-surface-2);
+  color: var(--ts-accent);
+  font-family: var(--ts-font-mono);
+  font-size: 12px;
+}
+
+.user-meta {
+  min-width: 0;
+}
+
+.user-name,
+.user-role {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-name {
+  color: var(--ts-fg);
+  font-size: 12px;
+}
+
+.user-role {
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.logout-btn {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ts-muted);
+  cursor: pointer;
+  transition:
+    background var(--ts-duration-fast) var(--ts-ease),
+    color var(--ts-duration-fast) var(--ts-ease);
+}
+
+.logout-btn:hover {
+  background: var(--ts-surface);
+  color: var(--ts-fg);
+}
+
+.logout-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
 }
 
 .lang-toggle {
@@ -814,6 +923,8 @@ onMounted(() => {
   .brand-text,
   .brand-sub,
   .rail-section,
+  .user-meta,
+  .logout-btn,
   .lang-toggle,
   .rail-link span {
     display: none;
@@ -832,6 +943,11 @@ onMounted(() => {
   .rail-foot {
     justify-content: center;
     padding: 14px 4px 4px;
+  }
+
+  .user-chip {
+    display: flex;
+    justify-content: center;
   }
 
   .player-fixed {

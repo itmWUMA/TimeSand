@@ -7,6 +7,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from alembic.script.revision import ResolutionError
 from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlmodel import Session, create_engine
@@ -80,7 +81,16 @@ def run_migrations() -> None:
         logger.info("migration_completed")
         return
 
-    revisions = _pending_revisions(alembic_cfg)
+    try:
+        revisions = _pending_revisions(alembic_cfg)
+    except ResolutionError as exc:
+        logger.error(
+            "migration_revision_not_found",
+            error=str(exc),
+            detail="Database alembic_version references a missing revision; manual repair is required",
+        )
+        raise RuntimeError("Database migration revision is missing") from exc
+
     if not revisions:
         logger.info("migration_skipped", reason="already_at_latest")
         logger.info("migration_completed")

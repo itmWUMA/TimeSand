@@ -36,12 +36,12 @@ def build_wav_bytes(*, with_tags: bool, duration_seconds: int = 1) -> bytes:
 
 
 def upload_wav_track(
-    client: TestClient,
+    auth_client: TestClient,
     filename: str = "sample.wav",
     *,
     with_tags: bool = True,
 ) -> dict:
-    response = client.post(
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", (filename, build_wav_bytes(with_tags=with_tags), "audio/wav"))],
     )
@@ -50,8 +50,8 @@ def upload_wav_track(
     return response.json()["tracks"][0]
 
 
-def test_upload_wav_extracts_metadata(client: TestClient) -> None:
-    response = client.post(
+def test_upload_wav_extracts_metadata(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", ("tagged.wav", build_wav_bytes(with_tags=True), "audio/wav"))],
     )
@@ -70,8 +70,8 @@ def test_upload_wav_extracts_metadata(client: TestClient) -> None:
     assert stored_file.exists()
 
 
-def test_upload_without_tags_uses_filename_as_title(client: TestClient) -> None:
-    response = client.post(
+def test_upload_without_tags_uses_filename_as_title(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", ("untagged-track.wav", build_wav_bytes(with_tags=False), "audio/wav"))],
     )
@@ -82,8 +82,8 @@ def test_upload_without_tags_uses_filename_as_title(client: TestClient) -> None:
     assert track["artist"] is None
 
 
-def test_upload_non_audio_returns_400(client: TestClient) -> None:
-    response = client.post(
+def test_upload_non_audio_returns_400(auth_client: TestClient) -> None:
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", ("notes.txt", b"plain text", "text/plain"))],
     )
@@ -96,9 +96,9 @@ def test_upload_non_audio_returns_400(client: TestClient) -> None:
     }
 
 
-def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
+def test_upload_corrupt_audio_returns_400(auth_client: TestClient) -> None:
     corrupt_bytes = b"this is not a real mp3 file at all"
-    response = client.post(
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", ("corrupt.mp3", corrupt_bytes, "audio/mpeg"))],
     )
@@ -114,12 +114,12 @@ def test_upload_corrupt_audio_returns_400(client: TestClient) -> None:
     assert stored == []
 
 
-def test_list_music_returns_paginated_response(client: TestClient) -> None:
-    upload_wav_track(client, filename="first.wav")
-    upload_wav_track(client, filename="second.wav")
-    upload_wav_track(client, filename="third.wav")
+def test_list_music_returns_paginated_response(auth_client: TestClient) -> None:
+    upload_wav_track(auth_client, filename="first.wav")
+    upload_wav_track(auth_client, filename="second.wav")
+    upload_wav_track(auth_client, filename="third.wav")
 
-    response = client.get("/api/music", params={"page": 1, "page_size": 2})
+    response = auth_client.get("/api/music", params={"page": 1, "page_size": 2})
 
     assert response.status_code == 200
     payload = response.json()
@@ -129,10 +129,10 @@ def test_list_music_returns_paginated_response(client: TestClient) -> None:
     assert len(payload["items"]) == 2
 
 
-def test_get_music_file_includes_accept_ranges_header(client: TestClient) -> None:
-    track = upload_wav_track(client, filename="playback.wav")
+def test_get_music_file_includes_accept_ranges_header(auth_client: TestClient) -> None:
+    track = upload_wav_track(auth_client, filename="playback.wav")
 
-    response = client.get(f"/api/music/{track['id']}/file")
+    response = auth_client.get(f"/api/music/{track['id']}/file")
 
     assert response.status_code == 200
     assert response.headers["accept-ranges"] == "bytes"
@@ -141,13 +141,13 @@ def test_get_music_file_includes_accept_ranges_header(client: TestClient) -> Non
     assert len(response.content) > 0
 
 
-def test_delete_music_removes_file_and_playlist_associations(client: TestClient) -> None:
-    track = upload_wav_track(client, filename="delete-me.wav")
-    playlist_response = client.post("/api/playlists", json={"name": "Deletion Test"})
+def test_delete_music_removes_file_and_playlist_associations(auth_client: TestClient) -> None:
+    track = upload_wav_track(auth_client, filename="delete-me.wav")
+    playlist_response = auth_client.post("/api/playlists", json={"name": "Deletion Test"})
     assert playlist_response.status_code == 201
     playlist_id = playlist_response.json()["id"]
 
-    add_response = client.post(
+    add_response = auth_client.post(
         f"/api/playlists/{playlist_id}/tracks",
         json={"music_id": track["id"]},
     )
@@ -156,11 +156,11 @@ def test_delete_music_removes_file_and_playlist_associations(client: TestClient)
     stored_file = settings.data_dir / "music" / "files" / track["file_path"]
     assert stored_file.exists()
 
-    delete_response = client.delete(f"/api/music/{track['id']}")
+    delete_response = auth_client.delete(f"/api/music/{track['id']}")
     assert delete_response.status_code == 200
     assert delete_response.json() == {"ok": True}
     assert not stored_file.exists()
 
-    playlist_detail = client.get(f"/api/playlists/{playlist_id}")
+    playlist_detail = auth_client.get(f"/api/playlists/{playlist_id}")
     assert playlist_detail.status_code == 200
     assert playlist_detail.json()["track_count"] == 0

@@ -13,8 +13,8 @@ def build_jpeg_bytes(width: int = 1200, height: int = 800) -> bytes:
     return buffer.getvalue()
 
 
-def test_get_storage_info_returns_zero_when_empty(client: TestClient) -> None:
-    response = client.get("/api/settings/storage")
+def test_get_storage_info_returns_zero_when_empty(auth_client: TestClient) -> None:
+    response = auth_client.get("/api/settings/storage")
 
     assert response.status_code == 200
     assert response.json() == {
@@ -27,14 +27,14 @@ def test_get_storage_info_returns_zero_when_empty(client: TestClient) -> None:
     }
 
 
-def test_get_storage_info_counts_uploaded_photo(client: TestClient) -> None:
-    upload_response = client.post(
+def test_get_storage_info_counts_uploaded_photo(auth_client: TestClient) -> None:
+    upload_response = auth_client.post(
         "/api/photos/upload",
         files=[("files", ("photo.jpg", build_jpeg_bytes(), "image/jpeg"))],
     )
     assert upload_response.status_code == 201
 
-    response = client.get("/api/settings/storage")
+    response = auth_client.get("/api/settings/storage")
 
     assert response.status_code == 200
     payload = response.json()

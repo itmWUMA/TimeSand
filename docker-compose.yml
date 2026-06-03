@@ -9,3 +9,6 @@ services:
     restart: unless-stopped
     environment:
       - DATA_DIR=/data
+      # Set TIMESAND_ADMIN_PASSWORD before first startup (>= 8 chars).
+      # If omitted, the system stays uninitialized and login returns 503.
+      # - TIMESAND_ADMIN_PASSWORD=changeme

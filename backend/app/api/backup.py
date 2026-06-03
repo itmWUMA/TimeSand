@@ -3,11 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
+from app.core.auth import require_admin
+from app.models.user import User
 from app.services import backup_service
 from app.services.backup_service import (
     BackupExportError,
@@ -65,7 +67,9 @@ async def save_upload_to_temporary_zip(upload: UploadFile) -> Path:
 
 
 @router.post("/export")
-def export_backup() -> FileResponse:
+def export_backup(
+    _: User = Depends(require_admin),
+) -> FileResponse:
     try:
         archive_path = backup_service.create_backup_archive()
     except BackupExportError as exc:
@@ -84,7 +88,10 @@ def export_backup() -> FileResponse:
 
 
 @router.post("/import", response_model=BackupImportResponse)
-async def import_backup(file: UploadFile = File(...)) -> BackupImportResponse:
+async def import_backup(
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+) -> BackupImportResponse:
     temporary_zip: Path | None = None
 
     try:
