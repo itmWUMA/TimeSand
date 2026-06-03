@@ -34,11 +34,27 @@ function resolveErrorMessage(error: AxiosError<ErrorResponsePayload>): string {
 
 const api = axios.create({
   baseURL: '/api',
+  withCredentials: true,
 })
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<ErrorResponsePayload>) => {
+    if (error.response?.status === 401) {
+      void import('../stores/auth').then(({ useAuthStore }) => {
+        const auth = useAuthStore()
+        auth.clearAuth()
+      })
+      void import('../router').then(({ default: router }) => {
+        if (router.currentRoute.value.path !== '/login') {
+          void router.push({
+            path: '/login',
+            query: { redirect: router.currentRoute.value.fullPath },
+          })
+        }
+      })
+    }
+
     const { showToast } = useToast()
     showToast(resolveErrorMessage(error), undefined, 'error')
     return Promise.reject(error)

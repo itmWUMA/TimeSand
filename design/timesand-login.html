@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="zh-CN"><head><script data-od-sandbox-shim="">(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+  document.addEventListener('click', (e) => {
+    if (!e.target || !(e.target instanceof Element)) return;
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (href === null) return;
+    var isAnchor = href.startsWith('#') || href === '';
+    if (isAnchor) {
+      e.preventDefault();
+      if (href === '' || href === '#') {
+        window.scrollTo({ top: 0 });
+        history.replaceState(null, '', ' ');
+      } else {
+        var targetId = href.slice(1);
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) {
+          target.scrollIntoView();
+          location.hash === href && history.replaceState(null, '', ' ');
+          location.hash = href;
+        }
+      }
+    } else if (link.getAttribute('target') === '_blank') {
+      e.preventDefault();
+      let safe = false;
+      try {
+        var url = new URL(href, location.href);
+        safe =
+          url.protocol === 'http:' ||
+          url.protocol === 'https:' ||
+          url.protocol === 'mailto:';
+      } catch (_) {}
+      safe && window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  });
+})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TimeSand · 登录</title>
+<style>
+:root{
+  --bg-0:        oklch(13.5% 0.012 55);
+  --bg-1:        oklch(16% 0.014 58);
+  --surface:     oklch(19.5% 0.016 60);
+  --surface-hi:  oklch(23% 0.018 62);
+  --border:      oklch(28% 0.020 60);
+  --border-hi:   oklch(36% 0.025 62);
+  --fg:          oklch(93% 0.018 75);
+  --fg-soft:     oklch(78% 0.025 70);
+  --muted:       oklch(58% 0.028 65);
+  --muted-2:     oklch(44% 0.022 62);
+  --amber-1:     oklch(78% 0.13 75);
+  --amber-2:     oklch(70% 0.14 65);
+  --amber-3:     oklch(58% 0.13 55);
+  --amber-glow:  oklch(72% 0.15 70 / .35);
+  --ok:          oklch(72% 0.13 75);
+  --warn:        oklch(68% 0.16 35);
+  --font-display:'Cormorant Garamond','Iowan Old Style','Source Han Serif SC','Songti SC',Georgia,serif;
+  --font-body:   -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei','Segoe UI',system-ui,sans-serif;
+  --font-mono:   ui-monospace,'JetBrains Mono','SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg-0);color:var(--fg);font:15px/1.55 var(--font-body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;min-height:100vh;position:relative;overflow-x:hidden}
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bg::before{content:"";position:absolute;left:50%;top:38%;width:1100px;height:1100px;transform:translate(-50%,-50%);background:radial-gradient(circle, oklch(38% 0.06 60 / .55) 0%, transparent 55%);filter:blur(20px)}
+.bg::after{content:"";position:absolute;left:50%;top:38%;width:520px;height:520px;transform:translate(-50%,-50%);background:radial-gradient(circle, oklch(60% 0.12 65 / .18) 0%, transparent 60%)}
+.grain{position:absolute;inset:0;opacity:.5;mix-blend-mode:screen}
+.grain i{position:absolute;width:2px;height:2px;border-radius:50%;background:oklch(85% 0.06 75 / .55);box-shadow:0 0 6px 1px oklch(75% 0.10 70 / .35)}
+.topbar{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:22px 28px}
+.brand-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(140deg, var(--amber-1), var(--amber-3));box-shadow:0 0 24px var(--amber-glow), inset 0 1px 0 oklch(100% 0 0 / .35)}
+.brand-mark svg{width:14px;height:14px;display:block}
+.brand-wm{display:flex;flex-direction:column;line-height:1;gap:3px}
+.brand-wm .nm{font-size:14px;letter-spacing:.01em;color:var(--fg)}
+.brand-wm .sb{font:9px/1 var(--font-mono);letter-spacing:.28em;color:var(--muted-2)}
+.stage{position:relative;z-index:1;min-height:calc(100vh - 72px);display:flex;flex-direction:column;align-items:center;padding:24px 24px 80px}
+.card{width:100%;max-width:380px;margin-top:40px;background:linear-gradient(180deg, var(--surface) 0%, var(--bg-1) 100%);border:1px solid var(--border);border-radius:18px;padding:40px 36px 32px;position:relative;box-shadow:0 1px 0 oklch(100% 0 0 / .04) inset, 0 30px 80px -20px rgba(0,0,0,.6), 0 0 0 1px oklch(100% 0 0 / .015)}
+h1.title{font-family:var(--font-display);font-weight:500;font-size:30px;line-height:1.1;letter-spacing:-.005em;color:var(--fg);text-align:center}
+h1.title em{font-style:italic;font-weight:400;color:var(--amber-2)}
+.form{margin-top:30px;display:flex;flex-direction:column;gap:12px}
+.field{position:relative}
+.input-wrap{position:relative;background:var(--surface-hi);border:1px solid var(--border);border-radius:10px;transition:border-color .18s, box-shadow .18s, background .18s}
+.input-wrap:hover{border-color:var(--border-hi)}
+.input-wrap:focus-within{border-color:var(--amber-2);background:oklch(22% 0.018 62);box-shadow:0 0 0 3px oklch(70% 0.14 65 / .14)}
+.field.has-error .input-wrap{border-color:var(--warn);box-shadow:0 0 0 3px oklch(68% 0.16 35 / .14)}
+.input-wrap input{width:100%;background:transparent;border:0;outline:0;color:var(--fg);font:14px/1 var(--font-body);padding:13px 14px 13px 42px;letter-spacing:.005em}
+.input-wrap input::placeholder{color:var(--muted-2);letter-spacing:.01em}
+.input-wrap .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}
+.input-wrap .toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;background:transparent;border:0;cursor:pointer;color:var(--muted);display:grid;place-items:center;transition:color .15s, background .15s}
+.input-wrap .toggle:hover{color:var(--fg-soft);background:oklch(28% 0.02 60)}
+.input-wrap .toggle svg{width:16px;height:16px}
+.help{margin-top:7px;font-size:11.5px;color:var(--warn);letter-spacing:.01em;display:none}
+.field.has-error .help{display:block}
+.row{margin-top:6px;display:flex;align-items:center;justify-content:space-between}
+.check{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;font-size:13px;color:var(--fg-soft);position:relative}
+.check input{position:absolute;opacity:0;pointer-events:none}
+.box{width:16px;height:16px;border-radius:5px;border:1px solid var(--border-hi);background:var(--surface-hi);display:grid;place-items:center;transition:all .15s}
+.box svg{width:11px;height:11px;color:oklch(20% 0.02 60);opacity:0;transform:scale(.6);transition:opacity .15s, transform .15s}
+.check input:checked + .box{background:linear-gradient(140deg, var(--amber-1), var(--amber-3));border-color:var(--amber-3);box-shadow:0 0 12px var(--amber-glow)}
+.check input:checked + .box svg{opacity:1;transform:scale(1)}
+.submit{margin-top:22px;width:100%;height:48px;border:0;border-radius:999px;cursor:pointer;font:13.5px/1 var(--font-body);letter-spacing:.02em;color:oklch(18% 0.03 60);background:linear-gradient(180deg, var(--amber-1) 0%, var(--amber-2) 55%, var(--amber-3) 100%);box-shadow:0 1px 0 oklch(100% 0 0 / .35) inset, 0 -1px 0 oklch(0% 0 0 / .25) inset, 0 8px 22px -6px var(--amber-glow), 0 0 0 1px oklch(60% 0.13 60 / .35);display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s ease, box-shadow .2s, filter .2s, background .2s;position:relative;overflow:hidden}
+.submit:hover{filter:brightness(1.05)}
+.submit:active{transform:translateY(1px)}
+.submit:disabled{cursor:default;filter:none}
+.submit .spinner{display:none}
+.submit[data-state="loading"]{background:linear-gradient(180deg, oklch(36% 0.03 60), oklch(24% 0.02 60));color:var(--fg-soft);box-shadow:0 1px 0 oklch(100% 0 0 / .06) inset, 0 0 0 1px var(--border)}
+.submit[data-state="loading"] .label{display:none}
+.submit[data-state="loading"] .spinner{display:inline-flex;align-items:center;gap:10px}
+.submit[data-state="loading"] .spinner svg{animation:flip 1.8s ease-in-out infinite}
+@keyframes flip{0%,45%{transform:rotate(0)}50%,95%{transform:rotate(180deg)}100%{transform:rotate(180deg)}}
+.submit[data-state="success"]{background:linear-gradient(180deg, oklch(78% 0.14 80), oklch(62% 0.14 70));color:oklch(18% 0.03 60)}
+.submit[data-state="success"] .label{display:none}
+.submit[data-state="success"] .spinner{display:inline-flex;align-items:center;gap:8px}
+.submit[data-state="success"] .spinner svg{animation:none}
+.submit[data-state="failure"]{background:linear-gradient(180deg, oklch(48% 0.14 35), oklch(34% 0.10 30));color:oklch(96% 0.03 70);box-shadow:0 0 0 1px oklch(50% 0.16 35 / .5), 0 8px 22px -6px oklch(50% 0.16 35 / .35);animation:shake .4s ease}
+.submit[data-state="failure"] .label{display:none}
+.submit[data-state="failure"] .spinner{display:inline-flex;align-items:center;gap:8px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.flash{margin-top:18px;display:none;padding:11px 14px;border-radius:10px;font-size:12.5px;align-items:flex-start;gap:10px;line-height:1.5}
+.flash.show{display:flex}
+.flash.ok{background:oklch(28% 0.04 70);border:1px solid oklch(45% 0.08 70);color:oklch(92% 0.04 75)}
+.flash.err{background:oklch(24% 0.05 35);border:1px solid oklch(40% 0.10 35);color:oklch(92% 0.04 50)}
+.flash svg{flex:0 0 auto;width:14px;height:14px;margin-top:2px}
+.demo-hint{margin-top:28px;text-align:center;font-size:11px;color:var(--muted-2);letter-spacing:.02em;line-height:1.55}
+.demo-hint kbd{font:10.5px/1 var(--font-mono);color:var(--muted);letter-spacing:.04em}
+.states{width:100%;max-width:760px;margin-top:64px}
+.states-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.states-head .h{font-family:var(--font-display);font-size:22px;letter-spacing:.005em;color:var(--fg)}
+.states-head .h em{color:var(--amber-2);font-style:italic;font-weight:400}
+.states-head .l{font:10px/1 var(--font-mono);letter-spacing:.28em;color:var(--muted);text-transform:uppercase}
+.states-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.state-cell{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px 16px;display:flex;flex-direction:column;gap:14px;min-height:160px}
+.state-cell .tag{font:10px/1 var(--font-mono);letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+.state-cell .desc{font-size:12px;color:var(--fg-soft);line-height:1.5;margin-top:auto}
+.state-cell .btn{height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;font:13px/1 var(--font-body);pointer-events:none}
+.state-cell .btn[data-state="idle"]{background:linear-gradient(180deg, var(--amber-1), var(--amber-2) 55%, var(--amber-3));color:oklch(18% 0.03 60);box-shadow:0 1px 0 oklch(100% 0 0 / .35) inset, 0 0 0 1px oklch(60% 0.13 60 / .35)}
+.state-cell .btn[data-state="loading"]{background:linear-gradient(180deg, oklch(36% 0.03 60), oklch(24% 0.02 60));color:var(--fg-soft);box-shadow:0 0 0 1px var(--border) inset}
+.state-cell .btn[data-state="loading"] svg{animation:flip 1.8s ease-in-out infinite}
+.state-cell .btn[data-state="success"]{background:linear-gradient(180deg, oklch(78% 0.14 80), oklch(62% 0.14 70));color:oklch(18% 0.03 60)}
+.state-cell .btn[data-state="failure"]{background:linear-gradient(180deg, oklch(48% 0.14 35), oklch(34% 0.10 30));color:oklch(96% 0.03 70);box-shadow:0 0 0 1px oklch(50% 0.16 35 / .5)}
+@media (max-width:640px){.states-grid{grid-template-columns:repeat(2,1fr)}.card{padding:30px 24px 28px}h1.title{font-size:32px}}
+</style>
+<style data-od-tweaks-bridge-style="">
+[data-od-tweaks-hidden] .tw-panel {
+  transform: translateX(calc(100% + 32px)) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.tw-restore { display: none !important; }
+</style><script data-od-tweaks-bridge="">(function(){
+  // Synchronously hide BEFORE the artifact body parses so the panel never
+  // flashes on initial paint. The host removes the attribute via postMessage
+  // once it knows the desired state.
+  document.documentElement.setAttribute('data-od-tweaks-hidden', '');
+
+  var suppressEcho = false;
+  var observer = null;
+
+  function panelEl(){ return document.querySelector('.tw-panel'); }
+
+  function applyClassesToPanel(visible){
+    var panel = panelEl();
+    if (panel) panel.classList.toggle('tw-hidden', !visible);
+  }
+
+  function setPanelVisible(visible){
+    suppressEcho = true;
+    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !visible);
+    applyClassesToPanel(visible);
+    // Clear flag after the MutationObserver has had a chance to fire for this
+    // change so we don't echo our own host-driven toggles back to the host.
+    Promise.resolve().then(function(){ suppressEcho = false; });
+  }
+
+  function postState(){
+    var panel = panelEl();
+    if (!panel) return;
+    try {
+      parent.postMessage({
+        type: 'od:tweaks-panel-state',
+        visible: !panel.classList.contains('tw-hidden'),
+      }, '*');
+    } catch (e) {}
+  }
+
+  function postAvailability(){
+    try {
+      parent.postMessage({
+        type: 'od:tweaks-available',
+        available: !!panelEl(),
+      }, '*');
+    } catch (e) {}
+  }
+
+  function attachObserver(){
+    var panel = panelEl();
+    if (!panel || observer) return;
+    observer = new MutationObserver(function(){
+      if (suppressEcho) return;
+      postState();
+    });
+    observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  function onReady(){
+    // Capture the panel authored visibility BEFORE we apply the host hidden
+    // attribute. The bridge sets data-od-tweaks-hidden synchronously in head
+    // (before the body parses), so on entry to onReady the attribute is
+    // always present even though the artifact may have authored the panel
+    // as default-visible. Reading the panel class first is the only place
+    // we can still observe the author intent. Then drive the attribute,
+    // classes, and posted state from that captured value so a default
+    // visible tw-panel reports visible:true and the toolbar toggle starts
+    // ON. Issue surfaced in PR #1643 review.
+    var panel = panelEl();
+    var initialVisible = !!panel && !panel.classList.contains('tw-hidden');
+    document.documentElement.toggleAttribute('data-od-tweaks-hidden', !initialVisible);
+    applyClassesToPanel(initialVisible);
+    attachObserver();
+    postAvailability();
+    // Post the captured initial visibility so the toolbar toggle reflects
+    // the default state on mount. Without this the toggle reads OFF while
+    // a default-visible tw-panel artifact clearly shows its panel and the
+    // user would have to click toggle-on then toggle-off to actually hide.
+    postState();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady);
+  } else {
+    onReady();
+  }
+
+  window.addEventListener('message', function(ev){
+    if (!ev.data || ev.data.type !== 'od:tweaks-panel-visible') return;
+    setPanelVisible(!!ev.data.visible);
+  });
+})();</script></head>
+<body>
+<div class="bg" data-od-id="path-0"><div class="grain" id="grain" data-od-id="path-0-0"></div></div>
+<header class="topbar" data-od-id="path-1">
+  <div class="brand-mark" aria-hidden="true" data-od-id="path-1-0">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M5 3h14M5 21h14M6.5 3c0 5 3 6 5.5 9 2.5-3 5.5-4 5.5-9M6.5 21c0-5 3-6 5.5-9 2.5 3 5.5 4 5.5 9" stroke="oklch(18% 0.03 60)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </div>
+  <div class="brand-wm" data-od-id="path-1-1"><span class="nm">TimeSand</span><span class="sb">MEMORY · DRIFT</span></div>
+</header>
+<main class="stage" data-od-id="path-2">
+  <section class="card" aria-labelledby="login-title" data-od-id="path-2-0">
+    <h1 id="login-title" class="title" data-od-id="path-2-0-0">把记忆 <em>抽回</em> 眼前</h1>
+    <form class="form" id="loginForm" novalidate="" data-od-id="path-2-0-1">
+      <div class="field" id="f-user" data-od-id="path-2-0-1-0">
+        <div class="input-wrap" data-od-id="path-2-0-1-0-0">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20c0-4 4-6 8-6s8 2 8 6M12 12a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <input id="user" name="user" type="text" autocomplete="username" placeholder="用户名 / 邮箱" spellcheck="false" aria-label="用户名或邮箱" data-od-id="path-2-0-1-0-0-1">
+        </div>
+        <div class="help" data-od-id="path-2-0-1-0-1">请输入用户名或邮箱</div>
+      </div>
+      <div class="field" id="f-pwd" data-od-id="path-2-0-1-1">
+        <div class="input-wrap" data-od-id="path-2-0-1-1-0">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"></rect><path d="M8 10V7a4 4 0 118 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+          <input id="pwd" name="pwd" type="password" autocomplete="current-password" placeholder="密码" aria-label="密码" data-od-id="path-2-0-1-1-0-1">
+          <button type="button" class="toggle" id="togglePwd" aria-label="显示密码" data-od-id="path-2-0-1-1-0-2">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.5"></path><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"></circle></svg>
+          </button>
+        </div>
+        <div class="help" data-od-id="path-2-0-1-1-1">密码不能为空</div>
+      </div>
+      <div class="row" data-od-id="path-2-0-1-2">
+        <label class="check">
+          <input type="checkbox" id="remember" checked="" data-od-id="path-2-0-1-2-0-0">
+          <span class="box"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+          <span>记住我</span>
+        </label>
+      </div>
+      <button type="submit" class="submit" id="submit" data-state="idle" data-od-id="path-2-0-1-3">
+        <span class="label">登 录</span>
+        <span class="spinner" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14M5 21h14M6.5 3c0 5 3 6 5.5 9 2.5-3 5.5-4 5.5-9M6.5 21c0-5 3-6 5.5-9 2.5 3 5.5 4 5.5 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span>正在唤醒沙漏…</span>
+        </span>
+      </button>
+      <div class="flash" id="flash" data-od-id="path-2-0-1-4">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"></circle><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        <span id="flashText" data-od-id="path-2-0-1-4-1"></span>
+      </div>
+    </form>
+    <div class="demo-hint" data-od-id="path-2-0-2">演示 · 密码 <kbd>timesand</kbd> 成功 / <kbd>slow</kbd> 加载 / 其他失败</div>
+  </section>
+  <section class="states" aria-label="按钮状态规范" data-od-id="path-2-1">
+    <div class="states-head" data-od-id="path-2-1-0">
+      <div class="h">按钮 <em>四态</em></div>
+      <div class="l">component spec</div>
+    </div>
+    <div class="states-grid" data-od-id="path-2-1-1">
+      <div class="state-cell">
+        <span class="tag">01 · IDLE</span>
+        <div class="btn" data-state="idle">登 录</div>
+        <div class="desc">默认态:琥珀渐变,内嵌高光,微微外发光。</div>
+      </div>
+      <div class="state-cell">
+        <span class="tag">02 · LOADING</span>
+        <div class="btn" data-state="loading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 3h14M5 21h14M6.5 3c0 5 3 6 5.5 9 2.5-3 5.5-4 5.5-9M6.5 21c0-5 3-6 5.5-9 2.5 3 5.5 4 5.5 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          唤醒沙漏…
+        </div>
+        <div class="desc">沙漏每 1.8s 翻转一次,呼应品牌沉淀感。</div>
+      </div>
+      <div class="state-cell">
+        <span class="tag">03 · SUCCESS</span>
+        <div class="btn" data-state="success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          已进入抽卡
+        </div>
+        <div class="desc">成功色与品牌琥珀同源,跳转前停留 600ms。</div>
+      </div>
+      <div class="state-cell">
+        <span class="tag">04 · FAILURE</span>
+        <div class="btn" data-state="failure">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>
+          密码不对
+        </div>
+        <div class="desc">暖红而非鲜红,按钮抖动 400ms 后停在失败态,提示横幅同时显示。</div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+(function(){var g=document.getElementById('grain');for(var i=0;i<22;i++){var s=document.createElement('i');s.style.left=(Math.random()*100)+'%';s.style.top=(Math.random()*100)+'%';var sc=.4+Math.random()*1.4;s.style.transform='scale('+sc+')';s.style.opacity=(.25+Math.random()*.55).toFixed(2);g.appendChild(s)}})();
+var pwd=document.getElementById('pwd'),togglePwd=document.getElementById('togglePwd');
+togglePwd.addEventListener('click',function(){var on=pwd.type==='password';pwd.type=on?'text':'password';togglePwd.setAttribute('aria-label', on?'隐藏密码':'显示密码')});
+var form=document.getElementById('loginForm'),submit=document.getElementById('submit'),flash=document.getElementById('flash'),flashText=document.getElementById('flashText'),fUser=document.getElementById('f-user'),fPwd=document.getElementById('f-pwd'),userEl=document.getElementById('user'),timer=null;
+function setState(state){
+  submit.dataset.state=state;
+  submit.disabled=(state==='loading');
+  if(state==='success'){
+    submit.querySelector('.spinner').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>已进入抽卡</span>';
+  } else if(state==='failure'){
+    submit.querySelector('.spinner').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span>登录失败</span>';
+  } else if(state==='idle' || state==='loading'){
+    submit.querySelector('.spinner').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 3h14M5 21h14M6.5 3c0 5 3 6 5.5 9 2.5-3 5.5-4 5.5-9M6.5 21c0-5 3-6 5.5-9 2.5 3 5.5 4 5.5 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>正在唤醒沙漏…</span>';
+  }
+}
+function setFlash(kind,text){flash.className='flash show '+(kind==='ok'?'ok':'err');flashText.textContent=text}
+function clearFlash(){flash.className='flash'}
+function clearErrors(){fUser.classList.remove('has-error');fPwd.classList.remove('has-error')}
+form.addEventListener('submit',function(e){
+  e.preventDefault();clearErrors();clearFlash();if(timer){clearTimeout(timer);timer=null}
+  var u=userEl.value.trim(),p=pwd.value,bad=false;
+  if(!u){fUser.classList.add('has-error');bad=true}
+  if(!p){fPwd.classList.add('has-error');bad=true}
+  if(bad){setState('failure');setFlash('err','请检查输入项后重试。');timer=setTimeout(function(){setState('idle')},1200);return}
+  setState('loading');
+  var delay=(p==='slow')?9999:1200;
+  timer=setTimeout(function(){
+    if(p==='timesand'){setState('success');setFlash('ok','欢迎回来,'+u+' — 正在进入抽卡。')}
+    else if(p==='slow'){}
+    else{setState('failure');setFlash('err','用户名或密码不正确,请再试一次。');timer=setTimeout(function(){setState('idle')},1600)}
+  },delay);
+});
+[userEl,pwd].forEach(function(el){el.addEventListener('input',function(){el.closest('.field').classList.remove('has-error');if(submit.dataset.state==='failure'){setState('idle');clearFlash()}})});
+</script>
+
+
+<script data-od-snapshot-bridge="">(function(){
+  function copyComputedStyle(source, target){
+    if (!source || !target || source.nodeType !== 1 || target.nodeType !== 1) return;
+    var computed = window.getComputedStyle(source);
+    var style = target.getAttribute('style') || '';
+    for (var i = 0; i < computed.length; i++){
+      var prop = computed[i];
+      style += prop + ':' + computed.getPropertyValue(prop) + ';';
+    }
+    target.setAttribute('style', style);
+  }
+  function syncElementState(source, target){
+    var tag = source.tagName ? source.tagName.toLowerCase() : '';
+    if (tag === 'img' && source.currentSrc) target.setAttribute('src', source.currentSrc);
+    if (tag === 'input' || tag === 'textarea') target.setAttribute('value', source.value || '');
+    if (tag === 'canvas') {
+      try {
+        var img = document.createElement('img');
+        img.setAttribute('src', source.toDataURL('image/png'));
+        img.setAttribute('style', target.getAttribute('style') || '');
+        target.parentNode && target.parentNode.replaceChild(img, target);
+      } catch (_) {}
+    }
+  }
+  function inlineSnapshotStyles(originalRoot, cloneRoot){
+    copyComputedStyle(originalRoot, cloneRoot);
+    syncElementState(originalRoot, cloneRoot);
+    var originals = originalRoot.querySelectorAll('*');
+    var clones = cloneRoot.querySelectorAll('*');
+    var count = Math.min(originals.length, clones.length);
+    for (var i = 0; i < count; i++){
+      copyComputedStyle(originals[i], clones[i]);
+      syncElementState(originals[i], clones[i]);
+    }
+    var scripts = cloneRoot.querySelectorAll('script');
+    for (var s = scripts.length - 1; s >= 0; s--) scripts[s].remove();
+  }
+  function waitForImages(){
+    var imgs = Array.prototype.slice.call(document.images || []);
+    return Promise.all(imgs.map(function(img){
+      if (img.complete) return Promise.resolve();
+      return new Promise(function(resolve){
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+    }));
+  }
+  function renderSnapshot(id){
+    var w = Math.max(1, window.innerWidth || document.documentElement.clientWidth || 1);
+    var h = Math.max(1, window.innerHeight || document.documentElement.clientHeight || 1);
+    var dpr = window.devicePixelRatio || 1;
+    var docW = Math.max(w, document.documentElement.scrollWidth || 0, document.body ? document.body.scrollWidth : 0);
+    var docH = Math.max(h, document.documentElement.scrollHeight || 0, document.body ? document.body.scrollHeight : 0);
+    var clone = document.documentElement.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    inlineSnapshotStyles(document.documentElement, clone);
+    var serializer = new XMLSerializer();
+    var html = serializer.serializeToString(clone);
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<foreignObject x="' + (-window.scrollX || 0) + '" y="' + (-window.scrollY || 0) + '" width="' + docW + '" height="' + docH + '">' +
+      html +
+      '</foreignObject></svg>';
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(w * dpr));
+        canvas.height = Math.max(1, Math.floor(h * dpr));
+        var ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('no 2d context');
+        ctx.scale(dpr, dpr);
+        ctx.drawImage(img, 0, 0, w, h);
+        window.parent.postMessage({ type: 'od:snapshot:result', id: id, dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height }, '*');
+      } catch (err) {
+        window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: String(err && err.message || err) }, '*');
+      }
+    };
+    img.onerror = function(){
+      window.parent.postMessage({ type: 'od:snapshot:result', id: id, error: 'snapshot image failed' }, '*');
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!data || data.type !== 'od:snapshot' || !data.id) return;
+    waitForImages().then(function(){ renderSnapshot(String(data.id)); });
+  });
+})();</script><script data-od-srcdoc-transport-activation="">(function(){
+  window.addEventListener('message', function(ev){
+    var data = ev && ev.data;
+    if (!data || data.type !== 'od:srcdoc-transport-activate' || typeof data.html !== 'string') return;
+    document.open();
+    document.write(data.html);
+    document.close();
+  });
+})();</script></body></html>

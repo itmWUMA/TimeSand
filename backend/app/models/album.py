@@ -27,9 +27,11 @@ class Album(SQLModel, table=True):
     cover_photo_id: int | None = Field(default=None, foreign_key="photo.id")
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+    owner_id: int = Field(foreign_key="user.id", index=True)
 
 
 class Tag(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(sa_column=Column(String, unique=True, index=True, nullable=False))
+    owner_id: int = Field(foreign_key="user.id", index=True)
 

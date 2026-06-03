@@ -30,8 +30,8 @@ def build_wav_bytes(duration_seconds: int = 1) -> bytes:
         return file_path.read_bytes()
 
 
-def upload_photo(client: TestClient, filename: str) -> dict:
-    response = client.post(
+def upload_photo(auth_client: TestClient, filename: str) -> dict:
+    response = auth_client.post(
         "/api/photos/upload",
         files=[("files", (filename, build_jpeg_bytes(), "image/jpeg"))],
     )
@@ -39,8 +39,8 @@ def upload_photo(client: TestClient, filename: str) -> dict:
     return response.json()["photos"][0]
 
 
-def upload_music(client: TestClient, filename: str) -> dict:
-    response = client.post(
+def upload_music(auth_client: TestClient, filename: str) -> dict:
+    response = auth_client.post(
         "/api/music/upload",
         files=[("files", (filename, build_wav_bytes(), "audio/wav"))],
     )
@@ -48,11 +48,11 @@ def upload_music(client: TestClient, filename: str) -> dict:
     return response.json()["tracks"][0]
 
 
-def test_export_backup_returns_expected_zip_structure(client: TestClient) -> None:
-    upload_photo(client, "photo-export.jpg")
-    upload_music(client, "track-export.wav")
+def test_export_backup_returns_expected_zip_structure(auth_client: TestClient) -> None:
+    upload_photo(auth_client, "photo-export.jpg")
+    upload_music(auth_client, "track-export.wav")
 
-    response = client.post("/api/backup/export")
+    response = auth_client.post("/api/backup/export")
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/zip"
@@ -66,14 +66,14 @@ def test_export_backup_returns_expected_zip_structure(client: TestClient) -> Non
         assert not any(member.startswith("photos/thumbnails/") for member in members)
 
 
-def test_import_backup_rejects_archive_without_database(client: TestClient) -> None:
+def test_import_backup_rejects_archive_without_database(auth_client: TestClient) -> None:
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("photos/originals/", b"")
         archive.writestr("music/files/", b"")
     buffer.seek(0)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/backup/import",
         files=[("file", ("invalid-backup.zip", buffer.read(), "application/zip"))],
     )
@@ -86,20 +86,49 @@ def test_import_backup_rejects_archive_without_database(client: TestClient) -> N
     }
 
 
-def test_import_backup_replaces_data_and_creates_pre_restore_backup(client: TestClient) -> None:
-    replacement_photo = upload_photo(client, "replacement-photo.jpg")
-    replacement_track = upload_music(client, "replacement-track.wav")
+def test_non_admin_cannot_export_or_import_backup(auth_client: TestClient) -> None:
+    register_response = auth_client.post(
+        "/api/auth/register",
+        json={
+            "username": "member",
+            "display_name": "Member",
+            "password": "timesand123",
+            "role": "member",
+        },
+    )
+    assert register_response.status_code == 201
+    auth_client.post("/api/auth/logout")
 
-    export_response = client.post("/api/backup/export")
+    login_response = auth_client.post(
+        "/api/auth/login",
+        json={"username": "member", "password": "timesand123", "remember_me": False},
+    )
+    assert login_response.status_code == 200
+
+    export_response = auth_client.post("/api/backup/export")
+    import_response = auth_client.post(
+        "/api/backup/import",
+        files=[("file", ("invalid-backup.zip", b"not a backup", "application/zip"))],
+    )
+
+    assert export_response.status_code == 403
+    assert import_response.status_code == 403
+
+
+def test_import_backup_replaces_data_and_creates_pre_restore_backup(auth_client: TestClient) -> None:
+    replacement_photo = upload_photo(auth_client, "replacement-photo.jpg")
+    replacement_track = upload_music(auth_client, "replacement-track.wav")
+
+    export_response = auth_client.post("/api/backup/export")
     assert export_response.status_code == 200
     backup_zip_bytes = export_response.content
 
-    client.delete(f"/api/photos/{replacement_photo['id']}")
-    client.delete(f"/api/music/{replacement_track['id']}")
-    upload_photo(client, "current-photo.jpg")
-    upload_music(client, "current-track.wav")
+    auth_client.delete(f"/api/photos/{replacement_photo['id']}")
+    auth_client.delete(f"/api/music/{replacement_track['id']}")
+    upload_photo(auth_client, "current-photo.jpg")
+    upload_music(auth_client, "current-track.wav")
 
-    import_response = client.post(
+    import_response = auth_client.post(
         "/api/backup/import",
         files=[("file", ("restore-target.zip", backup_zip_bytes, "application/zip"))],
     )
@@ -112,8 +141,8 @@ def test_import_backup_replaces_data_and_creates_pre_restore_backup(client: Test
         "thumbnails_regenerated": True,
     }
 
-    photos_response = client.get("/api/photos", params={"page": 1, "page_size": 20})
-    music_response = client.get("/api/music", params={"page": 1, "page_size": 20})
+    photos_response = auth_client.get("/api/photos", params={"page": 1, "page_size": 20})
+    music_response = auth_client.get("/api/music", params={"page": 1, "page_size": 20})
     assert photos_response.status_code == 200
     assert music_response.status_code == 200
 

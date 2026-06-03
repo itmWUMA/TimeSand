@@ -1,6 +1,7 @@
 from .album import Album, PhotoAlbum, PhotoTag, Tag
 from .music import AlbumPlaylist, Music, Playlist, PlaylistMusic
 from .photo import Photo
+from .user import Session, User, UserSetting
 
 __all__ = [
     "Photo",
@@ -12,4 +13,7 @@ __all__ = [
     "Playlist",
     "PlaylistMusic",
     "AlbumPlaylist",
+    "User",
+    "UserSetting",
+    "Session",
 ]

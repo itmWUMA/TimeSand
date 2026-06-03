@@ -9,8 +9,10 @@ import { TsDialog } from '../components/ui'
 import { useSoundEffects } from '../composables/useSoundEffects'
 import { useToast } from '../composables/useToast'
 import { listAlbums } from '../services/album'
+import { changePassword } from '../services/auth'
 import { exportBackup, importBackup } from '../services/backup'
 import { getStorageInfo } from '../services/settings'
+import { useAuthStore } from '../stores/auth'
 import {
   DRAW_ANIMATION_SPEED_OPTIONS,
   DRAW_NEARBY_DAYS_OPTIONS,
@@ -20,7 +22,7 @@ import {
 import { DRAW_WEIGHT_MODES } from '../types/draw'
 
 interface SectionLink {
-  id: 'storage' | 'backup' | 'draw' | 'playback' | 'i18n' | 'about'
+  id: 'account' | 'storage' | 'backup' | 'draw' | 'playback' | 'i18n' | 'about'
   labelKey: string
 }
 
@@ -52,10 +54,19 @@ const importBackupProgress = ref(0)
 const isRestoreDialogOpen = ref(false)
 const activeSection = ref<SectionLink['id']>('storage')
 
+const authStore = useAuthStore()
+const displayNameInput = ref('')
+const isSavingDisplayName = ref(false)
+const oldPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const isChangingPassword = ref(false)
+
 const appVersion = packageJson.version
 const circleCircumference = 302
 const localeOptions = ['zh-CN', 'en'] as const
 const sectionLinks: SectionLink[] = [
+  { id: 'account', labelKey: 'settings.sections.account' },
   { id: 'storage', labelKey: 'settings.sections.storage' },
   { id: 'backup', labelKey: 'settings.sections.backup' },
   { id: 'draw', labelKey: 'settings.sections.draw' },
@@ -372,11 +383,61 @@ async function onConfirmRestoreBackup(): Promise<void> {
   }
 }
 
+async function onSaveDisplayName(): Promise<void> {
+  const name = displayNameInput.value.trim()
+  if (!name) {
+    showToast(t('settings.account.displayNameRequired'), undefined, 'error')
+    return
+  }
+  isSavingDisplayName.value = true
+  try {
+    await authStore.updateDisplayName(name)
+    showToast(t('settings.account.displayNameSaved'), undefined, 'success')
+  }
+  catch {
+    showToast(t('settings.account.displayNameFailed'), undefined, 'error')
+  }
+  finally {
+    isSavingDisplayName.value = false
+  }
+}
+
+async function onChangePassword(): Promise<void> {
+  if (newPassword.value !== confirmPassword.value) {
+    showToast(t('settings.account.passwordMismatch'), undefined, 'error')
+    return
+  }
+  if (newPassword.value.length < 8) {
+    showToast(t('settings.account.passwordTooShort'), undefined, 'error')
+    return
+  }
+  isChangingPassword.value = true
+  try {
+    await changePassword({
+      old_password: oldPassword.value,
+      new_password: newPassword.value,
+    })
+    oldPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+    showToast(t('settings.account.passwordChanged'), undefined, 'success')
+  }
+  catch {
+    showToast(t('settings.account.passwordChangeFailed'), undefined, 'error')
+  }
+  finally {
+    isChangingPassword.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     loadStorageInfo(),
     loadAlbums(),
   ])
+  if (authStore.user?.display_name) {
+    displayNameInput.value = authStore.user.display_name
+  }
 })
 </script>
 
@@ -419,6 +480,93 @@ onMounted(async () => {
       </nav>
 
       <div class="set-content">
+        <section v-if="authStore.isAuthenticated" id="account" data-testid="settings-account-section" class="sect">
+          <div class="sect-head">
+            <h2 class="sect-h">
+              {{ $t('settings.sections.account') }}
+            </h2>
+            <span class="sect-num">{{ authStore.user?.username ?? '' }}</span>
+          </div>
+
+          <div class="pref">
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">
+                  {{ $t('settings.account.displayName') }}
+                </div>
+                <div class="pref-help">
+                  {{ $t('settings.account.displayNameHelp') }}
+                </div>
+              </div>
+              <div class="pref-control">
+                <div class="account-input-row">
+                  <input
+                    v-model="displayNameInput"
+                    type="text"
+                    class="account-input"
+                    :placeholder="$t('settings.account.displayNamePlaceholder')"
+                    :disabled="isSavingDisplayName"
+                    @keydown.enter="onSaveDisplayName"
+                  >
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    :disabled="isSavingDisplayName || !displayNameInput.trim()"
+                    @click="onSaveDisplayName"
+                  >
+                    {{ isSavingDisplayName ? $t('common.saving') : $t('common.save') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pref-row">
+              <div>
+                <div class="pref-name">
+                  {{ $t('settings.account.changePassword') }}
+                </div>
+                <div class="pref-help">
+                  {{ $t('settings.account.changePasswordHelp') }}
+                </div>
+              </div>
+              <div class="pref-control">
+                <div class="account-password-form">
+                  <input
+                    v-model="oldPassword"
+                    type="password"
+                    class="account-input"
+                    :placeholder="$t('settings.account.oldPassword')"
+                    :disabled="isChangingPassword"
+                  >
+                  <input
+                    v-model="newPassword"
+                    type="password"
+                    class="account-input"
+                    :placeholder="$t('settings.account.newPassword')"
+                    :disabled="isChangingPassword"
+                  >
+                  <input
+                    v-model="confirmPassword"
+                    type="password"
+                    class="account-input"
+                    :placeholder="$t('settings.account.confirmPassword')"
+                    :disabled="isChangingPassword"
+                    @keydown.enter="onChangePassword"
+                  >
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    :disabled="isChangingPassword || !oldPassword || !newPassword || !confirmPassword"
+                    @click="onChangePassword"
+                  >
+                    {{ isChangingPassword ? $t('common.saving') : $t('common.save') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="storage" data-testid="settings-storage-section" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
@@ -1526,6 +1674,61 @@ onMounted(async () => {
     grid-column: 1 / -1;
     justify-self: start;
     flex-wrap: wrap;
+  }
+}
+
+.account-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.account-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.account-input {
+  border: 1px solid var(--ts-border);
+  border-radius: var(--ts-radius);
+  background: var(--ts-surface);
+  color: var(--ts-fg);
+  font: 14px/1 var(--ts-font-body);
+  padding: 10px 12px;
+  outline: 0;
+  transition: border-color var(--ts-duration-fast) var(--ts-ease),
+    box-shadow var(--ts-duration-fast) var(--ts-ease);
+}
+
+.account-input:focus {
+  border-color: var(--ts-accent);
+  box-shadow: 0 0 0 3px var(--ts-accent-soft);
+}
+
+.account-input::placeholder {
+  color: var(--ts-muted);
+}
+
+.account-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 880px) {
+  .account-input-row {
+    width: 100%;
+  }
+
+  .account-input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .account-password-form {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

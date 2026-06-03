@@ -4,7 +4,15 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from app.core.logging import normalize_log_format, normalize_log_level
+
+# Load environment variables from `.env` before building Settings.
+# This allows local development without exporting variables manually.
+# In production (Docker, systemd, etc.) real env vars already exist and
+# `load_dotenv` only adds missing keys, so it is safe to call here.
+load_dotenv()
 
 
 @dataclass(slots=True)
@@ -13,6 +21,12 @@ class Settings:
     cors_origins: list[str] = field(default_factory=list)
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))
     log_format: str = field(default_factory=lambda: os.getenv("LOG_FORMAT", "json"))
+    admin_username: str = field(
+        default_factory=lambda: os.getenv("TIMESAND_ADMIN_USERNAME", "admin")
+    )
+    admin_password: str | None = field(
+        default_factory=lambda: os.getenv("TIMESAND_ADMIN_PASSWORD") or None
+    )
     enable_demo_seed: bool = field(
         default_factory=lambda: os.getenv("ENABLE_DEMO_SEED", "true").lower()
         not in {"0", "false", "no", "off"}

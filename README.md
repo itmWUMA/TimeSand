@@ -146,6 +146,8 @@ uv run pytest
 | `LOG_LEVEL` | `INFO` | 后端日志级别。 |
 | `LOG_FORMAT` | `json` | 后端日志格式。 |
 | `ENABLE_DEMO_SEED` | `true` | 是否在启动时写入演示媒体。 |
+| `TIMESAND_ADMIN_USERNAME` | `admin` | 用户表为空时自动创建的初始管理员用户名。 |
+| `TIMESAND_ADMIN_PASSWORD` | 未设置 | 初始管理员密码，首次启动前应设置为至少 8 个字符；未设置时系统保持未初始化，`/api/auth/login` 返回 503。 |
 
 生产环境前端默认请求同源 `/api`，由 FastAPI 同时托管构建后的静态前端和 API。
 
