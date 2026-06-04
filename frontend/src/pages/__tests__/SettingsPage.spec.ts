@@ -4,8 +4,10 @@ import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import packageJson from '../../../package.json'
 import { listAlbums } from '../../services/album'
+import { listUsers, registerUser } from '../../services/auth'
 import { exportBackup, importBackup } from '../../services/backup'
 import { getStorageInfo } from '../../services/settings'
+import { useAuthStore } from '../../stores/auth'
 import {
   DRAW_NEARBY_DAYS_STORAGE_KEY,
   DRAW_WEIGHT_MODE_STORAGE_KEY,
@@ -37,6 +39,11 @@ vi.mock('../../services/settings', () => ({
   getStorageInfo: vi.fn(),
 }))
 
+vi.mock('../../services/auth', () => ({
+  listUsers: vi.fn(),
+  registerUser: vi.fn(),
+}))
+
 vi.mock('../../services/backup', () => ({
   exportBackup: vi.fn(),
   importBackup: vi.fn(),
@@ -47,6 +54,25 @@ vi.mock('../../composables/useSoundEffects', () => ({
 }))
 
 describe('settingsPage', () => {
+  function mountAdminSettingsPage() {
+    const pinia = createPinia()
+    const authStore = useAuthStore(pinia)
+    authStore.setUser({
+      id: 1,
+      username: 'admin',
+      display_name: 'Admin',
+      role: 'admin',
+      is_active: true,
+    })
+
+    return mountWithI18n(SettingsPage, {
+      global: {
+        plugins: [pinia],
+      },
+      attachTo: document.body,
+    })
+  }
+
   function getRenderedText(wrapperText: string): string {
     return `${wrapperText} ${document.body.textContent ?? ''}`.trim()
   }
@@ -68,6 +94,29 @@ describe('settingsPage', () => {
     vi.mocked(listAlbums).mockResolvedValue({
       items: [],
       total: 0,
+    })
+    vi.mocked(listUsers).mockResolvedValue([
+      {
+        id: 1,
+        username: 'admin',
+        display_name: 'Admin',
+        role: 'admin',
+        is_active: true,
+      },
+      {
+        id: 2,
+        username: 'alice',
+        display_name: 'Alice',
+        role: 'member',
+        is_active: true,
+      },
+    ])
+    vi.mocked(registerUser).mockResolvedValue({
+      id: 3,
+      username: 'bob',
+      display_name: 'bob',
+      role: 'member',
+      is_active: true,
     })
     vi.mocked(exportBackup).mockResolvedValue({
       blob: new Blob(['backup-data'], { type: 'application/zip' }),
@@ -213,6 +262,63 @@ describe('settingsPage', () => {
     expect(renderedText).toContain('restore-target.zip')
     expect(renderedText).toContain('This will replace all existing data')
     expect(importBackup).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('shows admin user data and user creation controls in the account section', async () => {
+    const wrapper = mountAdminSettingsPage()
+
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-account-users-section"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-create-user-section"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-display-name-input"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="settings-change-password-form"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('User Data')
+    expect(wrapper.text()).toContain('Create User')
+    expect(wrapper.text()).toContain('admin')
+    expect(wrapper.text()).toContain('Alice')
+    expect(wrapper.text()).toContain('member')
+    expect(listUsers).toHaveBeenCalledTimes(1)
+
+    wrapper.unmount()
+  })
+
+  it('creates a member user from the account section and refreshes user data', async () => {
+    const wrapper = mountAdminSettingsPage()
+
+    await flushPromises()
+
+    await wrapper.get('[data-testid="settings-new-username"]').setValue('bob')
+    await wrapper.get('[data-testid="settings-new-password"]').setValue('memberpass123')
+    await wrapper.get('[data-testid="settings-new-confirm-password"]').setValue('memberpass123')
+    await wrapper.get('[data-testid="settings-create-user-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(registerUser).toHaveBeenCalledWith({
+      username: 'bob',
+      display_name: 'bob',
+      password: 'memberpass123',
+      role: 'member',
+    })
+    expect(listUsers).toHaveBeenCalledTimes(2)
+
+    wrapper.unmount()
+  })
+
+  it('does not create a user when password confirmation does not match', async () => {
+    const wrapper = mountAdminSettingsPage()
+
+    await flushPromises()
+
+    await wrapper.get('[data-testid="settings-new-username"]').setValue('bob')
+    await wrapper.get('[data-testid="settings-new-password"]').setValue('memberpass123')
+    await wrapper.get('[data-testid="settings-new-confirm-password"]').setValue('differentpass')
+    await wrapper.get('[data-testid="settings-create-user-submit"]').trigger('click')
+    await flushPromises()
+
+    expect(registerUser).not.toHaveBeenCalled()
 
     wrapper.unmount()
   })

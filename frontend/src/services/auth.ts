@@ -31,6 +31,11 @@ export async function updateProfile(payload: { display_name: string }): Promise<
   return response.data
 }
 
+export async function listUsers(): Promise<User[]> {
+  const response = await api.get<User[]>('/users')
+  return response.data
+}
+
 export async function registerUser(payload: RegisterUserRequest): Promise<User> {
   const response = await api.post<User>('/auth/register', payload)
   return response.data
