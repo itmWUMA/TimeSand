@@ -29,7 +29,8 @@ export const routes: RouteRecordRaw[] = [
     meta: { shell: false, requiresAuth: true },
   },
   { path: '/slideshow', name: 'slideshow', component: SlideshowPage, meta: { shell: false, requiresAuth: true } },
-  { path: '/settings', name: 'settings', component: SettingsPage, meta: { requiresAuth: true } },
+  { path: '/settings', name: 'settings', redirect: '/settings/storage', meta: { requiresAuth: true } },
+  { path: '/settings/:section', name: 'settings-section', component: SettingsPage, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({
