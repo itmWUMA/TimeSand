@@ -16,8 +16,7 @@ body,
   min-height: 100%;
 }
 
-html,
-body {
+html {
   overflow-x: hidden;
 }
 
