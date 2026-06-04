@@ -663,7 +663,7 @@ onMounted(() => {
 .canvas {
   grid-column: 2;
   grid-row: 1;
-  overflow-x: hidden;
+  overflow-x: clip;
   padding: 32px var(--ts-gutter) 124px;
 }
 
