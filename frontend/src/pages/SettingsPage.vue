@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { StorageInfo } from '../services/settings'
 import type { Album } from '../types/album'
+import type { User } from '../types/auth'
 import type { DrawWeightMode } from '../types/draw'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -10,7 +11,7 @@ import { TsDialog } from '../components/ui'
 import { useSoundEffects } from '../composables/useSoundEffects'
 import { useToast } from '../composables/useToast'
 import { listAlbums } from '../services/album'
-import { changePassword } from '../services/auth'
+import { listUsers, registerUser } from '../services/auth'
 import { exportBackup, importBackup } from '../services/backup'
 import { getStorageInfo } from '../services/settings'
 import { useAuthStore } from '../stores/auth'
@@ -59,12 +60,12 @@ const importBackupProgress = ref(0)
 const isRestoreDialogOpen = ref(false)
 
 const authStore = useAuthStore()
-const displayNameInput = ref('')
-const isSavingDisplayName = ref(false)
-const oldPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-const isChangingPassword = ref(false)
+const users = ref<User[]>([])
+const isLoadingUsers = ref(false)
+const isCreatingUser = ref(false)
+const newUsername = ref('')
+const newUserPassword = ref('')
+const newUserConfirmPassword = ref('')
 
 const appVersion = packageJson.version
 const circleCircumference = 302
@@ -269,6 +270,25 @@ async function loadAlbums(): Promise<void> {
   }
 }
 
+async function loadUsers(): Promise<void> {
+  if (!authStore.isAdmin) {
+    users.value = []
+    return
+  }
+
+  isLoadingUsers.value = true
+  try {
+    users.value = await listUsers()
+  }
+  catch {
+    users.value = []
+    showToast(t('settings.account.usersLoadFailed'), undefined, 'error')
+  }
+  finally {
+    isLoadingUsers.value = false
+  }
+}
+
 function settingsSectionPath(section: SectionId): string {
   return `/settings/${section}`
 }
@@ -289,6 +309,11 @@ async function loadSectionData(section: SectionId): Promise<void> {
 
   if (section === 'draw') {
     await loadAlbums()
+    return
+  }
+
+  if (section === 'account') {
+    await loadUsers()
   }
 }
 
@@ -300,6 +325,14 @@ function setLocale(nextLocale: 'zh-CN' | 'en'): void {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = nextLocale
   }
+}
+
+function userRoleLabel(user: User): string {
+  return user.role === 'admin' ? t('settings.account.roleAdmin') : t('settings.account.roleMember')
+}
+
+function userStatusLabel(user: User): string {
+  return user.is_active ? t('settings.account.statusActive') : t('settings.account.statusInactive')
 }
 
 function onSfxVolumeInput(event: Event): void {
@@ -419,61 +452,45 @@ async function onConfirmRestoreBackup(): Promise<void> {
   }
 }
 
-async function onSaveDisplayName(): Promise<void> {
-  const name = displayNameInput.value.trim()
-  if (!name) {
-    showToast(t('settings.account.displayNameRequired'), undefined, 'error')
+async function onCreateUser(): Promise<void> {
+  const username = newUsername.value.trim()
+  if (!username) {
+    showToast(t('settings.account.usernameRequired'), undefined, 'error')
     return
   }
-  isSavingDisplayName.value = true
-  try {
-    await authStore.updateDisplayName(name)
-    showToast(t('settings.account.displayNameSaved'), undefined, 'success')
+  if (newUserPassword.value !== newUserConfirmPassword.value) {
+    showToast(t('settings.account.createPasswordMismatch'), undefined, 'error')
+    return
   }
-  catch {
-    showToast(t('settings.account.displayNameFailed'), undefined, 'error')
+  if (newUserPassword.value.length < 8) {
+    showToast(t('settings.account.createPasswordTooShort'), undefined, 'error')
+    return
   }
-  finally {
-    isSavingDisplayName.value = false
-  }
-}
 
-async function onChangePassword(): Promise<void> {
-  if (newPassword.value !== confirmPassword.value) {
-    showToast(t('settings.account.passwordMismatch'), undefined, 'error')
-    return
-  }
-  if (newPassword.value.length < 8) {
-    showToast(t('settings.account.passwordTooShort'), undefined, 'error')
-    return
-  }
-  isChangingPassword.value = true
+  isCreatingUser.value = true
   try {
-    await changePassword({
-      old_password: oldPassword.value,
-      new_password: newPassword.value,
+    await registerUser({
+      username,
+      display_name: username,
+      password: newUserPassword.value,
+      role: 'member',
     })
-    oldPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
-    showToast(t('settings.account.passwordChanged'), undefined, 'success')
+    newUsername.value = ''
+    newUserPassword.value = ''
+    newUserConfirmPassword.value = ''
+    showToast(t('settings.account.userCreated'), undefined, 'success')
+    await loadUsers()
   }
   catch {
-    showToast(t('settings.account.passwordChangeFailed'), undefined, 'error')
+    showToast(t('settings.account.userCreateFailed'), undefined, 'error')
   }
   finally {
-    isChangingPassword.value = false
+    isCreatingUser.value = false
   }
 }
 
 watch(activeSection, (section) => {
   void loadSectionData(section)
-}, { immediate: true })
-
-watch(() => authStore.user?.display_name, (displayName) => {
-  if (displayName) {
-    displayNameInput.value = displayName
-  }
 }, { immediate: true })
 </script>
 
@@ -524,81 +541,118 @@ watch(() => authStore.user?.display_name, (displayName) => {
             <span class="sect-num">{{ authStore.user?.username ?? '' }}</span>
           </div>
 
-          <div class="pref">
-            <div class="pref-row">
-              <div>
-                <div class="pref-name">
-                  {{ $t('settings.account.displayName') }}
+          <div v-if="authStore.isAdmin" class="account-admin-grid">
+            <section data-testid="settings-account-users-section" class="account-panel">
+              <div class="account-panel-head">
+                <div>
+                  <div class="pref-name">
+                    {{ $t('settings.account.userData') }}
+                  </div>
+                  <div class="pref-help">
+                    {{ $t('settings.account.userDataHelp') }}
+                  </div>
                 </div>
-                <div class="pref-help">
-                  {{ $t('settings.account.displayNameHelp') }}
-                </div>
+                <button type="button" class="btn btn-ghost" :disabled="isLoadingUsers" @click="loadUsers">
+                  {{ $t('common.refresh') }}
+                </button>
               </div>
-              <div class="pref-control">
-                <div class="account-input-row">
-                  <input
-                    v-model="displayNameInput"
-                    type="text"
-                    class="account-input"
-                    :placeholder="$t('settings.account.displayNamePlaceholder')"
-                    :disabled="isSavingDisplayName"
-                    @keydown.enter="onSaveDisplayName"
-                  >
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    :disabled="isSavingDisplayName || !displayNameInput.trim()"
-                    @click="onSaveDisplayName"
-                  >
-                    {{ isSavingDisplayName ? $t('common.saving') : $t('common.save') }}
-                  </button>
-                </div>
-              </div>
-            </div>
 
-            <div class="pref-row">
-              <div>
-                <div class="pref-name">
-                  {{ $t('settings.account.changePassword') }}
-                </div>
-                <div class="pref-help">
-                  {{ $t('settings.account.changePasswordHelp') }}
+              <div class="user-table-wrap">
+                <table class="user-table">
+                  <thead>
+                    <tr>
+                      <th>{{ $t('settings.account.username') }}</th>
+                      <th>{{ $t('settings.account.displayNameColumn') }}</th>
+                      <th>{{ $t('settings.account.role') }}</th>
+                      <th>{{ $t('settings.account.status') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="isLoadingUsers">
+                      <td colspan="4">
+                        {{ $t('settings.account.usersLoading') }}
+                      </td>
+                    </tr>
+                    <tr v-for="user in users" v-else :key="user.id">
+                      <td class="num">
+                        {{ user.username }}
+                      </td>
+                      <td>{{ user.display_name }}</td>
+                      <td>{{ userRoleLabel(user) }}</td>
+                      <td>
+                        <span class="status-pill" :class="{ 'is-off': !user.is_active }">
+                          {{ userStatusLabel(user) }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr v-if="!isLoadingUsers && users.length === 0">
+                      <td colspan="4">
+                        {{ $t('settings.account.noUsers') }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section data-testid="settings-create-user-section" class="account-panel">
+              <div class="account-panel-head">
+                <div>
+                  <div class="pref-name">
+                    {{ $t('settings.account.createUser') }}
+                  </div>
+                  <div class="pref-help">
+                    {{ $t('settings.account.createUserHelp') }}
+                  </div>
                 </div>
               </div>
-              <div class="pref-control">
-                <div class="account-password-form">
-                  <input
-                    v-model="oldPassword"
-                    type="password"
-                    class="account-input"
-                    :placeholder="$t('settings.account.oldPassword')"
-                    :disabled="isChangingPassword"
-                  >
-                  <input
-                    v-model="newPassword"
-                    type="password"
-                    class="account-input"
-                    :placeholder="$t('settings.account.newPassword')"
-                    :disabled="isChangingPassword"
-                  >
-                  <input
-                    v-model="confirmPassword"
-                    type="password"
-                    class="account-input"
-                    :placeholder="$t('settings.account.confirmPassword')"
-                    :disabled="isChangingPassword"
-                    @keydown.enter="onChangePassword"
-                  >
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    :disabled="isChangingPassword || !oldPassword || !newPassword || !confirmPassword"
-                    @click="onChangePassword"
-                  >
-                    {{ isChangingPassword ? $t('common.saving') : $t('common.save') }}
-                  </button>
-                </div>
-              </div>
+
+              <form class="create-user-form" @submit.prevent="onCreateUser">
+                <input
+                  v-model="newUsername"
+                  data-testid="settings-new-username"
+                  type="text"
+                  class="account-input"
+                  autocomplete="off"
+                  :placeholder="$t('settings.account.username')"
+                  :disabled="isCreatingUser"
+                >
+                <input
+                  v-model="newUserPassword"
+                  data-testid="settings-new-password"
+                  type="password"
+                  class="account-input"
+                  autocomplete="new-password"
+                  :placeholder="$t('settings.account.password')"
+                  :disabled="isCreatingUser"
+                >
+                <input
+                  v-model="newUserConfirmPassword"
+                  data-testid="settings-new-confirm-password"
+                  type="password"
+                  class="account-input"
+                  autocomplete="new-password"
+                  :placeholder="$t('settings.account.createConfirmPassword')"
+                  :disabled="isCreatingUser"
+                >
+                <button
+                  data-testid="settings-create-user-submit"
+                  type="submit"
+                  class="btn btn-primary"
+                  :disabled="isCreatingUser || !newUsername.trim() || !newUserPassword || !newUserConfirmPassword"
+                >
+                  {{ isCreatingUser ? $t('common.creating') : $t('settings.account.createUser') }}
+                </button>
+              </form>
+            </section>
+          </div>
+
+          <div v-else class="account-panel">
+            <div class="pref-name">
+              {{ $t('settings.account.adminOnly') }}
+            </div>
+            <div class="pref-help">
+              {{ $t('settings.account.adminOnlyHelp') }}
             </div>
           </div>
         </section>
@@ -1713,17 +1767,86 @@ watch(() => authStore.user?.display_name, (displayName) => {
   }
 }
 
-.account-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.account-admin-grid {
+  display: grid;
+  gap: 18px;
 }
 
-.account-password-form {
+.account-panel {
+  border: 1px solid var(--ts-border-soft);
+  border-radius: var(--ts-radius-lg);
+  background: var(--ts-surface);
+  padding: 22px;
+}
+
+.account-panel-head {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 220px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.user-table-wrap {
+  overflow-x: auto;
+}
+
+.user-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.user-table th,
+.user-table td {
+  border-bottom: 1px solid var(--ts-border-soft);
+  padding: 11px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.user-table th {
+  color: var(--ts-muted);
+  font-family: var(--ts-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.user-table td {
+  color: var(--ts-fg-soft);
+  font-size: 13px;
+}
+
+.user-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgb(74 222 128 / 28%);
+  border-radius: var(--ts-radius-pill);
+  background: rgb(34 197 94 / 10%);
+  color: rgb(187 247 208);
+  padding: 2px 9px;
+  font-family: var(--ts-font-mono);
+  font-size: 11px;
+}
+
+.status-pill.is-off {
+  border-color: rgb(248 113 113 / 30%);
+  background: rgb(239 68 68 / 10%);
+  color: rgb(254 202 202);
+}
+
+.create-user-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .account-input {
@@ -1753,18 +1876,17 @@ watch(() => authStore.user?.display_name, (displayName) => {
 }
 
 @media (max-width: 880px) {
-  .account-input-row {
-    width: 100%;
+  .account-panel {
+    padding: 18px;
   }
 
-  .account-input {
-    flex: 1 1 auto;
-    min-width: 0;
+  .account-panel-head {
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .account-password-form {
-    width: 100%;
-    min-width: 0;
+  .create-user-form {
+    grid-template-columns: 1fr;
   }
 }
 </style>
