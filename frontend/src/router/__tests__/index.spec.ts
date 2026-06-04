@@ -31,7 +31,13 @@ describe('router', () => {
     expect(routeByName('login')?.path).toBe('/login')
     expect(routeByName('draw')?.meta.requiresAuth).toBe(true)
     expect(routeByName('albums')?.meta.requiresAuth).toBe(true)
-    expect(routeByName('settings')?.meta.requiresAuth).toBe(true)
+    expect(routeByName('settings-section')?.meta.requiresAuth).toBe(true)
+  })
+
+  it('routes settings groups as standalone pages', () => {
+    expect(routeByName('settings')?.path).toBe('/settings')
+    expect(routeByName('settings')?.redirect).toBe('/settings/storage')
+    expect(routeByName('settings-section')?.path).toBe('/settings/:section')
   })
 
   it('keeps /slideshow and /slideshow/:albumId compatibility routes', () => {

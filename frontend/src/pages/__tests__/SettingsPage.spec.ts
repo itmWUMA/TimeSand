@@ -2,6 +2,7 @@ import { flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import packageJson from '../../../package.json'
 import { listAlbums } from '../../services/album'
 import { listUsers, registerUser } from '../../services/auth'
@@ -54,10 +55,46 @@ vi.mock('../../composables/useSoundEffects', () => ({
 }))
 
 describe('settingsPage', () => {
-  function mountAdminSettingsPage() {
+  async function mountSettingsPage(section = 'storage', user?: {
+    id: number
+    username: string
+    display_name: string
+    role: 'admin' | 'member'
+    is_active: boolean
+  }) {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/settings/:section',
+          name: 'settings-section',
+          component: SettingsPage,
+        },
+      ],
+    })
+    await router.push(`/settings/${section}`)
+    await router.isReady()
+
     const pinia = createPinia()
-    const authStore = useAuthStore(pinia)
-    authStore.setUser({
+    if (user) {
+      const authStore = useAuthStore(pinia)
+      authStore.setUser(user)
+    }
+
+    const wrapper = mountWithI18n(SettingsPage, {
+      global: {
+        plugins: [pinia, router],
+      },
+      attachTo: document.body,
+    })
+
+    await flushPromises()
+
+    return { router, wrapper }
+  }
+
+  async function mountAdminSettingsPage() {
+    const { wrapper } = await mountSettingsPage('account', {
       id: 1,
       username: 'admin',
       display_name: 'Admin',
@@ -65,12 +102,7 @@ describe('settingsPage', () => {
       is_active: true,
     })
 
-    return mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [pinia],
-      },
-      attachTo: document.body,
-    })
+    return wrapper
   }
 
   function getRenderedText(wrapperText: string): string {
@@ -134,27 +166,21 @@ describe('settingsPage', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders the exported settings section structure with storage data', async () => {
-    const wrapper = mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [createPinia()],
-      },
-      attachTo: document.body,
-    })
-
-    await flushPromises()
+  it('renders only the selected settings route section with storage data', async () => {
+    const { wrapper } = await mountSettingsPage('storage')
 
     expect(wrapper.find('[data-testid="settings-storage-section"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="settings-backup-section"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-backup-section"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="settings-side-nav"]').exists()).toBe(true)
     expect(wrapper.find('#storage').exists()).toBe(true)
-    expect(wrapper.find('#backup').exists()).toBe(true)
-    expect(wrapper.find('#draw').exists()).toBe(true)
-    expect(wrapper.find('#playback').exists()).toBe(true)
-    expect(wrapper.find('#i18n').exists()).toBe(true)
-    expect(wrapper.find('#about').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Storage')
-    expect(wrapper.text()).toContain('Backup and Data')
+    expect(wrapper.find('#backup').exists()).toBe(false)
+    expect(wrapper.find('#draw').exists()).toBe(false)
+    expect(wrapper.find('#playback').exists()).toBe(false)
+    expect(wrapper.find('#i18n').exists()).toBe(false)
+    expect(wrapper.find('#about').exists()).toBe(false)
+    const contentText = wrapper.get('.set-content').text()
+    expect(contentText).toContain('Storage')
+    expect(contentText).not.toContain('Backup and Data')
     expect(wrapper.text()).toContain('142')
     expect(wrapper.text()).toContain('23')
     expect(wrapper.text()).toContain('500.00 MB')
@@ -167,25 +193,34 @@ describe('settingsPage', () => {
     expect(thumbnailRow?.text()).toContain('142 generated')
     expect(thumbnailRow?.text()).not.toContain('0 B')
 
-    expect(wrapper.text()).toContain('Package the database, original photos, and music files')
-    expect(wrapper.text()).not.toContain('thumbnails, and music files')
-    expect(wrapper.text()).toContain('Draw and Time Weight')
-    expect(wrapper.text()).toContain('Slideshow and Playback')
-    expect(wrapper.text()).toContain('Appearance and Language')
-    expect(listAlbums).toHaveBeenCalledTimes(1)
+    expect(contentText).not.toContain('Package the database, original photos, and music files')
+    expect(contentText).not.toContain('Draw and Time Weight')
+    expect(contentText).not.toContain('Slideshow and Playback')
+    expect(contentText).not.toContain('Appearance and Language')
+    expect(listAlbums).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('navigates settings groups through route links', async () => {
+    const { router, wrapper } = await mountSettingsPage('storage')
+
+    const backupLink = wrapper.get('a[href="/settings/backup"]')
+    expect(backupLink.classes()).not.toContain('is-on')
+
+    await backupLink.trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.fullPath).toBe('/settings/backup')
+    expect(wrapper.find('[data-testid="settings-storage-section"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="settings-backup-section"]').exists()).toBe(true)
+    expect(backupLink.classes()).toContain('is-on')
 
     wrapper.unmount()
   })
 
   it('shows the package version in the header chip and about section', async () => {
-    const wrapper = mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [createPinia()],
-      },
-      attachTo: document.body,
-    })
-
-    await flushPromises()
+    const { wrapper } = await mountSettingsPage('about')
 
     const versionText = `v${packageJson.version}`
     const renderedText = wrapper.text()
@@ -196,14 +231,7 @@ describe('settingsPage', () => {
   })
 
   it('persists language changes from the settings segmented control', async () => {
-    const wrapper = mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [createPinia()],
-      },
-      attachTo: document.body,
-    })
-
-    await flushPromises()
+    const { wrapper } = await mountSettingsPage('i18n')
 
     await wrapper.get('[data-testid="settings-locale-zh-CN"]').trigger('click')
     await flushPromises()
@@ -217,35 +245,25 @@ describe('settingsPage', () => {
   })
 
   it('persists draw and slideshow defaults from segmented controls', async () => {
-    const wrapper = mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [createPinia()],
-      },
-      attachTo: document.body,
-    })
+    const drawPage = await mountSettingsPage('draw')
 
-    await flushPromises()
+    await drawPage.wrapper.get('[data-testid="settings-draw-weight-strong"]').trigger('click')
+    await drawPage.wrapper.get('[data-testid="settings-nearby-days-7"]').trigger('click')
 
-    await wrapper.get('[data-testid="settings-draw-weight-strong"]').trigger('click')
-    await wrapper.get('[data-testid="settings-nearby-days-7"]').trigger('click')
-    await wrapper.get('[data-testid="settings-slideshow-interval-8"]').trigger('click')
+    drawPage.wrapper.unmount()
+
+    const playbackPage = await mountSettingsPage('playback')
+    await playbackPage.wrapper.get('[data-testid="settings-slideshow-interval-8"]').trigger('click')
 
     expect(window.localStorage.getItem(DRAW_WEIGHT_MODE_STORAGE_KEY)).toBe('strong')
     expect(window.localStorage.getItem(DRAW_NEARBY_DAYS_STORAGE_KEY)).toBe('7')
     expect(window.localStorage.getItem(SETTINGS_STORAGE_KEY)).toBe('8')
 
-    wrapper.unmount()
+    playbackPage.wrapper.unmount()
   })
 
   it('shows restore confirmation dialog before uploading backup', async () => {
-    const wrapper = mountWithI18n(SettingsPage, {
-      global: {
-        plugins: [createPinia()],
-      },
-      attachTo: document.body,
-    })
-
-    await flushPromises()
+    const { wrapper } = await mountSettingsPage('backup')
 
     const input = wrapper.get('input[type="file"]')
     const backupFile = new File(['zip-content'], 'restore-target.zip', { type: 'application/zip' })
@@ -267,7 +285,7 @@ describe('settingsPage', () => {
   })
 
   it('shows admin user data and user creation controls in the account section', async () => {
-    const wrapper = mountAdminSettingsPage()
+    const wrapper = await mountAdminSettingsPage()
 
     await flushPromises()
 
@@ -286,7 +304,7 @@ describe('settingsPage', () => {
   })
 
   it('creates a member user from the account section and refreshes user data', async () => {
-    const wrapper = mountAdminSettingsPage()
+    const wrapper = await mountAdminSettingsPage()
 
     await flushPromises()
 
@@ -308,7 +326,7 @@ describe('settingsPage', () => {
   })
 
   it('does not create a user when password confirmation does not match', async () => {
-    const wrapper = mountAdminSettingsPage()
+    const wrapper = await mountAdminSettingsPage()
 
     await flushPromises()
 

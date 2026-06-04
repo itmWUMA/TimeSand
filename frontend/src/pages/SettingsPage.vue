@@ -3,8 +3,9 @@ import type { StorageInfo } from '../services/settings'
 import type { Album } from '../types/album'
 import type { User } from '../types/auth'
 import type { DrawWeightMode } from '../types/draw'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import packageJson from '../../package.json'
 import { TsDialog } from '../components/ui'
 import { useSoundEffects } from '../composables/useSoundEffects'
@@ -22,8 +23,10 @@ import {
 } from '../stores/settings'
 import { DRAW_WEIGHT_MODES } from '../types/draw'
 
+type SectionId = 'account' | 'storage' | 'backup' | 'draw' | 'playback' | 'i18n' | 'about'
+
 interface SectionLink {
-  id: 'account' | 'storage' | 'backup' | 'draw' | 'playback' | 'i18n' | 'about'
+  id: SectionId
   labelKey: string
 }
 
@@ -39,6 +42,8 @@ const settingsStore = useSettingsStore()
 const soundEffects = useSoundEffects()
 const { showToast } = useToast()
 const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const loadingStorage = ref(false)
 const storageInfo = ref<StorageInfo | null>(null)
@@ -53,7 +58,6 @@ const exportBackupProgress = ref(0)
 const isImportingBackup = ref(false)
 const importBackupProgress = ref(0)
 const isRestoreDialogOpen = ref(false)
-const activeSection = ref<SectionLink['id']>('storage')
 
 const authStore = useAuthStore()
 const users = ref<User[]>([])
@@ -66,6 +70,7 @@ const newUserConfirmPassword = ref('')
 const appVersion = packageJson.version
 const circleCircumference = 302
 const localeOptions = ['zh-CN', 'en'] as const
+const defaultSection: SectionId = 'storage'
 const sectionLinks: SectionLink[] = [
   { id: 'account', labelKey: 'settings.sections.account' },
   { id: 'storage', labelKey: 'settings.sections.storage' },
@@ -75,6 +80,14 @@ const sectionLinks: SectionLink[] = [
   { id: 'i18n', labelKey: 'settings.sections.i18n' },
   { id: 'about', labelKey: 'settings.sections.about' },
 ]
+const sectionIds = new Set<SectionId>(sectionLinks.map(section => section.id))
+
+const activeSection = computed<SectionId>(() => {
+  const section = route.params.section
+  const sectionId = Array.isArray(section) ? section[0] : section
+
+  return sectionIds.has(sectionId as SectionId) ? sectionId as SectionId : defaultSection
+})
 
 const slideshowInterval = computed({
   get: () => settingsStore.getInterval(),
@@ -276,6 +289,34 @@ async function loadUsers(): Promise<void> {
   }
 }
 
+function settingsSectionPath(section: SectionId): string {
+  return `/settings/${section}`
+}
+
+async function navigateToSection(section: SectionId): Promise<void> {
+  if (activeSection.value === section) {
+    return
+  }
+
+  await router.push(settingsSectionPath(section))
+}
+
+async function loadSectionData(section: SectionId): Promise<void> {
+  if (section === 'storage') {
+    await loadStorageInfo()
+    return
+  }
+
+  if (section === 'draw') {
+    await loadAlbums()
+    return
+  }
+
+  if (section === 'account') {
+    await loadUsers()
+  }
+}
+
 function setLocale(nextLocale: 'zh-CN' | 'en'): void {
   locale.value = nextLocale
   if (typeof window !== 'undefined') {
@@ -448,13 +489,9 @@ async function onCreateUser(): Promise<void> {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([
-    loadStorageInfo(),
-    loadAlbums(),
-    loadUsers(),
-  ])
-})
+watch(activeSection, (section) => {
+  void loadSectionData(section)
+}, { immediate: true })
 </script>
 
 <template>
@@ -475,7 +512,7 @@ onMounted(async () => {
       <span class="chip">{{ $t('settings.versionChip', { version: appVersion }) }}</span>
     </header>
 
-    <p v-if="errorMessage" class="settings-alert">
+    <p v-if="errorMessage && activeSection === 'storage'" class="settings-alert">
       {{ errorMessage }}
     </p>
 
@@ -487,16 +524,16 @@ onMounted(async () => {
         <a
           v-for="section in sectionLinks"
           :key="section.id"
-          :href="`#${section.id}`"
+          :href="settingsSectionPath(section.id)"
           :class="{ 'is-on': activeSection === section.id }"
-          @click="activeSection = section.id"
+          @click.prevent="navigateToSection(section.id)"
         >
           {{ $t(section.labelKey) }}
         </a>
       </nav>
 
       <div class="set-content">
-        <section v-if="authStore.isAuthenticated" id="account" data-testid="settings-account-section" class="sect">
+        <section v-if="authStore.isAuthenticated && activeSection === 'account'" id="account" data-testid="settings-account-section" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.account') }}
@@ -620,7 +657,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section id="storage" data-testid="settings-storage-section" class="sect">
+        <section v-if="activeSection === 'storage'" id="storage" data-testid="settings-storage-section" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.storage') }}
@@ -682,7 +719,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section id="backup" data-testid="settings-backup-section" class="sect">
+        <section v-if="activeSection === 'backup'" id="backup" data-testid="settings-backup-section" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.backup') }}
@@ -754,7 +791,7 @@ onMounted(async () => {
           >
         </section>
 
-        <section id="draw" class="sect">
+        <section v-if="activeSection === 'draw'" id="draw" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.draw') }}
@@ -884,7 +921,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section id="playback" class="sect">
+        <section v-if="activeSection === 'playback'" id="playback" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.playback') }}
@@ -968,7 +1005,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section id="i18n" class="sect">
+        <section v-if="activeSection === 'i18n'" id="i18n" class="sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.i18n') }}
@@ -1019,7 +1056,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section id="about" class="sect about-sect">
+        <section v-if="activeSection === 'about'" id="about" class="sect about-sect">
           <div class="sect-head">
             <h2 class="sect-h">
               {{ $t('settings.sections.about') }}
