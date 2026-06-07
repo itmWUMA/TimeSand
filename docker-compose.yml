@@ -7,6 +7,8 @@ services:
     volumes:
       - ./data:/data
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - DATA_DIR=/data
       # Set TIMESAND_ADMIN_PASSWORD before first startup (>= 8 chars).
